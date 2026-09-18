@@ -1,0 +1,116 @@
+# ==============================================================================
+# Git Ignore Rules for Job Hunt Command Center
+# Strictly excludes all secrets, PII, personal CVs, tracking DBs, and generated files
+# ==============================================================================
+
+# 1. Secrets & Environment
+.env
+.env.*
+!.env.example
+
+# 2. Personal & Sensitive Master Profiles (PII)
+Base_CV.md*
+!Base_CV.template.md
+General_CV.md
+cover_letter.md
+summary_response.md
+Verda*
+NestAI*
+
+# 3. Personal Tracker & Operational State Files
+APPLICATIONS_TRACKER.md
+pipeline_data.json
+!pipeline_data.template.json
+telegram_sent_jobs.json
+scout_latest_report.json
+JOB_SCOUT_FEED.md
+entry_level_scouted.csv
+
+# 4. Generated Artifacts & Documents
+*.pdf
+workspace/
+
+# 5. Local Dev & System Caches
+.pytest_cache/
+*.log
+.DS_Store
+.vscode/
+.idea/
+.claude/
+gpu_sleep_diag/
+Hunt/
+
+# 6. Generated Application Packages (Exclude all company job folders)
+ABB_*/
+ALTEN_Finland_*/
+CasambiTechnologies_*/
+CGISuomi_*/
+Clear_Guidance_Partners_*/
+Cognizant_*/
+Cybersecurity_*/
+Data_Center_*/
+DNV_*/
+Elisa_*/
+Field_Service_*/
+Gapit_*/
+GEHealthCare_*/
+GE_Vernova_*/
+HCLTech_*/
+HiQFinland_*/
+HitachiEnergy_*/
+Hoxhunt_*/
+IQM_*/
+Iron_Systems_*/
+Istekki_*/
+IT_Security_*/
+IT_Support_*/
+Jobgether_*/
+Kaukora_*/
+Mapbox_*/
+Microsoft_*/
+Milestone_*/
+MylabOy_*/
+Nebius_*/
+NetNordic_*/
+Nets_*/
+NSCGlobal_*/
+NSC_Global_*/
+NVIDIA_*/
+Odevo_*/
+OSS_*/
+outliner_ai/
+PHZfi_*/
+Planmeca_*/
+Qt_Group_*/
+Quest_Global_*/
+RELEX_*/
+ReOrbit_*/
+Security_Operations_*/
+Senior_System_*/
+Siemens_*/
+Skylo_*/
+Technical_Support_*/
+Telia_*/
+Telko_*/
+TikTok_*/
+Titanium_*/
+UpCloud_*/
+Verda_*/
+WithSecure_*/
+
+# Catch-all pattern for any directory with an underscore
+*_*/
+
+# Ensure whitelisted core directories are NOT ignored by catch-all
+!dashboard/
+!dashboard/**
+!scripts/
+!scripts/**
+!.agents/
+!.agents/**
+
+# Always ignore Python caches everywhere (must follow whitelists)
+**/__pycache__/**
+__pycache__/
+*.py[cod]
+*$py.class

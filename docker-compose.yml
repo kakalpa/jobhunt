@@ -1,0 +1,30 @@
+services:
+  job-hunt-command-center:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: job-hunt-command-center:latest
+    container_name: job-hunt-command-center
+    restart: unless-stopped
+    ports:
+      - "${PORT:-5500}:5500"
+    volumes:
+      # Mount host directory into container workspace so all generated packages, PDFs, and data persist
+      - .:/workspace
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
+      - TELEGRAM_MIN_MATCH_SCORE=${TELEGRAM_MIN_MATCH_SCORE:-80}
+      - SCOUT_ENABLED=${SCOUT_ENABLED:-true}
+      - SCOUT_INTERVAL_HOURS=${SCOUT_INTERVAL_HOURS:-2}
+      - SCOUT_RUN_ON_START=${SCOUT_RUN_ON_START:-false}
+      - POSTING_RETENTION_DAYS=${POSTING_RETENTION_DAYS:-30}
+      - RETENTION_PROTECT_STATUS=${RETENTION_PROTECT_STATUS:-interviewing,offer,applied}
+      - RETENTION_MODE=${RETENTION_MODE:-full}
+      - RETENTION_NOTIFY_TELEGRAM=${RETENTION_NOTIFY_TELEGRAM:-true}
+      - WORKSPACE_DIR=/workspace
+      - PORT=5500
+    env_file:
+      - path: .env
+        required: false

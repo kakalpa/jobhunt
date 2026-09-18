@@ -1,0 +1,2931 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Hunt Command Center</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+              900: '#0c4a6e'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Marked Markdown Parser (CDN with local fallback) -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script>
+    if (!window.marked) {
+      document.write('<script src="/static/marked.min.js"><\/script>');
+    }
+  </script>
+  
+  <style>
+    /* Custom scrollbars */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(51, 65, 85, 0.8);
+      border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: rgba(100, 116, 139, 1);
+    }
+
+    /* Rendered Markdown Styling */
+    .rendered-markdown {
+      color: #e2e8f0;
+      line-height: 1.65;
+    }
+    .rendered-markdown h1 {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #f8fafc;
+      margin-top: 1.2rem;
+      margin-bottom: 0.6rem;
+      padding-bottom: 0.3rem;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.6);
+    }
+    .rendered-markdown h2 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #38bdf8;
+      margin-top: 1.1rem;
+      margin-bottom: 0.5rem;
+    }
+    .rendered-markdown h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #93c5fd;
+      margin-top: 0.9rem;
+      margin-bottom: 0.4rem;
+    }
+    .rendered-markdown p {
+      margin-bottom: 0.75rem;
+    }
+    .rendered-markdown ul {
+      list-style-type: disc;
+      padding-left: 1.25rem;
+      margin-bottom: 0.75rem;
+      space-y: 0.3rem;
+    }
+    .rendered-markdown ol {
+      list-style-type: decimal;
+      padding-left: 1.25rem;
+      margin-bottom: 0.75rem;
+    }
+    .rendered-markdown li {
+      margin-bottom: 0.25rem;
+    }
+    .rendered-markdown strong {
+      font-weight: 700;
+      color: #f1f5f9;
+    }
+    .rendered-markdown em {
+      color: #cbd5e1;
+    }
+    .rendered-markdown blockquote {
+      border-left: 3px solid #0284c7;
+      padding-left: 0.85rem;
+      margin: 0.75rem 0;
+      color: #94a3b8;
+      font-style: italic;
+      background: rgba(14, 165, 233, 0.05);
+      border-radius: 0 0.375rem 0.375rem 0;
+      padding-top: 0.25rem;
+      padding-bottom: 0.25rem;
+    }
+    .rendered-markdown table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.9rem 0;
+      font-size: 0.75rem;
+      background: rgba(15, 23, 42, 0.7);
+      border-radius: 0.5rem;
+      overflow: hidden;
+      border: 1px solid rgba(51, 65, 85, 0.6);
+    }
+    .rendered-markdown th {
+      background: rgba(30, 41, 59, 0.9);
+      color: #38bdf8;
+      font-weight: 700;
+      text-align: left;
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.8);
+    }
+    .rendered-markdown td {
+      padding: 0.45rem 0.75rem;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.4);
+      color: #cbd5e1;
+    }
+    .rendered-markdown tr:last-child td {
+      border-bottom: none;
+    }
+    .rendered-markdown tr:hover td {
+      background: rgba(51, 65, 85, 0.2);
+    }
+    .rendered-markdown code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.85em;
+      background: rgba(30, 41, 59, 0.8);
+      color: #7dd3fc;
+      padding: 0.15rem 0.35rem;
+      border-radius: 0.25rem;
+      border: 1px solid rgba(56, 189, 248, 0.2);
+    }
+    .rendered-markdown pre {
+      background: #020617;
+      border: 1px solid rgba(51, 65, 85, 0.6);
+      border-radius: 0.5rem;
+      padding: 0.75rem 1rem;
+      margin: 0.75rem 0;
+      overflow-x: auto;
+    }
+    .rendered-markdown pre code {
+      background: transparent;
+      padding: 0;
+      border: none;
+      color: #f1f5f9;
+      font-size: 0.8rem;
+    }
+    .rendered-markdown hr {
+      border: 0;
+      height: 1px;
+      background: rgba(51, 65, 85, 0.6);
+      margin: 1.25rem 0;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-sky-500 selection:text-white">
+
+  <!-- Top Navbar -->
+  <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-30 px-6 py-3">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+      
+      <!-- Brand & Profile -->
+      <div class="flex items-center gap-3">
+        <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center shadow-md shadow-sky-500/20">
+          <i data-lucide="crosshair" class="w-5 h-5 text-white"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base font-bold text-white tracking-tight">Job Hunt Command Center</h1>
+            <span class="px-2 py-0.5 text-[10px] font-semibold bg-sky-500/10 text-sky-400 border border-sky-500/30 rounded-full">v3 High-Conversion</span>
+          </div>
+          <p class="text-xs text-slate-400">Autonomous Career Pipeline &bull; AI Job Intelligence</p>
+        </div>
+      </div>
+
+      <!-- Quick Metrics Ribbon -->
+      <div class="flex items-center gap-2 text-xs flex-wrap">
+        <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60" title="Ready to Apply">
+          <span class="w-2 h-2 rounded-full bg-sky-400"></span>
+          <span class="text-slate-400">Ready:</span>
+          <span id="metric-ready" class="font-bold text-white">0</span>
+        </div>
+        <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60" title="Applied">
+          <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          <span class="text-slate-400">Applied:</span>
+          <span id="metric-applied" class="font-bold text-white">0</span>
+        </div>
+        <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60" title="Interviewing">
+          <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+          <span class="text-slate-400">Interview:</span>
+          <span id="metric-interview" class="font-bold text-white">0</span>
+        </div>
+        <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60" title="Scouted Leads">
+          <span class="w-2 h-2 rounded-full bg-purple-400"></span>
+          <span class="text-slate-400">Scouted:</span>
+          <span id="metric-scouted" class="font-bold text-white">0</span>
+        </div>
+        <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800/80 border border-emerald-500/30 text-emerald-300" title="English / International Postings">
+          <span class="text-[10px]">🌐 Int'l:</span>
+          <span id="metric-english" class="font-bold">0</span>
+        </div>
+        <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800/80 border border-amber-500/30 text-amber-300" title="Finnish Required Postings">
+          <span class="text-[10px]">🇫🇮 Suomi:</span>
+          <span id="metric-finnish" class="font-bold">0</span>
+        </div>
+      </div>
+
+      <!-- Actions & Controls -->
+      <div class="flex items-center gap-2.5 w-full md:w-auto justify-end">
+        <button id="btn-scout" onclick="openScoutModal()" class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-medium text-xs shadow-md shadow-sky-500/10 transition active:scale-95">
+          <i data-lucide="radar" id="scout-icon" class="w-4 h-4"></i>
+          <span id="scout-text">Run IT Scout</span>
+        </button>
+        <button id="btn-scout-report" onclick="openScoutModal('report')" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition text-xs font-medium hover:text-white" title="View Latest Mission Report">
+          <i data-lucide="file-bar-chart" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span class="hidden sm:inline">Scout Report</span>
+        </button>
+        <button id="btn-telegram" onclick="openTelegramModal()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition text-xs font-medium hover:text-white" title="Telegram Alerts & Config">
+          <i data-lucide="send" class="w-3.5 h-3.5 text-sky-400"></i>
+          <span class="hidden sm:inline">Telegram</span>
+          <span id="telegram-header-dot" class="w-2 h-2 rounded-full bg-slate-500"></span>
+        </button>
+        <button id="btn-retention" onclick="openRetentionModal()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition text-xs font-medium hover:text-white" title="Storage Retention & Cleanup">
+          <i data-lucide="hard-drive" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span class="hidden sm:inline">Retention</span>
+        </button>
+        <button onclick="refreshData()" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition hover:text-white" title="Refresh Applications">
+          <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Filter & View Toolbar -->
+  <section class="border-b border-slate-800/80 bg-slate-900/50 px-6 py-3">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+      
+      <!-- Search Input -->
+      <div class="relative w-full sm:w-72">
+        <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+        <input 
+          type="text" 
+          id="search-box" 
+          oninput="filterJobs()" 
+          placeholder="Filter by company, role, location..." 
+          class="w-full bg-slate-800/90 border border-slate-700/70 rounded-lg pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/50"
+        >
+      </div>
+
+      <!-- Filters & View Mode -->
+      <div class="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end flex-wrap">
+        
+        <!-- Language Filter Dropdown -->
+        <div class="flex items-center gap-1.5 text-xs text-slate-400">
+          <span>Language:</span>
+          <select id="language-filter" onchange="filterJobs()" class="bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none">
+            <option value="all">All Languages</option>
+            <option value="English / International">🌐 English / Int'l Only</option>
+            <option value="Finnish Advantage">👍 Finnish Advantage</option>
+            <option value="Finnish Required">🇫🇮 Finnish Required</option>
+          </select>
+        </div>
+
+        <!-- Score Filter -->
+        <div class="flex items-center gap-1.5 text-xs text-slate-400">
+          <span>Min Match:</span>
+          <select id="score-filter" onchange="filterJobs()" class="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-200 focus:outline-none">
+            <option value="0">All Scores</option>
+            <option value="70">70%+</option>
+            <option value="80" selected>80%+ (High Match)</option>
+            <option value="90">90%+ (Top Match)</option>
+          </select>
+        </div>
+
+        <!-- View Mode Switcher -->
+        <div class="flex items-center bg-slate-800 p-0.5 rounded-lg border border-slate-700">
+          <button id="view-kanban-btn" onclick="setViewMode('kanban')" class="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition bg-sky-600 text-white">
+            <i data-lucide="kanban" class="w-3.5 h-3.5"></i>
+            <span>Kanban</span>
+          </button>
+          <button id="view-table-btn" onclick="setViewMode('table')" class="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition text-slate-400 hover:text-white">
+            <i data-lucide="table" class="w-3.5 h-3.5"></i>
+            <span>Table</span>
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Main Content Viewport -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-6 overflow-hidden flex flex-col">
+    
+    <!-- KANBAN BOARD VIEW -->
+    <div id="kanban-view" class="grid grid-cols-1 md:grid-cols-4 gap-4 flex-1 items-start">
+      
+      <!-- 1. Ready to Apply Column -->
+      <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-3.5 flex flex-col max-h-[calc(100vh-210px)]">
+        <div class="flex items-center justify-between pb-2.5 mb-2 border-b border-slate-800">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-sky-500 shadow-sm shadow-sky-500/50"></span>
+            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-200">Ready to Apply</h2>
+          </div>
+          <span id="col-count-ready" class="text-xs font-semibold px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20">0</span>
+        </div>
+        <div id="col-ready" class="space-y-3 overflow-y-auto custom-scrollbar flex-1 pr-1"></div>
+      </div>
+
+      <!-- 2. Applied / In Review Column -->
+      <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-3.5 flex flex-col max-h-[calc(100vh-210px)]">
+        <div class="flex items-center justify-between pb-2.5 mb-2 border-b border-slate-800">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50"></span>
+            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-200">Applied</h2>
+          </div>
+          <span id="col-count-applied" class="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">0</span>
+        </div>
+        <div id="col-applied" class="space-y-3 overflow-y-auto custom-scrollbar flex-1 pr-1"></div>
+      </div>
+
+      <!-- 3. Interviewing Column -->
+      <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-3.5 flex flex-col max-h-[calc(100vh-210px)]">
+        <div class="flex items-center justify-between pb-2.5 mb-2 border-b border-slate-800">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-sm shadow-amber-500/50"></span>
+            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-200">Interviewing</h2>
+          </div>
+          <span id="col-count-interviewing" class="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">0</span>
+        </div>
+        <div id="col-interviewing" class="space-y-3 overflow-y-auto custom-scrollbar flex-1 pr-1"></div>
+      </div>
+
+      <!-- 4. Discovered Feed Column -->
+      <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-3.5 flex flex-col max-h-[calc(100vh-210px)]">
+        <div class="flex items-center justify-between pb-2.5 mb-2 border-b border-slate-800">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-purple-500 shadow-sm shadow-purple-500/50"></span>
+            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-200">Scouted Leads</h2>
+          </div>
+          <span id="col-count-scouted" class="text-xs font-semibold px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">0</span>
+        </div>
+        <div id="col-scouted" class="space-y-3 overflow-y-auto custom-scrollbar flex-1 pr-1"></div>
+      </div>
+
+    </div>
+
+    <!-- TABLE VIEW -->
+    <div id="table-view" class="hidden flex-1 overflow-y-auto custom-scrollbar bg-slate-900/60 border border-slate-800 rounded-xl">
+      <table class="w-full text-left text-xs">
+        <thead class="bg-slate-800/80 text-slate-300 uppercase tracking-wider text-[11px] sticky top-0 backdrop-blur z-10 border-b border-slate-700">
+          <tr>
+            <th class="py-3 px-4">Match</th>
+            <th class="py-3 px-4">Role & Company</th>
+            <th class="py-3 px-4">Language</th>
+            <th class="py-3 px-4">Platform</th>
+            <th class="py-3 px-4">Location</th>
+            <th class="py-3 px-4">Status</th>
+            <th class="py-3 px-4">Applied Date</th>
+            <th class="py-3 px-4">Files</th>
+            <th class="py-3 px-4 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="table-body" class="divide-y divide-slate-800/70"></tbody>
+      </table>
+    </div>
+
+  </main>
+
+  <!-- SIDEBAR APPLICATION COPILOT DRAWER (MODAL) -->
+  <div id="drawer-backdrop" onclick="closeDrawer()" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden transition-opacity"></div>
+  <div id="drawer" class="fixed right-0 top-0 bottom-0 w-full max-w-2xl bg-slate-900 border-l border-slate-800 shadow-2xl z-50 transform translate-x-full transition-transform duration-300 flex flex-col">
+    
+    <!-- Drawer Header -->
+    <div class="p-5 border-b border-slate-800 bg-slate-900/90 flex items-start justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+          <span id="drawer-score-badge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-sky-500/10 text-sky-400 border border-sky-500/30">94% Match</span>
+          <span id="drawer-ats-badge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/40 hidden items-center gap-1">
+            <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i>
+            <span id="drawer-ats-text">ATS: 95%</span>
+          </span>
+          <span id="drawer-language-badge" class="px-2 py-0.5 rounded text-[10px] font-semibold border border-emerald-500/30 bg-emerald-500/10 text-emerald-300">🌐 English / Int'l</span>
+          <span id="drawer-status-badge" class="px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-slate-800 text-slate-300">Ready</span>
+        </div>
+        <h2 id="drawer-title" class="text-base font-bold text-white tracking-tight">Lead Cyber Security Engineer</h2>
+        <p id="drawer-subtitle" class="text-xs text-slate-400">GE Vernova &bull; Tampere, Finland</p>
+      </div>
+      <button onclick="closeDrawer()" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+    </div>
+
+    <!-- Status & Action Bar -->
+    <div class="px-5 py-3 bg-slate-950/60 border-b border-slate-800 flex items-center justify-between gap-3 text-xs flex-wrap">
+      <div class="flex items-center gap-2">
+        <span class="text-slate-400">Status:</span>
+        <select id="drawer-status-select" onchange="onDrawerStatusChange()" class="bg-slate-800 border border-slate-700 text-white rounded-lg px-2.5 py-1 text-xs focus:ring-1 focus:ring-sky-500">
+          <option value="ready">Ready to Apply</option>
+          <option value="applied">Applied / Submitted</option>
+          <option value="interviewing">Interviewing</option>
+          <option value="offer">Offer Received 🎉</option>
+          <option value="rejected">Archived / Rejected</option>
+        </select>
+      </div>
+      <div id="drawer-action-link"></div>
+    </div>
+
+    <!-- PDF & Local Folder Quick Actions Bar -->
+    <div id="drawer-pdf-bar" class="px-5 py-2.5 bg-slate-900 border-b border-slate-800/80 flex items-center justify-between gap-3 text-xs flex-wrap">
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="text-slate-400 font-medium">Recruiter PDFs:</span>
+        <div id="drawer-pdf-links" class="flex items-center gap-2"></div>
+      </div>
+      <div id="drawer-folder-actions" class="flex items-center gap-2"></div>
+    </div>
+
+    <!-- Drawer Tabs -->
+    <div class="flex border-b border-slate-800 bg-slate-900 px-5 gap-4 text-xs font-semibold overflow-x-auto">
+      <button id="tab-btn-cover_letter" onclick="switchDrawerTab('cover_letter')" class="py-3 border-b-2 border-sky-500 text-sky-400 font-bold flex items-center gap-1.5 whitespace-nowrap">
+        <span>Cover Letter</span>
+      </button>
+      <button id="tab-btn-ats" onclick="switchDrawerTab('ats')" class="py-3 border-b-2 border-transparent text-slate-400 hover:text-white flex items-center gap-1.5 whitespace-nowrap">
+        <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i>
+        <span>ATS Report</span>
+      </button>
+      <button id="tab-btn-screening_qa" onclick="switchDrawerTab('screening_qa')" class="py-3 border-b-2 border-transparent text-slate-400 hover:text-white flex items-center gap-1.5 whitespace-nowrap">
+        <span>Screening Q&A</span>
+      </button>
+      <button id="tab-btn-prep" onclick="switchDrawerTab('prep')" class="py-3 border-b-2 border-transparent text-slate-400 hover:text-white flex items-center gap-1.5 whitespace-nowrap">
+        <i data-lucide="award" class="w-3.5 h-3.5 text-amber-400"></i>
+        <span>Interview Prep & STAR</span>
+      </button>
+      <button id="tab-btn-outreach" onclick="switchDrawerTab('outreach')" class="py-3 border-b-2 border-transparent text-slate-400 hover:text-white flex items-center gap-1.5 whitespace-nowrap">
+        <span>Outreach & Call Script</span>
+      </button>
+      <button id="tab-btn-folder_files" onclick="switchDrawerTab('folder_files')" class="py-3 border-b-2 border-transparent text-slate-400 hover:text-white flex items-center gap-1.5 whitespace-nowrap">
+        <i data-lucide="folder" class="w-3.5 h-3.5"></i>
+        <span>All Package Files</span>
+      </button>
+      <button id="tab-btn-notes" onclick="switchDrawerTab('notes')" class="py-3 border-b-2 border-transparent text-slate-400 hover:text-white flex items-center gap-1.5 whitespace-nowrap">
+        <span>Notes & Tracker</span>
+      </button>
+    </div>
+
+    <!-- Tab Content Viewport -->
+    <div class="flex-1 p-5 overflow-y-auto custom-scrollbar relative">
+      
+      <!-- Content Copy Button Banner -->
+      <div id="copy-banner" class="mb-4 flex items-center justify-between bg-slate-800/70 border border-slate-700/60 rounded-lg p-2.5 text-xs">
+        <span class="text-slate-300">Ready to submit? Copy tailored text instantly:</span>
+        <div class="flex items-center gap-2">
+          <button id="btn-toggle-markdown" onclick="toggleMarkdownView()" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-slate-700/80 hover:bg-slate-700 text-slate-200 text-xs font-medium transition active:scale-95 border border-slate-600/60" title="Toggle between Rendered and Raw Markdown view">
+            <i data-lucide="code" id="icon-toggle-markdown" class="w-3.5 h-3.5 text-slate-300"></i>
+            <span id="text-toggle-markdown">Raw Markdown</span>
+          </button>
+          <button id="btn-copy-tab" onclick="copyCurrentTabContent()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-sky-600 hover:bg-sky-500 text-white font-medium transition active:scale-95">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            <span>Copy to Clipboard</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab 1: Text Content View (Cover Letter, Q&A, Outreach) -->
+      <div id="drawer-tab-text" class="text-xs leading-relaxed whitespace-pre-wrap font-mono bg-slate-950 p-4 rounded-xl border border-slate-800/80 text-slate-200 selection:bg-sky-600 selection:text-white">
+        Loading content...
+      </div>
+
+      <!-- Tab 2: All Package Files in Folder -->
+      <div id="drawer-tab-files" class="hidden space-y-3 text-xs">
+        <div class="flex items-center justify-between bg-slate-800/80 p-3 rounded-xl border border-slate-700">
+          <div>
+            <div class="text-white font-bold flex items-center gap-1.5" id="files-folder-title">
+              <i data-lucide="folder" class="w-4 h-4 text-amber-400"></i>
+              <span>Folder: —</span>
+            </div>
+            <div class="text-slate-400 font-mono text-[11px] mt-0.5" id="files-folder-path">/home/...</div>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap justify-end">
+            <button onclick="triggerWorkflow(currentJob?.id, true)" class="px-3 py-1.5 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 hover:text-indigo-200 border border-indigo-500/40 font-bold rounded-lg transition active:scale-95 flex items-center gap-1.5 shadow" title="Regenerate all application files with Gemini AI">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+              <span>Regenerate Docs</span>
+            </button>
+            <button onclick="downloadJobBundle(currentJob?.folder)" class="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-lg transition active:scale-95 flex items-center gap-1.5 shadow" title="Download all PDFs and application files as a ZIP">
+              <i data-lucide="package-check" class="w-3.5 h-3.5"></i>
+              <span>Download ZIP</span>
+            </button>
+            <button onclick="copyFolderPath(currentJob?.folder)" class="px-2.5 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium rounded-lg transition active:scale-95 flex items-center gap-1">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+              <span>Copy Path</span>
+            </button>
+            <button onclick="triggerOpenFolder(currentJob?.folder)" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg transition active:scale-95 flex items-center gap-1.5 shadow">
+              <i data-lucide="folder-open" class="w-4 h-4"></i>
+              <span>Open in File Manager</span>
+            </button>
+          </div>
+        </div>
+        <div id="files-list-container" class="space-y-2">
+          <!-- Dynamically populated files -->
+        </div>
+      </div>
+
+      <!-- Tab: Outreach & Follow-Up Drafter -->
+      <div id="drawer-tab-outreach" class="hidden space-y-4 text-xs">
+        <div class="flex items-center justify-between bg-slate-800/80 p-3 rounded-xl border border-slate-700">
+          <div>
+            <div class="text-white font-bold flex items-center gap-1.5">
+              <i data-lucide="sparkles" class="w-4 h-4 text-amber-400"></i>
+              <span>Recruiter & Outreach Messages</span>
+            </div>
+            <div class="text-slate-400 text-[11px] mt-0.5">Tailored, professional, human messages ready to copy & send.</div>
+          </div>
+          <button onclick="downloadJobBundle(currentJob?.folder)" class="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-lg transition active:scale-95 flex items-center gap-1.5 shadow">
+            <i data-lucide="package-check" class="w-3.5 h-3.5"></i>
+            <span>Download Package (.zip)</span>
+          </button>
+        </div>
+
+        <!-- Draft 1: LinkedIn Connection Note -->
+        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="font-bold text-white flex items-center gap-1.5">
+              <i data-lucide="user-plus" class="w-3.5 h-3.5 text-sky-400"></i>
+              <span>1. LinkedIn Connection Request Note (&lt; 300 chars)</span>
+            </div>
+            <button onclick="copyOutreachDraft('linkedin')" class="px-2.5 py-1 rounded bg-sky-600 hover:bg-sky-500 text-white font-medium text-[11px] flex items-center gap-1 transition active:scale-95">
+              <i data-lucide="copy" class="w-3 h-3"></i>
+              <span>Copy Note</span>
+            </button>
+          </div>
+          <div id="outreach-linkedin-text" class="p-3 bg-slate-900 rounded-lg text-slate-200 font-mono text-xs whitespace-pre-wrap selection:bg-sky-600 border border-slate-800/60">
+            Select a job or switch tabs to generate draft.
+          </div>
+        </div>
+
+        <!-- Draft 2: Recruiter / Hiring InMail -->
+        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="font-bold text-white flex items-center gap-1.5">
+              <i data-lucide="mail" class="w-3.5 h-3.5 text-amber-400"></i>
+              <span>2. Recruiter / Hiring Team InMail / Direct Email</span>
+            </div>
+            <button onclick="copyOutreachDraft('inmail')" class="px-2.5 py-1 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-[11px] flex items-center gap-1 transition active:scale-95">
+              <i data-lucide="copy" class="w-3 h-3"></i>
+              <span>Copy Message</span>
+            </button>
+          </div>
+          <div id="outreach-inmail-text" class="p-3 bg-slate-900 rounded-lg text-slate-200 font-mono text-xs whitespace-pre-wrap selection:bg-sky-600 border border-slate-800/60">
+            Select a job or switch tabs to generate draft.
+          </div>
+        </div>
+
+        <!-- Draft 3: 7-Day Follow-Up Message -->
+        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="font-bold text-white flex items-center gap-1.5">
+              <i data-lucide="clock" class="w-3.5 h-3.5 text-emerald-400"></i>
+              <span>3. 7-Day Application Follow-Up Message</span>
+            </div>
+            <button onclick="copyOutreachDraft('followup')" class="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-[11px] flex items-center gap-1 transition active:scale-95">
+              <i data-lucide="copy" class="w-3 h-3"></i>
+              <span>Copy Follow-Up</span>
+            </button>
+          </div>
+          <div id="outreach-followup-text" class="p-3 bg-slate-900 rounded-lg text-slate-200 font-mono text-xs whitespace-pre-wrap selection:bg-sky-600 border border-slate-800/60">
+            Select a job or switch tabs to generate draft.
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 3: Notes & Interview Tracker -->
+      <div id="drawer-tab-notes" class="hidden space-y-4 text-xs">
+        <div>
+          <label class="block font-medium text-slate-300 mb-1">Direct Job Posting Link / URL:</label>
+          <input type="url" id="notes-job-url" placeholder="https://..." class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-white w-full focus:outline-none focus:ring-1 focus:ring-sky-500 font-mono text-xs">
+        </div>
+        <div>
+          <label class="block font-medium text-slate-300 mb-1">Interview Date & Time:</label>
+          <input type="datetime-local" id="notes-interview-date" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-white w-full focus:outline-none focus:ring-1 focus:ring-sky-500">
+        </div>
+        <div>
+          <label class="block font-medium text-slate-300 mb-1">Application Notes / Contact Details:</label>
+          <textarea id="notes-textarea" rows="5" placeholder="Add recruiter names, specific questions asked, salary offers, or follow-up dates..." class="bg-slate-800 border border-slate-700 rounded-lg p-3 text-white w-full focus:outline-none focus:ring-1 focus:ring-sky-500"></textarea>
+        </div>
+        <button onclick="saveNotes()" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white font-medium rounded-lg transition active:scale-95 flex items-center gap-1.5">
+          <i data-lucide="save" class="w-3.5 h-3.5"></i>
+          <span>Save Notes & Link</span>
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- WORKFLOW PROGRESS / LAUNCH MODAL -->
+  <div id="wf-modal-backdrop" onclick="closeWorkflowModal()" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden transition-opacity"></div>
+  <div id="wf-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 pointer-events-none">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative pointer-events-auto">
+      
+      <!-- Modal Header -->
+      <div class="flex items-start justify-between gap-3 mb-4 pb-3 border-b border-slate-800">
+        <div class="flex items-center gap-2.5">
+          <div class="h-9 w-9 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0">
+            <i data-lucide="zap" class="w-5 h-5 fill-amber-400"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-white tracking-tight" id="wf-modal-title">Application Package Workflow</h3>
+            <p class="text-xs text-slate-400" id="wf-modal-subtitle">Initializing package generation...</p>
+          </div>
+        </div>
+        <button onclick="closeWorkflowModal()" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Live Steps Checklist -->
+      <div class="space-y-2.5 text-xs mb-5" id="wf-steps-container">
+        <div class="flex items-center gap-2 text-slate-300" id="wf-step-1">
+          <div class="w-4 h-4 flex items-center justify-center shrink-0"><span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span></div>
+          <span>Scraping & ingesting job posting metadata...</span>
+        </div>
+        <div class="flex items-center gap-2 text-slate-400" id="wf-step-2">
+          <div class="w-4 h-4 flex items-center justify-center shrink-0"><i data-lucide="circle" class="w-3 h-3 text-slate-600"></i></div>
+          <span>Calibrating requirements against Master Profile (TUAS 4.0 GPA)...</span>
+        </div>
+        <div class="flex items-center gap-2 text-slate-400" id="wf-step-3">
+          <div class="w-4 h-4 flex items-center justify-center shrink-0"><i data-lucide="circle" class="w-3 h-3 text-slate-600"></i></div>
+          <span>Crafting tailored CV with Google X-Y-Z metrics...</span>
+        </div>
+        <div class="flex items-center gap-2 text-slate-400" id="wf-step-4">
+          <div class="w-4 h-4 flex items-center justify-center shrink-0"><i data-lucide="circle" class="w-3 h-3 text-slate-600"></i></div>
+          <span>Generating strategic 3-pillar Cover Letter & screening Q&A...</span>
+        </div>
+        <div class="flex items-center gap-2 text-slate-400" id="wf-step-5">
+          <div class="w-4 h-4 flex items-center justify-center shrink-0"><i data-lucide="circle" class="w-3 h-3 text-slate-600"></i></div>
+          <span>Compiling recruiter-ready vector A4 PDFs (Chromium)...</span>
+        </div>
+        <div class="flex items-center gap-2 text-slate-400" id="wf-step-6">
+          <div class="w-4 h-4 flex items-center justify-center shrink-0"><i data-lucide="circle" class="w-3 h-3 text-slate-600"></i></div>
+          <span>Computing ATS optimization audit & compatibility score...</span>
+        </div>
+      </div>
+
+      <!-- Finished Summary Box (Hidden while generating) -->
+      <div id="wf-result-box" class="hidden p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-2 mb-5">
+        <div class="flex items-center justify-between">
+          <span class="text-slate-400">Generated Folder:</span>
+          <span class="font-mono text-amber-300 font-bold" id="wf-result-folder">—</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-slate-400">Total Artifacts:</span>
+          <span class="text-white font-medium" id="wf-result-files">9 files (CV, Letter, PDFs, Q&A, Prep, ATS)</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-slate-400">ATS Score:</span>
+          <span class="text-emerald-400 font-bold" id="wf-result-ats">95% (Fully Compliant)</span>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center justify-between gap-2 pt-3 border-t border-slate-800" id="wf-modal-actions">
+        <button onclick="copyWfCommand()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-medium flex items-center gap-1.5 transition active:scale-95">
+          <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+          <span>Copy Chat Prompt</span>
+        </button>
+        <div class="flex items-center gap-2">
+          <button id="wf-btn-folder" onclick="openWfResultFolder()" class="hidden px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition active:scale-95 shadow">
+            <i data-lucide="folder-open" class="w-3.5 h-3.5"></i>
+            <span>Open Folder</span>
+          </button>
+          <button id="wf-btn-inspect" onclick="inspectWfResultJob()" class="hidden px-3.5 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs flex items-center gap-1.5 transition active:scale-95 shadow">
+            <i data-lucide="sliders" class="w-3.5 h-3.5"></i>
+            <span>View in Copilot</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SCOUT PROCESS & REPORT MODAL -->
+  <div id="scout-modal-backdrop" onclick="closeScoutModal()" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden transition-opacity"></div>
+  <div id="scout-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-3 sm:p-4 pointer-events-none">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-3xl w-full p-5 sm:p-6 shadow-2xl relative pointer-events-auto flex flex-col max-h-[92vh] overflow-hidden">
+      
+      <!-- Modal Header -->
+      <div class="flex items-start justify-between gap-3 mb-4 pb-3 border-b border-slate-800 shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="h-10 w-10 rounded-xl bg-sky-500/20 text-sky-400 border border-sky-500/30 flex items-center justify-center shrink-0 relative">
+            <i data-lucide="radar" id="scout-modal-icon" class="w-5 h-5 text-sky-400"></i>
+            <span id="scout-ping" class="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-sky-400 animate-ping hidden"></span>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-sm font-bold text-white tracking-tight">Automated IT Scout Scanner</h3>
+              <span id="scout-status-badge" class="text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-slate-800 text-slate-400 border border-slate-700">Idle</span>
+            </div>
+            <p class="text-xs text-slate-400" id="scout-modal-subtitle">Real-time Finland & EU Remote Discovery • LinkedIn & Indeed</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <!-- View Switcher Tabs -->
+          <div class="flex items-center bg-slate-800/90 rounded-lg p-1 border border-slate-700 text-xs">
+            <button id="tab-scout-process" onclick="switchScoutTab('process')" class="px-2.5 py-1 rounded-md text-xs font-medium transition text-white bg-slate-700 shadow-sm flex items-center gap-1.5">
+              <i data-lucide="activity" class="w-3.5 h-3.5 text-sky-400"></i>
+              <span>Live Process</span>
+            </button>
+            <button id="tab-scout-report" onclick="switchScoutTab('report')" class="px-2.5 py-1 rounded-md text-xs font-medium transition text-slate-400 hover:text-white flex items-center gap-1.5">
+              <i data-lucide="file-bar-chart" class="w-3.5 h-3.5 text-amber-400"></i>
+              <span>Mission Report</span>
+            </button>
+          </div>
+
+          <button onclick="closeScoutModal()" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition" title="Minimize / Close">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- TAB 1: PROCESS VIEW -->
+      <div id="scout-process-view" class="flex-1 flex flex-col min-h-0 overflow-y-auto space-y-4 pr-1">
+        
+        <!-- Radar / Progress Hero Banner -->
+        <div class="bg-gradient-to-br from-slate-950 to-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col sm:flex-row items-center gap-4 relative overflow-hidden shrink-0">
+          
+          <!-- Animated Radar Graphic -->
+          <div class="relative w-20 h-20 shrink-0 flex items-center justify-center">
+            <div class="absolute inset-0 rounded-full border border-sky-500/20"></div>
+            <div class="absolute inset-2 rounded-full border border-sky-500/30"></div>
+            <div class="absolute inset-4 rounded-full border border-sky-500/40"></div>
+            <div id="radar-sweep" class="absolute inset-0 rounded-full border-t-2 border-sky-400 animate-spin opacity-40"></div>
+            <div class="w-3.5 h-3.5 rounded-full bg-sky-400 shadow-lg shadow-sky-400/50 flex items-center justify-center">
+              <div class="w-1.5 h-1.5 rounded-full bg-white"></div>
+            </div>
+          </div>
+
+          <!-- Stage Info & Progress Bar -->
+          <div class="flex-1 w-full space-y-2">
+            <div class="flex items-center justify-between text-xs">
+              <span id="scout-stage-text" class="text-white font-semibold truncate">Ready to scan Finland & EU Remote IT roles...</span>
+              <span id="scout-progress-pct" class="font-mono text-sky-400 font-bold">0%</span>
+            </div>
+
+            <!-- Progress Bar Track -->
+            <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden border border-slate-700/60">
+              <div id="scout-progress-bar" class="bg-gradient-to-r from-sky-500 via-indigo-500 to-emerald-400 h-full w-0 transition-all duration-300"></div>
+            </div>
+
+            <!-- Pipeline Checkpoints -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-[11px] text-slate-400">
+              <div id="chk-step-1" class="flex items-center gap-1.5 text-slate-500">
+                <i data-lucide="circle" class="w-3 h-3 text-slate-600 shrink-0"></i>
+                <span class="truncate">1. Query Ingestion</span>
+              </div>
+              <div id="chk-step-2" class="flex items-center gap-1.5 text-slate-500">
+                <i data-lucide="circle" class="w-3 h-3 text-slate-600 shrink-0"></i>
+                <span class="truncate">2. Scraping Web</span>
+              </div>
+              <div id="chk-step-3" class="flex items-center gap-1.5 text-slate-500">
+                <i data-lucide="circle" class="w-3 h-3 text-slate-600 shrink-0"></i>
+                <span class="truncate">3. IT Filtering</span>
+              </div>
+              <div id="chk-step-4" class="flex items-center gap-1.5 text-slate-500">
+                <i data-lucide="circle" class="w-3 h-3 text-slate-600 shrink-0"></i>
+                <span class="truncate">4. Deduplication</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Terminal Logs Console -->
+        <div class="flex-1 flex flex-col min-h-[160px] max-h-[260px] bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-inner">
+          <div class="bg-slate-900/80 px-3 py-1.5 border-b border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+            <div class="flex items-center gap-2">
+              <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-rose-500/80 inline-block"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-500/80 inline-block"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block"></span>
+              </div>
+              <span class="font-mono text-slate-300">scout_stream.log</span>
+            </div>
+            <span class="text-[10px] text-slate-500 font-mono" id="scout-log-counter">0 lines</span>
+          </div>
+
+          <div id="scout-terminal-logs" class="p-3 font-mono text-[11px] text-slate-300 space-y-1 overflow-y-auto select-text scrollbar-thin flex-1">
+            <div class="text-slate-500">// Ready to initiate scout scan across platforms...</div>
+          </div>
+        </div>
+
+        <!-- Controls Footer -->
+        <div class="flex items-center justify-between gap-3 pt-2 border-t border-slate-800 shrink-0">
+          <div class="flex items-center gap-2">
+            <button id="btn-trigger-live" onclick="triggerScout('live')" class="px-3.5 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-medium text-xs flex items-center gap-1.5 transition active:scale-95 shadow">
+              <i data-lucide="play" class="w-3.5 h-3.5 fill-white"></i>
+              <span>Full Live Scout</span>
+            </button>
+            <button id="btn-trigger-fast" onclick="triggerScout('fast')" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-medium flex items-center gap-1.5 transition active:scale-95" title="Re-index database against keywords in 1s">
+              <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-400"></i>
+              <span>Quick Re-Sync</span>
+            </button>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button onclick="closeScoutModal()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition">
+              Run in Background
+            </button>
+            <button id="btn-view-report-when-ready" onclick="switchScoutTab('report')" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-1.5 transition hidden">
+              <i data-lucide="check" class="w-3.5 h-3.5"></i>
+              <span>View Report</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- TAB 2: REPORT VIEW -->
+      <div id="scout-report-view" class="flex-1 flex flex-col min-h-0 overflow-y-auto space-y-4 pr-1 hidden">
+        
+        <!-- Summary KPI Cards -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 shrink-0">
+          <div class="bg-slate-950/70 border border-slate-800 p-3 rounded-xl">
+            <div class="text-[11px] text-slate-400 mb-0.5">Total Scraped</div>
+            <div class="text-xl font-bold text-white font-mono" id="rep-raw-count">0</div>
+            <div class="text-[10px] text-slate-500">Across LinkedIn & Indeed</div>
+          </div>
+
+          <div class="bg-slate-950/70 border border-slate-800 p-3 rounded-xl">
+            <div class="text-[11px] text-slate-400 mb-0.5">Filtered IT Roles</div>
+            <div class="text-xl font-bold text-sky-400 font-mono" id="rep-it-count">0</div>
+            <div class="text-[10px] text-slate-500">Non-IT rows removed</div>
+          </div>
+
+          <div class="bg-slate-950/70 border border-slate-800 p-3 rounded-xl">
+            <div class="text-[11px] text-slate-400 mb-0.5">Unique Openings</div>
+            <div class="text-xl font-bold text-indigo-400 font-mono" id="rep-deduped-count">0</div>
+            <div class="text-[10px] text-slate-500">Multi-site posts merged</div>
+          </div>
+
+          <div class="bg-slate-950/70 border border-slate-800 p-3 rounded-xl">
+            <div class="text-[11px] text-slate-400 mb-0.5">High Match (≥80%)</div>
+            <div class="text-xl font-bold text-emerald-400 font-mono" id="rep-high-count">0</div>
+            <div class="text-[10px] text-slate-500">Prime candidate matches</div>
+          </div>
+        </div>
+
+        <!-- Filter bar for report jobs -->
+        <div class="flex items-center justify-between gap-2 shrink-0 flex-wrap pb-1 border-b border-slate-800">
+          <div class="flex items-center gap-1 text-xs">
+            <button onclick="setReportFilter('all')" id="rf-btn-all" class="px-2.5 py-1 rounded-lg bg-sky-500 text-white font-medium text-[11px] transition">All</button>
+            <button onclick="setReportFilter('high')" id="rf-btn-high" class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:text-white font-medium text-[11px] transition">⭐ Match ≥80%</button>
+            <button onclick="setReportFilter('intl')" id="rf-btn-intl" class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:text-white font-medium text-[11px] transition">🌐 English / Int'l</button>
+            <button onclick="setReportFilter('suomi')" id="rf-btn-suomi" class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:text-white font-medium text-[11px] transition">🇫🇮 Finnish Req.</button>
+            <button onclick="setReportFilter('new')" id="rf-btn-new" class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:text-white font-medium text-[11px] transition">⭐ New Only</button>
+          </div>
+
+          <div class="text-[11px] text-slate-400 font-mono" id="rep-last-scanned-time">
+            Last Scan: —
+          </div>
+        </div>
+
+        <!-- Opportunity Cards List -->
+        <div class="flex-1 overflow-y-auto space-y-2.5 pr-1 min-h-[220px]" id="rep-jobs-container">
+          <div class="p-6 text-center text-slate-500 text-xs">No scout report data loaded yet.</div>
+        </div>
+
+        <!-- Report Footer Actions -->
+        <div class="flex items-center justify-between gap-2 pt-3 border-t border-slate-800 shrink-0">
+          <button onclick="switchScoutTab('process')" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium flex items-center gap-1.5 transition">
+            <i data-lucide="terminal" class="w-3.5 h-3.5 text-slate-400"></i>
+            <span>View Process Logs</span>
+          </button>
+          <div class="flex items-center gap-2">
+            <button onclick="triggerScout('live')" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-medium flex items-center gap-1.5 transition active:scale-95">
+              <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+              <span>Re-Run Scout</span>
+            </button>
+            <button onclick="closeScoutModal(); refreshData();" class="px-4 py-1.5 rounded-lg bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow transition active:scale-95">
+              <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
+              <span>View On Board</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- TELEGRAM ALERT & SETTINGS MODAL -->
+  <div id="telegram-modal-backdrop" onclick="closeTelegramModal()" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden transition-opacity"></div>
+  <div id="telegram-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-3 sm:p-4 pointer-events-none">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl relative pointer-events-auto flex flex-col max-h-[92vh] overflow-hidden">
+      
+      <!-- Modal Header -->
+      <div class="flex items-start justify-between gap-3 mb-4 pb-3 border-b border-slate-800 shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="h-10 w-10 rounded-xl bg-sky-500/20 text-sky-400 border border-sky-500/30 flex items-center justify-center shrink-0">
+            <i data-lucide="send" class="w-5 h-5 text-sky-400"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-sm font-bold text-white tracking-tight">Telegram Alerts Integration</h3>
+              <span id="telegram-modal-badge" class="text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-slate-800 text-slate-400 border border-slate-700">Checking...</span>
+            </div>
+            <p class="text-xs text-slate-400">Instant alerts for new high-match roles & application milestones</p>
+          </div>
+        </div>
+
+        <button onclick="closeTelegramModal()" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition" title="Close">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="overflow-y-auto custom-scrollbar flex-1 space-y-4 pr-1">
+        
+        <!-- Status Box -->
+        <div class="p-4 rounded-xl bg-slate-800/60 border border-slate-700/60 space-y-3">
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-slate-400">Connection Status:</span>
+            <span id="tg-status-text" class="font-semibold text-slate-300">Checking...</span>
+          </div>
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-slate-400">Bot Token (<code>TELEGRAM_BOT_TOKEN</code>):</span>
+            <span id="tg-token-text" class="font-mono text-slate-300">Not set</span>
+          </div>
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-slate-400">Chat ID (<code>TELEGRAM_CHAT_ID</code>):</span>
+            <span id="tg-chat-text" class="font-mono text-slate-300">Not set</span>
+          </div>
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-slate-400">Alert Threshold:</span>
+            <span id="tg-thresh-text" class="font-semibold text-amber-300">Match ≥ 80%</span>
+          </div>
+        </div>
+
+        <!-- Test Message Trigger -->
+        <div class="p-4 rounded-xl bg-slate-800/40 border border-slate-700/40 space-y-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <h4 class="text-xs font-semibold text-white">Test Telegram Notification</h4>
+              <p class="text-[11px] text-slate-400">Dispatches an instant verification ping to your Telegram chat</p>
+            </div>
+            <button id="btn-test-telegram" onclick="testTelegramAlert()" class="px-3.5 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-medium flex items-center gap-1.5 transition active:scale-95">
+              <i data-lucide="send" class="w-3.5 h-3.5"></i>
+              <span>Send Test</span>
+            </button>
+          </div>
+          <div id="tg-test-result" class="hidden text-xs p-2.5 rounded-lg border"></div>
+        </div>
+
+        <!-- Setup Instructions Guide -->
+        <div class="p-4 rounded-xl bg-slate-800/20 border border-slate-700/40 space-y-2.5">
+          <h4 class="text-xs font-semibold text-sky-300 flex items-center gap-1.5">
+            <i data-lucide="help-circle" class="w-3.5 h-3.5"></i>
+            <span>3-Minute Telegram Setup Guide</span>
+          </h4>
+          <ol class="text-xs text-slate-300 space-y-2 pl-4 list-decimal">
+            <li>
+              Open Telegram and search for <strong class="text-white">@BotFather</strong>. Send <code>/newbot</code>, choose a name and username, then copy your <strong class="text-white">HTTP API Token</strong>.
+            </li>
+            <li>
+              Open your newly created bot in Telegram and tap <strong class="text-white">Start</strong> (send <code>/start</code>).
+            </li>
+            <li>
+              Search for <strong class="text-white">@userinfobot</strong> on Telegram to retrieve your numeric <strong class="text-white">Id</strong> (Chat ID).
+            </li>
+            <li>
+              Add them to your <code class="text-sky-300">.env</code> file or Docker environment:
+              <pre class="mt-1 p-2 bg-slate-950 border border-slate-800 rounded-lg text-[10px] font-mono text-emerald-400 overflow-x-auto">TELEGRAM_BOT_TOKEN="123456789:ABCdefGHIjklMNO..."
+TELEGRAM_CHAT_ID="987654321"
+TELEGRAM_MIN_MATCH_SCORE=80</pre>
+            </li>
+          </ol>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="pt-3 border-t border-slate-800 mt-4 flex items-center justify-end shrink-0">
+        <button onclick="closeTelegramModal()" class="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition">
+          Close
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- RETENTION & STORAGE CLEANUP MODAL -->
+  <div id="retention-modal-backdrop" onclick="closeRetentionModal()" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden transition-opacity"></div>
+  <div id="retention-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-3 sm:p-4 pointer-events-none">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-2xl w-full p-5 sm:p-6 shadow-2xl relative pointer-events-auto flex flex-col max-h-[92vh] overflow-hidden">
+      
+      <!-- Modal Header -->
+      <div class="flex items-start justify-between gap-3 mb-4 pb-3 border-b border-slate-800 shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="h-10 w-10 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0">
+            <i data-lucide="hard-drive" class="w-5 h-5 text-amber-400"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-sm font-bold text-white tracking-tight">Storage Retention & Cleanup</h3>
+              <span id="retention-modal-badge" class="text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-slate-800 text-slate-400 border border-slate-700">Audit Mode</span>
+            </div>
+            <p class="text-xs text-slate-400">Purge expired packages & PDFs to save disk space while protecting active stages</p>
+          </div>
+        </div>
+
+        <button onclick="closeRetentionModal()" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition" title="Close">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="overflow-y-auto custom-scrollbar flex-1 space-y-4 pr-1">
+        
+        <!-- Controls & Metrics Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          
+          <div class="p-3.5 rounded-xl bg-slate-800/60 border border-slate-700/60 flex flex-col justify-between">
+            <span class="text-[11px] text-slate-400 font-medium">Retention Window</span>
+            <div class="mt-1 flex items-center gap-2">
+              <select id="retention-days-select" onchange="onRetentionDaysChange()" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white font-bold focus:outline-none focus:border-sky-500">
+                <option value="14">14 Days</option>
+                <option value="30" selected>30 Days</option>
+                <option value="60">60 Days</option>
+                <option value="90">90 Days</option>
+              </select>
+            </div>
+            <span class="text-[10px] text-slate-500 mt-1">Older packages eligible</span>
+          </div>
+
+          <div class="p-3.5 rounded-xl bg-slate-800/60 border border-slate-700/60 flex flex-col justify-between">
+            <span class="text-[11px] text-slate-400 font-medium">Cleanup Mode</span>
+            <div class="mt-1">
+              <select id="retention-mode-select" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white font-bold focus:outline-none focus:border-sky-500 w-full">
+                <option value="full" selected>Full Folder Purge</option>
+                <option value="pdfs_only">PDFs Only (Keep MD)</option>
+              </select>
+            </div>
+            <span class="text-[10px] text-slate-500 mt-1">Reclaims max storage</span>
+          </div>
+
+          <div class="p-3.5 rounded-xl bg-slate-800/60 border border-slate-700/60 flex flex-col justify-between">
+            <span class="text-[11px] text-slate-400 font-medium">Reclaimable Space</span>
+            <div class="mt-1 flex items-baseline gap-1.5">
+              <span id="retention-reclaim-mb" class="text-base font-extrabold text-amber-400">0.0 MB</span>
+              <span id="retention-reclaim-count" class="text-[11px] text-slate-400">(0 packages)</span>
+            </div>
+            <span class="text-[10px] text-emerald-400 mt-1 flex items-center gap-1">
+              <i data-lucide="shield-check" class="w-3 h-3"></i>
+              <span>Active stages safe</span>
+            </span>
+          </div>
+
+        </div>
+
+        <!-- Protection Rules Banner -->
+        <div class="p-3 rounded-xl bg-slate-800/40 border border-slate-700/40 flex items-center justify-between text-xs flex-wrap gap-2">
+          <div class="flex items-center gap-2">
+            <i data-lucide="shield" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+            <span class="text-slate-300">Protected From Deletion:</span>
+          </div>
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Interviewing</span>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">Offer</span>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-sky-500/20 text-sky-400 border border-sky-500/30">Applied</span>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-500/20 text-purple-400 border border-purple-500/30">Pinned</span>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex items-center justify-between gap-2 pt-1">
+          <button onclick="previewRetentionScan()" class="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-medium flex items-center gap-1.5 transition">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+            <span>Refresh Scan</span>
+          </button>
+          
+          <button id="btn-execute-cleanup" onclick="triggerRetentionCleanup()" class="px-4 py-1.5 rounded-lg bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow transition active:scale-95">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            <span>Clean Expired Postings Now</span>
+          </button>
+        </div>
+
+        <!-- Result Box -->
+        <div id="retention-result-box" class="hidden text-xs p-3 rounded-xl border"></div>
+
+        <!-- Candidates List / Table -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between text-xs px-1">
+            <span class="font-semibold text-slate-300">Expired Candidates Identified</span>
+            <span id="retention-table-summary" class="text-[11px] text-slate-400">0 items</span>
+          </div>
+          
+          <div class="border border-slate-800 rounded-xl overflow-hidden max-h-56 overflow-y-auto custom-scrollbar bg-slate-950/40">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-800/80 text-slate-400 border-b border-slate-700/60 sticky top-0">
+                <tr>
+                  <th class="p-2.5 font-medium">Application Package</th>
+                  <th class="p-2.5 font-medium">Status</th>
+                  <th class="p-2.5 font-medium">Age</th>
+                  <th class="p-2.5 font-medium text-right">Size</th>
+                </tr>
+              </thead>
+              <tbody id="retention-candidates-tbody" class="divide-y divide-slate-800 text-slate-300">
+                <tr>
+                  <td colspan="4" class="p-4 text-center text-slate-500 italic">No expired postings found for this threshold.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="pt-3 border-t border-slate-800 mt-4 flex items-center justify-between shrink-0">
+        <span class="text-[11px] text-slate-500">Auto-runs in background every 2h scout scan</span>
+        <button onclick="closeRetentionModal()" class="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition">
+          Close
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed bottom-6 right-6 bg-slate-800 border border-slate-700 text-white px-4 py-2.5 rounded-xl shadow-xl z-50 text-xs flex items-center gap-2 transform translate-y-20 opacity-0 transition-all duration-300">
+    <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+    <span id="toast-message">Action completed successfully</span>
+  </div>
+
+  <!-- Application Logic -->
+  <script>
+    let allJobs = [];
+    let currentJob = null;
+    let currentTab = 'cover_letter';
+    let currentTabRawText = '';
+
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      loadJobs();
+      checkScoutStatus();
+      fetchTelegramStatus();
+    });
+
+    async function loadJobs() {
+      try {
+        const res = await fetch('/api/jobs');
+        const data = await res.json();
+        allJobs = data.jobs;
+        
+        // Update top metrics
+        document.getElementById('metric-ready').textContent = data.counts.ready;
+        document.getElementById('metric-applied').textContent = data.counts.applied;
+        document.getElementById('metric-interview').textContent = data.counts.interviewing;
+        document.getElementById('metric-scouted').textContent = data.counts.scouted;
+        if (document.getElementById('metric-english')) {
+          document.getElementById('metric-english').textContent = data.counts.english || 0;
+        }
+        if (document.getElementById('metric-finnish')) {
+          document.getElementById('metric-finnish').textContent = data.counts.finnish_req || 0;
+        }
+        
+        filterJobs();
+      } catch (err) {
+        console.error("Failed to load jobs", err);
+      }
+    }
+
+    function filterJobs() {
+      const q = (document.getElementById('search-box').value || '').toLowerCase();
+      const minScore = parseInt(document.getElementById('score-filter').value || '0', 10);
+      const langFilter = document.getElementById('language-filter').value;
+      
+      const filtered = allJobs.filter(j => {
+        const matchesQuery = !q || (
+          (j.title && j.title.toLowerCase().includes(q)) ||
+          (j.company && j.company.toLowerCase().includes(q)) ||
+          (j.location && j.location.toLowerCase().includes(q))
+        );
+        const matchesScore = (j.match_score || 0) >= minScore;
+        const matchesLang = (langFilter === 'all') || (j.language_tag === langFilter);
+        return matchesQuery && matchesScore && matchesLang;
+      });
+
+      renderKanban(filtered);
+      renderTable(filtered);
+    }
+
+    function renderKanban(jobs) {
+      const cols = {
+        ready: document.getElementById('col-ready'),
+        applied: document.getElementById('col-applied'),
+        interviewing: document.getElementById('col-interviewing'),
+        scouted: document.getElementById('col-scouted')
+      };
+
+      // Reset columns
+      Object.keys(cols).forEach(k => cols[k].innerHTML = '');
+      
+      let counts = { ready: 0, applied: 0, interviewing: 0, scouted: 0 };
+
+      jobs.forEach(job => {
+        const colKey = job.status in cols ? job.status : (job.type === 'scouted' ? 'scouted' : 'ready');
+        counts[colKey] = (counts[colKey] || 0) + 1;
+        
+        const card = document.createElement('div');
+        card.className = "bg-slate-800/90 hover:bg-slate-800 border border-slate-700/70 hover:border-slate-600 rounded-xl p-3.5 shadow-md transition cursor-pointer group";
+        card.onclick = () => openDrawer(job);
+
+        // Match badge style
+        let scoreBg = "bg-sky-500/10 text-sky-400 border-sky-500/30";
+        if (job.match_score >= 90) scoreBg = "bg-emerald-500/10 text-emerald-400 border-emerald-500/30";
+        else if (job.match_score < 75) scoreBg = "bg-purple-500/10 text-purple-400 border-purple-500/30";
+
+        // Language badge styling
+        const langBadge = job.language_badge || (job.language_tag === 'Finnish Required' ? '🇫🇮 Finnish Required' : (job.language_tag === 'Finnish Advantage' ? '👍 Finnish Advantage' : '🌐 English / Int\'l'));
+        const langClass = job.language_class || (job.language_tag === 'Finnish Required' ? 'border-amber-500/30 bg-amber-500/10 text-amber-300' : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300');
+        const platformStr = job.platform_display || job.platform || 'Direct';
+
+        // ATS badge
+        const atsBadgeHtml = job.ats_score ? `
+          <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border border-emerald-500/40 bg-emerald-500/15 text-emerald-300 flex items-center gap-1" title="ATS Compatibility Score">
+            <i data-lucide="shield-check" class="w-3 h-3 text-emerald-400"></i>
+            <span>ATS ${job.ats_score}%</span>
+          </span>
+        ` : '';
+
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-2 mb-1.5">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${scoreBg}">
+                ${job.match_score}% Match
+              </span>
+              ${atsBadgeHtml}
+            </div>
+            <span class="text-[10px] text-slate-400 truncate max-w-[120px]">
+              ${job.location}
+            </span>
+          </div>
+
+          ${job.follow_up_due ? `
+            <div class="mb-2">
+              <button onclick="event.stopPropagation(); openDrawerById('${job.id}', 'outreach')" class="w-full px-2.5 py-1 rounded-lg text-[10px] font-bold border border-amber-500/50 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 animate-pulse flex items-center justify-center gap-1.5 transition active:scale-95 shadow-sm" title="Applied ${job.days_since_applied} days ago - Click to open Follow-Up Drafter">
+                <i data-lucide="clock" class="w-3 h-3 text-amber-400"></i>
+                <span>⏳ Follow-up Due (${job.days_since_applied}d) &bull; Draft</span>
+              </button>
+            </div>
+          ` : ''}
+
+          ${(job.status === 'interviewing' || job.interview_date) ? `
+            <div class="mb-2">
+              <button onclick="event.stopPropagation(); openDrawerById('${job.id}', 'prep')" class="w-full px-2.5 py-1.5 rounded-lg text-[10px] font-bold border border-amber-500/60 bg-gradient-to-r from-amber-500/25 to-orange-500/25 hover:from-amber-500/35 hover:to-orange-500/35 text-amber-200 flex items-center justify-center gap-1.5 transition active:scale-95 shadow-md shadow-amber-500/10" title="Interviewing - Click to open Prep & STAR Guide">
+                <i data-lucide="video" class="w-3.5 h-3.5 text-amber-400 animate-pulse"></i>
+                <span>🎯 Interview Today &bull; Prep & STAR Guide</span>
+              </button>
+            </div>
+          ` : ''}
+
+          <div class="flex items-center gap-1.5 flex-wrap mb-2">
+            <span class="px-2 py-0.5 rounded text-[10px] font-semibold border ${langClass}">
+              ${langBadge}
+            </span>
+            <span class="text-[10px] text-slate-400 flex items-center gap-1 bg-slate-900/60 px-1.5 py-0.5 rounded border border-slate-800">
+              <i data-lucide="layers" class="w-2.5 h-2.5 inline text-sky-400"></i> ${platformStr}
+            </span>
+          </div>
+
+          <h3 class="text-xs font-bold text-white group-hover:text-sky-400 transition leading-snug mb-1">
+            ${job.title}
+          </h3>
+          <p class="text-[11px] font-medium text-slate-300 mb-3">${job.company}</p>
+
+          <div class="flex items-center justify-between gap-1.5 mb-3 text-[10px]">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              ${job.has_cv_pdf ? `<span class="px-1.5 py-0.5 rounded bg-slate-900/80 text-sky-400 border border-slate-700 flex items-center gap-1"><i data-lucide="file-text" class="w-3 h-3"></i> CV</span>` : ''}
+              ${job.has_cl_pdf ? `<span class="px-1.5 py-0.5 rounded bg-slate-900/80 text-emerald-400 border border-slate-700 flex items-center gap-1"><i data-lucide="mail" class="w-3 h-3"></i> Letter</span>` : ''}
+              ${job.has_qa ? `<span class="px-1.5 py-0.5 rounded bg-slate-900/80 text-amber-400 border border-slate-700 flex items-center gap-1"><i data-lucide="help-circle" class="w-3 h-3"></i> Q&A</span>` : ''}
+            </div>
+            ${job.folder ? `
+              <div class="flex items-center gap-1">
+                <button onclick="event.stopPropagation(); triggerWorkflow('${job.id}', true)" title="Regenerate all documents with Gemini AI" class="px-1.5 py-0.5 rounded bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 hover:text-indigo-200 border border-indigo-500/30 text-[10px] font-semibold flex items-center gap-1 transition active:scale-95 shadow-sm">
+                  <i data-lucide="refresh-cw" class="w-2.5 h-2.5"></i>
+                  <span>Regen</span>
+                </button>
+                <button onclick="event.stopPropagation(); triggerOpenFolder('${job.folder}')" title="Open Folder in File Manager" class="px-2 py-0.5 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 hover:text-amber-200 border border-amber-500/30 text-[10px] font-semibold flex items-center gap-1 transition active:scale-95 shadow-sm">
+                  <i data-lucide="folder" class="w-3 h-3"></i>
+                  <span>Folder</span>
+                </button>
+              </div>
+            ` : `
+              <button onclick="event.stopPropagation(); triggerWorkflow('${job.id}')" title="Generate Complete Application Package" class="px-2 py-0.5 rounded bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold text-[10px] flex items-center gap-1 transition active:scale-95 shadow-md shadow-amber-500/20">
+                <i data-lucide="zap" class="w-3 h-3 fill-slate-950 text-slate-950"></i>
+                <span>Run Workflow</span>
+              </button>
+            `}
+          </div>
+
+          <div class="pt-2.5 border-t border-slate-700/60 flex items-center justify-between gap-2 text-[11px]">
+            ${job.url ? `
+              <a href="${job.url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" class="px-2.5 py-1 rounded bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 hover:text-sky-300 border border-sky-500/30 text-[10px] font-semibold inline-flex items-center gap-1 transition shadow-sm">
+                <span>Open Job</span>
+                <i data-lucide="external-link" class="w-3 h-3"></i>
+              </a>
+            ` : `<span class="text-slate-500 text-[10px]">No Link</span>`}
+            <div class="flex items-center gap-1.5">
+              <span class="text-slate-400 text-[10px]">
+                ${job.applied_date ? `Applied: ${job.applied_date}` : (job.type === 'scouted' ? 'Scouted' : 'Ready')}
+              </span>
+              <button onclick="event.stopPropagation(); quickToggleApplied('${job.id}', '${job.status}')" class="px-2 py-0.5 rounded text-[10px] font-medium ${job.status === 'applied' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-700 hover:bg-slate-600 text-slate-200'} transition">
+                ${job.status === 'applied' ? '✓ Applied' : 'Mark Applied'}
+              </button>
+            </div>
+          </div>
+        `;
+        cols[colKey].appendChild(card);
+      });
+
+      // Update column badges
+      document.getElementById('col-count-ready').textContent = counts.ready;
+      document.getElementById('col-count-applied').textContent = counts.applied;
+      document.getElementById('col-count-interviewing').textContent = counts.interviewing;
+      document.getElementById('col-count-scouted').textContent = counts.scouted;
+
+      lucide.createIcons();
+    }
+
+    function renderTable(jobs) {
+      const tbody = document.getElementById('table-body');
+      tbody.innerHTML = '';
+
+      jobs.forEach(job => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-800/50 cursor-pointer transition";
+        tr.onclick = () => openDrawer(job);
+
+        let statusClass = "bg-slate-800 text-slate-300";
+        if (job.status === 'ready') statusClass = "bg-sky-500/10 text-sky-400 border border-sky-500/30";
+        if (job.status === 'applied') statusClass = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30";
+        if (job.status === 'interviewing') statusClass = "bg-amber-500/10 text-amber-400 border border-amber-500/30";
+
+        const langBadge = job.language_badge || (job.language_tag === 'Finnish Required' ? '🇫🇮 Finnish Required' : (job.language_tag === 'Finnish Advantage' ? '👍 Finnish Advantage' : '🌐 English / Int\'l'));
+        const langClass = job.language_class || (job.language_tag === 'Finnish Required' ? 'border-amber-500/30 bg-amber-500/10 text-amber-300' : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300');
+        const platformStr = job.platform_display || job.platform || 'Direct';
+
+        tr.innerHTML = `
+          <td class="py-3 px-4">
+            <div class="font-bold text-sky-400 text-xs">${job.match_score}% Match</div>
+            ${job.ats_score ? `
+              <div class="text-[10px] font-bold text-emerald-400 flex items-center gap-1 mt-0.5">
+                <i data-lucide="shield-check" class="w-3 h-3"></i> ATS ${job.ats_score}%
+              </div>
+            ` : ''}
+          </td>
+          <td class="py-3 px-4">
+            ${job.url ? `
+              <a href="${job.url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" class="font-semibold text-white hover:text-sky-400 transition inline-flex items-center gap-1.5 group">
+                <span>${job.title}</span>
+                <i data-lucide="external-link" class="w-3 h-3 text-slate-500 group-hover:text-sky-400"></i>
+              </a>
+            ` : `
+              <div class="font-semibold text-white">${job.title}</div>
+            `}
+            <div class="text-slate-400 text-[11px]">${job.company}</div>
+          </td>
+          <td class="py-3 px-4">
+            <span class="px-2 py-0.5 rounded text-[10px] font-semibold border ${langClass}">
+              ${langBadge}
+            </span>
+          </td>
+          <td class="py-3 px-4 text-slate-400 text-[11px]">
+            ${platformStr}
+          </td>
+          <td class="py-3 px-4 text-slate-300">${job.location}</td>
+          <td class="py-3 px-4">
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${statusClass}">${job.status}</span>
+            ${job.follow_up_due ? `
+              <div class="mt-1">
+                <button onclick="event.stopPropagation(); openDrawerById('${job.id}', 'outreach')" class="px-2 py-0.5 rounded-full text-[10px] font-bold border border-amber-500/50 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 animate-pulse inline-flex items-center gap-1 transition shadow-sm" title="Applied ${job.days_since_applied} days ago - Click to open Follow-Up Drafter">
+                  <i data-lucide="clock" class="w-2.5 h-2.5 text-amber-400"></i>
+                  <span>Follow-up (${job.days_since_applied}d)</span>
+                </button>
+              </div>
+            ` : ''}
+          </td>
+          <td class="py-3 px-4 text-slate-400">${job.applied_date || '—'}</td>
+          <td class="py-3 px-4">
+            <div class="flex items-center gap-2">
+              ${job.has_cv_pdf ? `<a href="/api/files/${job.folder}/${job.cv_pdf}" target="_blank" onclick="event.stopPropagation()" class="text-sky-400 hover:underline">CV</a>` : ''}
+              ${job.has_cl_pdf ? `<a href="/api/files/${job.folder}/${job.cl_pdf}" target="_blank" onclick="event.stopPropagation()" class="text-emerald-400 hover:underline">Letter</a>` : ''}
+              ${job.folder ? `
+                <button onclick="event.stopPropagation(); triggerOpenFolder('${job.folder}')" title="Open Folder in File Manager" class="text-amber-400 hover:text-amber-300 hover:underline inline-flex items-center gap-0.5 text-xs font-medium">
+                  <i data-lucide="folder" class="w-3 h-3"></i> Folder
+                </button>
+              ` : ''}
+            </div>
+          </td>
+          <td class="py-3 px-4 text-right">
+            <div class="flex items-center justify-end gap-2">
+              ${job.folder ? `
+                <button onclick="event.stopPropagation(); triggerWorkflow('${job.id}', true)" title="Regenerate documents with Gemini AI" class="px-2 py-1 bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 hover:text-indigo-200 rounded border border-indigo-500/30 text-xs inline-flex items-center gap-1 transition active:scale-95 shadow-sm">
+                  <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                  <span>Regen</span>
+                </button>
+                <button onclick="event.stopPropagation(); triggerOpenFolder('${job.folder}')" title="Open Folder in File Manager" class="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 rounded border border-amber-500/30 text-xs inline-flex items-center gap-1 transition active:scale-95">
+                  <i data-lucide="folder" class="w-3 h-3"></i>
+                  <span>Folder</span>
+                </button>
+              ` : `
+                <button onclick="event.stopPropagation(); triggerWorkflow('${job.id}')" title="Generate Complete Application Package" class="px-2.5 py-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold rounded text-xs inline-flex items-center gap-1 transition active:scale-95 shadow-md shadow-amber-500/20">
+                  <i data-lucide="zap" class="w-3.5 h-3.5 fill-slate-950 text-slate-950"></i>
+                  <span>Workflow</span>
+                </button>
+              `}
+              ${job.url ? `
+                <a href="${job.url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" class="px-2.5 py-1 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 hover:text-sky-300 rounded border border-sky-500/30 text-xs inline-flex items-center gap-1 transition">
+                  <span>Open ↗</span>
+                </a>
+              ` : ''}
+              <button onclick="event.stopPropagation(); openDrawerById('${job.id}')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded border border-slate-700 text-xs transition">
+                Copilot
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function setViewMode(mode) {
+      if (mode === 'kanban') {
+        document.getElementById('kanban-view').classList.remove('hidden');
+        document.getElementById('table-view').classList.add('hidden');
+        document.getElementById('view-kanban-btn').className = "flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition bg-sky-600 text-white";
+        document.getElementById('view-table-btn').className = "flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition text-slate-400 hover:text-white";
+      } else {
+        document.getElementById('kanban-view').classList.add('hidden');
+        document.getElementById('table-view').classList.remove('hidden');
+        document.getElementById('view-kanban-btn').className = "flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition text-slate-400 hover:text-white";
+        document.getElementById('view-table-btn').className = "flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition bg-sky-600 text-white";
+      }
+    }
+
+    async function quickToggleApplied(id, currentStatus) {
+      const nextStatus = currentStatus === 'applied' ? 'ready' : 'applied';
+      await updateJobStatus(id, nextStatus);
+    }
+
+    async function updateJobStatus(id, newStatus) {
+      if (newStatus === 'interviewing') {
+        showToast("🎯 Status set to Interviewing: Preparing tailored Interview Prep...");
+      }
+      try {
+        const folder = (currentJob && (currentJob.id === id || currentJob.folder === id)) ? currentJob.folder : id;
+        const res = await fetch('/api/jobs/update_status', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ id, status: newStatus, folder: folder })
+        });
+        const data = await res.json();
+        if (data.prep_generated) {
+          showToast("✅ Tailored Interview Prep & STAR stories generated!");
+        } else {
+          showToast(`Status updated to: ${newStatus}`);
+        }
+      } catch (err) {
+        showToast(`Failed to update status: ${err.message}`);
+      }
+      await loadJobs();
+      if (currentJob && (currentJob.id === id || currentJob.folder === id)) {
+        currentJob.status = newStatus;
+        const statusSelect = document.getElementById('drawer-status-select');
+        if (statusSelect) statusSelect.value = newStatus;
+        if (currentTab === 'prep') {
+          await switchDrawerTab('prep');
+        }
+      }
+    }
+
+    function openDrawer(job, initialTab = 'cover_letter') {
+      if (!job) return;
+      currentJob = job;
+
+      const titleEl = document.getElementById('drawer-title');
+      if (titleEl) titleEl.textContent = job.title || 'Job Role';
+
+      const subEl = document.getElementById('drawer-subtitle');
+      if (subEl) subEl.textContent = `${job.company || ''} • ${job.location || 'Finland'} • ${job.platform_display || job.platform || 'Direct'}`;
+
+      const scoreEl = document.getElementById('drawer-score-badge');
+      if (scoreEl) scoreEl.textContent = `${job.match_score || 0}% Match`;
+      
+      // ATS Score Badge in Drawer
+      const atsBadge = document.getElementById('drawer-ats-badge');
+      const atsText = document.getElementById('drawer-ats-text');
+      if (atsBadge) {
+        if (job.ats_score) {
+          if (atsText) atsText.textContent = `ATS: ${job.ats_score}%`;
+          atsBadge.classList.remove('hidden');
+          atsBadge.classList.add('inline-flex');
+        } else {
+          atsBadge.classList.add('hidden');
+          atsBadge.classList.remove('inline-flex');
+        }
+      }
+
+      const statusSelect = document.getElementById('drawer-status-select');
+      if (statusSelect && job.status) {
+        statusSelect.value = job.status;
+      }
+      
+      // Language Badge in Drawer
+      const langEl = document.getElementById('drawer-language-badge');
+      if (langEl) {
+        langEl.textContent = job.language_badge || job.language_tag || '🌐 English / Int\'l';
+        langEl.className = `px-2.5 py-1 rounded-full text-xs font-semibold border ${job.language_class || (job.language_tag === 'Finnish Required' ? 'border-amber-500/30 bg-amber-500/10 text-amber-300' : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300')}`;
+      }
+      
+      // Action Link
+      const linkContainer = document.getElementById('drawer-action-link') || document.getElementById('drawer-direct-link-container');
+      if (linkContainer) {
+        if (job.url) {
+          linkContainer.innerHTML = `
+            <a href="${job.url}" target="_blank" rel="noopener noreferrer" class="px-3.5 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs inline-flex items-center gap-1.5 transition active:scale-95 shadow-md shadow-sky-500/20">
+              <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+              <span>Apply / Open Posting (${job.platform_display || 'Web'})</span>
+            </a>
+          `;
+        } else {
+          linkContainer.innerHTML = '';
+        }
+      }
+
+      // PDF links
+      const pdfLinks = document.getElementById('drawer-pdf-links');
+      if (pdfLinks) {
+        pdfLinks.innerHTML = '';
+        if (job.folder && job.cv_pdf) {
+          pdfLinks.innerHTML += `
+            <a href="/api/files/${job.folder}/${job.cv_pdf}" target="_blank" class="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 text-xs">
+              <i data-lucide="file-text" class="w-3.5 h-3.5"></i> View CV (PDF)
+            </a>
+          `;
+        }
+        if (job.folder && job.cl_pdf) {
+          pdfLinks.innerHTML += `
+            <a href="/api/files/${job.folder}/${job.cl_pdf}" target="_blank" class="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs">
+              <i data-lucide="mail" class="w-3.5 h-3.5"></i> View Letter (PDF)
+            </a>
+          `;
+        }
+        if (job.folder) {
+          pdfLinks.innerHTML += `
+            <button onclick="downloadJobBundle('${job.folder}')" class="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-gradient-to-r from-emerald-600/80 to-teal-600/80 hover:from-emerald-500 hover:to-teal-500 text-white border border-emerald-500/30 text-xs font-semibold shadow-sm transition active:scale-95" title="Download Complete ZIP Package">
+              <i data-lucide="package-check" class="w-3.5 h-3.5"></i> Download ZIP
+            </button>
+          `;
+        }
+      }
+
+      // Local Folder Quick Action Button in Drawer
+      const folderActions = document.getElementById('drawer-folder-actions');
+      if (folderActions) {
+        if (job.folder) {
+          folderActions.innerHTML = `
+            <button onclick="triggerWorkflow('${job.id}', true)" title="Regenerate all application documents using Gemini AI" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 hover:text-indigo-200 border border-indigo-500/30 text-xs font-semibold transition active:scale-95 shadow-sm">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+              <span>Regen Docs</span>
+            </button>
+            <button onclick="triggerOpenFolder('${job.folder}')" title="Open folder in System File Manager" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 hover:text-amber-200 border border-amber-500/30 text-xs font-semibold transition active:scale-95 shadow-sm">
+              <i data-lucide="folder-open" class="w-3.5 h-3.5"></i>
+              <span>Open Folder</span>
+            </button>
+            <button onclick="copyFolderPath('${job.folder}')" title="Copy Folder Absolute Path" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs transition flex items-center gap-1">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+              <span>Path</span>
+            </button>
+          `;
+        } else {
+          folderActions.innerHTML = `
+            <button onclick="triggerWorkflow('${job.id}')" title="Generate Complete Application Package" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold text-xs transition active:scale-95 shadow-md shadow-amber-500/20">
+              <i data-lucide="zap" class="w-3.5 h-3.5 fill-slate-950 text-slate-950"></i>
+              <span>Run Workflow</span>
+            </button>
+          `;
+        }
+      }
+
+      // Notes & Job URL
+      const notesEl = document.getElementById('notes-textarea');
+      if (notesEl) notesEl.value = job.notes || '';
+      
+      const interviewDateEl = document.getElementById('notes-interview-date');
+      if (interviewDateEl) interviewDateEl.value = job.interview_date || '';
+      
+      const jobUrlInput = document.getElementById('notes-job-url');
+      if (jobUrlInput) jobUrlInput.value = job.url || '';
+
+      switchDrawerTab(initialTab);
+
+      // Open drawer
+      const backdrop = document.getElementById('drawer-backdrop');
+      if (backdrop) backdrop.classList.remove('hidden');
+
+      const drawer = document.getElementById('drawer');
+      if (drawer) drawer.classList.remove('translate-x-full');
+
+      lucide.createIcons();
+    }
+
+    function closeDrawer() {
+      document.getElementById('drawer-backdrop').classList.add('hidden');
+      document.getElementById('drawer').classList.add('translate-x-full');
+    }
+
+    async function switchDrawerTab(tab) {
+      currentTab = tab;
+      
+      const tabs = ['cover_letter', 'ats', 'screening_qa', 'prep', 'outreach', 'folder_files', 'notes'];
+      tabs.forEach(t => {
+        const btn = document.getElementById(`tab-btn-${t}`);
+        if (btn) {
+          if (t === tab) {
+            btn.className = "py-3 border-b-2 border-sky-500 text-sky-400 font-bold flex items-center gap-1.5";
+          } else {
+            btn.className = "py-3 border-b-2 border-transparent text-slate-400 hover:text-white flex items-center gap-1.5";
+          }
+        }
+      });
+
+      if (tab === 'notes') {
+        document.getElementById('copy-banner').classList.add('hidden');
+        document.getElementById('drawer-tab-text').classList.add('hidden');
+        document.getElementById('drawer-tab-files').classList.add('hidden');
+        document.getElementById('drawer-tab-outreach').classList.add('hidden');
+        document.getElementById('drawer-tab-notes').classList.remove('hidden');
+        return;
+      }
+
+      if (tab === 'folder_files') {
+        document.getElementById('copy-banner').classList.add('hidden');
+        document.getElementById('drawer-tab-text').classList.add('hidden');
+        document.getElementById('drawer-tab-notes').classList.add('hidden');
+        document.getElementById('drawer-tab-outreach').classList.add('hidden');
+        document.getElementById('drawer-tab-files').classList.remove('hidden');
+        await renderFolderFilesTab(currentJob);
+        return;
+      }
+
+      if (tab === 'outreach') {
+        document.getElementById('copy-banner').classList.add('hidden');
+        document.getElementById('drawer-tab-text').classList.add('hidden');
+        document.getElementById('drawer-tab-notes').classList.add('hidden');
+        document.getElementById('drawer-tab-files').classList.add('hidden');
+        document.getElementById('drawer-tab-outreach').classList.remove('hidden');
+        await loadOutreachTab(currentJob);
+        return;
+      }
+
+      document.getElementById('drawer-tab-files').classList.add('hidden');
+      document.getElementById('drawer-tab-notes').classList.add('hidden');
+      document.getElementById('drawer-tab-outreach').classList.add('hidden');
+      document.getElementById('copy-banner').classList.remove('hidden');
+      document.getElementById('drawer-tab-text').classList.remove('hidden');
+
+      if (!currentJob || !currentJob.folder) {
+        document.getElementById('copy-banner').classList.add('hidden');
+        document.getElementById('drawer-tab-text').innerHTML = `
+          <div class="p-5 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 space-y-4 font-sans">
+            <div class="flex items-start gap-3.5">
+              <div class="h-10 w-10 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0 shadow-md shadow-amber-500/10">
+                <i data-lucide="zap" class="w-5 h-5 fill-amber-400"></i>
+              </div>
+              <div>
+                <h3 class="text-sm font-bold text-white">Generate Complete Application Package</h3>
+                <p class="text-xs text-slate-400 mt-0.5">This role is currently in your scouted feed. Click below to generate tailored CV, Cover Letter, Q&A, and ATS optimization with vector PDFs.</p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] pt-1">
+              <div class="p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60 flex items-center gap-2 text-slate-300">
+                <i data-lucide="file-text" class="w-4 h-4 text-sky-400 shrink-0"></i>
+                <span>Tailored CV (Google X-Y-Z Metrics)</span>
+              </div>
+              <div class="p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60 flex items-center gap-2 text-slate-300">
+                <i data-lucide="mail" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+                <span>Strategic 3-Pillar Cover Letter</span>
+              </div>
+              <div class="p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60 flex items-center gap-2 text-slate-300">
+                <i data-lucide="shield-check" class="w-4 h-4 text-purple-400 shrink-0"></i>
+                <span>ATS Optimization Audit (90%+)</span>
+              </div>
+              <div class="p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60 flex items-center gap-2 text-slate-300">
+                <i data-lucide="file-check" class="w-4 h-4 text-amber-400 shrink-0"></i>
+                <span>Recruiter-Ready Vector PDFs</span>
+              </div>
+            </div>
+
+            <div class="pt-3 flex items-center gap-3 flex-wrap">
+              <button onclick="triggerWorkflow('${currentJob.id}')" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg shadow-amber-500/20 transition active:scale-95">
+                <i data-lucide="zap" class="w-4 h-4 fill-slate-950"></i>
+                <span>Run Application Workflow (1-Click)</span>
+              </button>
+              <button onclick="copyWorkflowPrompt(currentJob)" class="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700 flex items-center gap-1.5 transition active:scale-95">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                <span>Copy Chat Prompt</span>
+              </button>
+            </div>
+          </div>
+        `;
+        lucide.createIcons();
+        currentTabRawText = "";
+        return;
+      }
+
+      document.getElementById('drawer-tab-text').textContent = "Loading content...";
+      try {
+        const res = await fetch(`/api/content/${currentJob.folder}/${tab}`);
+        const data = await res.json();
+        if (tab === 'prep' && (data.not_found || (data.content && data.content.startsWith("No prep document")))) {
+          renderPrepEmptyState();
+          return;
+        }
+        if (data.content && !data.not_found) {
+          currentTabRawText = data.content;
+          document.getElementById('copy-banner').classList.remove('hidden');
+          renderTabMarkdown(data.content);
+        } else if (tab === 'prep') {
+          renderPrepEmptyState();
+        } else {
+          currentTabRawText = "";
+          const el = document.getElementById('drawer-tab-text');
+          el.className = "text-xs leading-relaxed text-slate-400 bg-slate-950 p-5 rounded-xl border border-slate-800/80 italic";
+          el.textContent = "No specific document found for this tab.";
+        }
+      } catch (e) {
+        currentTabRawText = "";
+        const el = document.getElementById('drawer-tab-text');
+        el.className = "text-xs leading-relaxed text-rose-400 bg-slate-950 p-5 rounded-xl border border-slate-800/80";
+        el.textContent = "Unable to load document.";
+      }
+    }
+
+    function renderPrepEmptyState() {
+      currentTabRawText = "";
+      document.getElementById('copy-banner').classList.add('hidden');
+      const isInterviewing = currentJob && currentJob.status === 'interviewing';
+      const el = document.getElementById('drawer-tab-text');
+      el.className = "p-5 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 space-y-4 font-sans";
+      el.innerHTML = `
+        <div class="flex items-start gap-3.5">
+          <div class="h-10 w-10 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center shrink-0 shadow-md shadow-purple-500/10">
+            <i data-lucide="help-circle" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-white">Interview Prep & STAR Talking Points</h3>
+            <p class="text-xs text-slate-400 mt-0.5">${isInterviewing 
+              ? 'This role is in the <strong>Interviewing</strong> stage. Click below to generate your tailored CV walk-through, STAR stories, and reverse questions with Gemini AI.'
+              : 'Interview prep generates automatically once this job status is moved to <strong>Interviewing</strong>.'}</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] pt-1">
+          <div class="p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60 flex items-center gap-2 text-slate-300">
+            <i data-lucide="mic" class="w-4 h-4 text-purple-400 shrink-0"></i>
+            <span>1-Minute Tailored Spoken Pitch</span>
+          </div>
+          <div class="p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60 flex items-center gap-2 text-slate-300">
+            <i data-lucide="git-branch" class="w-4 h-4 text-sky-400 shrink-0"></i>
+            <span>Systematic CV Walk-Through Narrative</span>
+          </div>
+          <div class="p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60 flex items-center gap-2 text-slate-300">
+            <i data-lucide="award" class="w-4 h-4 text-amber-400 shrink-0"></i>
+            <span>2 Custom Technical STAR Scenarios</span>
+          </div>
+          <div class="p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60 flex items-center gap-2 text-slate-300">
+            <i data-lucide="message-circle" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+            <span>High-IQ Reverse Questions to Ask</span>
+          </div>
+        </div>
+
+        <div class="pt-3 flex items-center gap-3 flex-wrap">
+          <button id="btn-generate-prep" onclick="generateInterviewPrep('${currentJob?.folder || currentJob?.id}')" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-purple-500/20 transition active:scale-95">
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+            <span>Generate Interview Prep (1-Click)</span>
+          </button>
+          ${!isInterviewing ? `
+          <button onclick="updateJobStatus('${currentJob?.id}', 'interviewing')" class="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700 flex items-center gap-1.5 transition active:scale-95">
+            <i data-lucide="check-circle" class="w-3.5 h-3.5 text-purple-400"></i>
+            <span>Move Status to Interviewing</span>
+          </button>` : ''}
+        </div>
+      `;
+      lucide.createIcons();
+    }
+
+    async function generateInterviewPrep(folder, id) {
+      const targetFolder = folder || currentJob?.folder || currentJob?.id;
+      const targetId = id || currentJob?.id || targetFolder;
+      const btn = document.getElementById('btn-generate-prep');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Generating with Gemini AI...</span>`;
+        lucide.createIcons();
+      }
+      showToast("🎯 Generating tailored Interview Prep with Gemini AI...");
+      try {
+        const res = await fetch('/api/jobs/generate_prep', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ folder: targetFolder, id: targetId, force: true })
+        });
+        const data = await res.json();
+        if (data.error) {
+          showToast(`Error: ${data.error}`);
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<i data-lucide="sparkles" class="w-4 h-4"></i><span>Retry Generation</span>`;
+            lucide.createIcons();
+          }
+          return;
+        }
+        showToast("✅ Interview Prep & STAR stories generated successfully!");
+        currentTabRawText = data.content;
+        document.getElementById('copy-banner').classList.remove('hidden');
+        renderTabMarkdown(data.content);
+        await loadJobs();
+      } catch (err) {
+        showToast(`Failed to generate prep: ${err.message}`);
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `<i data-lucide="sparkles" class="w-4 h-4"></i><span>Retry Generation</span>`;
+          lucide.createIcons();
+        }
+      }
+    }
+
+    let markdownViewMode = 'rendered';
+
+    function renderTabMarkdown(rawText) {
+      const el = document.getElementById('drawer-tab-text');
+      if (!el) return;
+
+      if (markdownViewMode === 'rendered' && typeof marked !== 'undefined' && marked.parse) {
+        el.className = "rendered-markdown text-xs leading-relaxed bg-slate-950 p-5 rounded-xl border border-slate-800/80 text-slate-200 selection:bg-sky-600 selection:text-white overflow-x-auto";
+        el.innerHTML = marked.parse(rawText);
+      } else {
+        el.className = "text-xs leading-relaxed whitespace-pre-wrap font-mono bg-slate-950 p-4 rounded-xl border border-slate-800/80 text-slate-200 selection:bg-sky-600 selection:text-white";
+        el.textContent = rawText;
+      }
+    }
+
+    function toggleMarkdownView() {
+      markdownViewMode = (markdownViewMode === 'rendered') ? 'raw' : 'rendered';
+      
+      const btn = document.getElementById('btn-toggle-markdown');
+      const text = document.getElementById('text-toggle-markdown');
+      const icon = document.getElementById('icon-toggle-markdown');
+
+      if (markdownViewMode === 'rendered') {
+        if (text) text.textContent = "Raw Markdown";
+        if (icon) icon.setAttribute('data-lucide', 'code');
+        if (btn) btn.title = "Switch to Raw Markdown view";
+      } else {
+        if (text) text.textContent = "Rendered View";
+        if (icon) icon.setAttribute('data-lucide', 'eye');
+        if (btn) btn.title = "Switch to Formatted Rendered view";
+      }
+      
+      if (currentTabRawText) {
+        renderTabMarkdown(currentTabRawText);
+      }
+      lucide.createIcons();
+    }
+
+    async function renderFolderFilesTab(job) {
+      if (!job || !job.folder) {
+        document.getElementById('files-folder-title').innerHTML = `<i data-lucide="folder" class="w-4 h-4 text-slate-500"></i> <span>No Local Folder</span>`;
+        document.getElementById('files-folder-path').textContent = "This role is a scouted lead. Application package not generated yet.";
+        document.getElementById('files-list-container').innerHTML = `
+          <div class="p-4 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 text-center">
+            No local files exist yet for this role.
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      document.getElementById('files-folder-title').innerHTML = `<i data-lucide="folder" class="w-4 h-4 text-amber-400"></i> <span>Folder: ${job.folder}</span>`;
+      document.getElementById('files-folder-path').textContent = job.folder;
+      const container = document.getElementById('files-list-container');
+      container.innerHTML = `<div class="p-4 text-slate-400 text-center">Loading files...</div>`;
+
+      try {
+        const res = await fetch(`/api/folder_files/${job.folder}`);
+        const data = await res.json();
+        if (data.files && data.files.length > 0) {
+          container.innerHTML = '';
+          data.files.forEach(f => {
+            const row = document.createElement('div');
+            row.className = "flex items-center justify-between p-2.5 rounded-lg bg-slate-900/90 hover:bg-slate-900 border border-slate-800 transition";
+            
+            let icon = 'file-text';
+            let iconColor = 'text-sky-400';
+            
+            if (f.is_pdf) {
+              icon = 'file-check';
+              iconColor = 'text-emerald-400';
+            } else if (f.name.includes('Cover_Letter')) {
+              icon = 'mail';
+              iconColor = 'text-emerald-400';
+            } else if (f.name.includes('Job_Description') || f.name.includes('Analysis')) {
+              icon = 'file-search';
+              iconColor = 'text-purple-400';
+            } else if (f.name.includes('Answers') || f.name.includes('Prep')) {
+              icon = 'help-circle';
+              iconColor = 'text-amber-400';
+            }
+
+            row.innerHTML = `
+              <div class="flex items-center gap-2.5 min-w-0">
+                <i data-lucide="${icon}" class="w-4 h-4 ${iconColor} shrink-0"></i>
+                <div class="min-w-0">
+                  <div class="font-medium text-white truncate text-xs" title="${f.name}">${f.name}</div>
+                  <div class="text-[10px] text-slate-500">${f.size_kb} KB • Modified ${f.modified}</div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 shrink-0">
+                <a href="/api/files/${job.folder}/${f.name}" target="_blank" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700 text-xs flex items-center gap-1 transition">
+                  <i data-lucide="external-link" class="w-3 h-3"></i>
+                  <span>View</span>
+                </a>
+              </div>
+            `;
+            container.appendChild(row);
+          });
+          lucide.createIcons();
+        } else {
+          container.innerHTML = `<div class="p-4 text-slate-400 text-center">Folder is empty.</div>`;
+        }
+      } catch (err) {
+        container.innerHTML = `<div class="p-4 text-rose-400 text-center">Failed to load folder files.</div>`;
+      }
+    }
+
+    async function triggerOpenFolder(folder) {
+      if (!folder) {
+        showToast("No folder exists for this role yet.");
+        return;
+      }
+      try {
+        const res = await fetch('/api/open_folder', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ folder: folder })
+        });
+        const data = await res.json();
+        if (data.success) {
+          if (data.path && navigator.clipboard) {
+            try { await navigator.clipboard.writeText(data.path); } catch (e) {}
+          }
+          showToast(`📁 Opened folder: ${folder}`);
+        } else {
+          showToast(`Error: ${data.error || 'Could not open folder'}`);
+        }
+      } catch (e) {
+        showToast(`Failed to trigger folder opening.`);
+      }
+    }
+
+    async function copyFolderPath(folder) {
+      if (!folder) return;
+      const fullPath = folder;
+      try {
+        await navigator.clipboard.writeText(fullPath);
+        showToast("Folder name copied to clipboard!");
+      } catch (e) {
+        showToast(`Folder: ${fullPath}`);
+      }
+    }
+
+    function copyCurrentTabContent() {
+      if (!currentTabRawText) return;
+      navigator.clipboard.writeText(currentTabRawText);
+      showToast("Copied content to clipboard!");
+    }
+
+    function openDrawerById(id, tab = 'cover_letter') {
+      const job = allJobs.find(j => j.id === id);
+      if (job) {
+        openDrawer(job, tab);
+      }
+    }
+
+    function downloadJobBundle(folder) {
+      if (!folder) {
+        showToast("No application folder exists for this role yet.");
+        return;
+      }
+      showToast("📦 Downloading complete application package (.zip)...");
+      window.location.href = `/api/bundle/${folder}`;
+    }
+
+    async function loadOutreachTab(job) {
+      if (!job) return;
+      const linkedinEl = document.getElementById('outreach-linkedin-text');
+      const inmailEl = document.getElementById('outreach-inmail-text');
+      const followupEl = document.getElementById('outreach-followup-text');
+
+      if (!job.folder) {
+        const placeholder = "Generate an application package for this job to view tailored outreach messages.";
+        if (linkedinEl) linkedinEl.textContent = placeholder;
+        if (inmailEl) inmailEl.textContent = placeholder;
+        if (followupEl) followupEl.textContent = placeholder;
+        return;
+      }
+
+      if (linkedinEl) linkedinEl.textContent = "Generating tailored LinkedIn note...";
+      if (inmailEl) inmailEl.textContent = "Generating recruiter InMail...";
+      if (followupEl) followupEl.textContent = "Generating follow-up message...";
+
+      try {
+        const res = await fetch(`/api/outreach/${job.folder}`);
+        const data = await res.json();
+        if (data.error) {
+          const errText = "Error: " + data.error;
+          if (linkedinEl) linkedinEl.textContent = errText;
+          return;
+        }
+        if (linkedinEl) linkedinEl.textContent = data.linkedin_connect || data.linkedin_connection_note || '';
+        if (inmailEl) inmailEl.textContent = data.hiring_inmail || data.recruiter_inmail || '';
+        if (followupEl) followupEl.textContent = data.follow_up || data.followup_message || '';
+      } catch (err) {
+        if (linkedinEl) linkedinEl.textContent = "Failed to load outreach drafts.";
+      }
+    }
+
+    async function copyOutreachDraft(type) {
+      let targetId = 'outreach-linkedin-text';
+      let label = 'LinkedIn connection note';
+      if (type === 'inmail') {
+        targetId = 'outreach-inmail-text';
+        label = 'Recruiter InMail';
+      } else if (type === 'followup') {
+        targetId = 'outreach-followup-text';
+        label = 'Follow-up message';
+      }
+
+      const el = document.getElementById(targetId);
+      if (!el || !el.textContent.trim()) {
+        showToast("No draft content to copy.");
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(el.textContent.trim());
+        showToast(`Copied ${label} to clipboard!`);
+      } catch (e) {
+        showToast("Failed to copy to clipboard.");
+      }
+    }
+
+    async function onDrawerStatusChange() {
+      if (!currentJob) return;
+      const newStatus = document.getElementById('drawer-status-select').value;
+      await updateJobStatus(currentJob.id, newStatus);
+      currentJob.status = newStatus;
+    }
+
+    async function saveNotes() {
+      if (!currentJob) return;
+      const notes = document.getElementById('notes-textarea').value;
+      const interviewDate = document.getElementById('notes-interview-date').value;
+      const jobUrlInput = document.getElementById('notes-job-url');
+      const jobUrl = jobUrlInput ? jobUrlInput.value.trim() : '';
+
+      await fetch('/api/jobs/notes', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          id: currentJob.id,
+          notes: notes,
+          interview_date: interviewDate,
+          url: jobUrl
+        })
+      });
+
+      currentJob.notes = notes;
+      currentJob.interview_date = interviewDate;
+      if (jobUrl) {
+        currentJob.url = jobUrl;
+        const linkContainer = document.getElementById('drawer-direct-link-container');
+        linkContainer.innerHTML = `
+          <a href="${currentJob.url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs shadow-sm transition">
+            <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+            <span>Apply / Open Posting (${currentJob.platform_display || 'Web'})</span>
+          </a>
+        `;
+        lucide.createIcons();
+      }
+      showToast("Notes & posting link saved successfully!");
+      await loadJobs();
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      const text = document.getElementById('toast-message');
+      text.textContent = msg;
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 2500);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    let currentScoutReport = null;
+    let activeReportFilter = 'all';
+    let scoutPollingInterval = null;
+
+    function openScoutModal(forceTab = null) {
+      document.getElementById('scout-modal-backdrop').classList.remove('hidden');
+      document.getElementById('scout-modal').classList.remove('hidden');
+      
+      fetch('/api/scout/status')
+        .then(res => res.json())
+        .then(data => {
+          if (data.report) {
+            currentScoutReport = data.report;
+          }
+          if (forceTab) {
+            switchScoutTab(forceTab);
+          } else if (data.is_running) {
+            switchScoutTab('process');
+          } else if (currentScoutReport) {
+            switchScoutTab('report');
+          } else {
+            switchScoutTab('process');
+          }
+          
+          if (data.is_running && !scoutPollingInterval) {
+            pollScoutStatus();
+          }
+          updateScoutProcessUI(data);
+        })
+        .catch(() => {
+          if (forceTab) switchScoutTab(forceTab);
+        });
+      lucide.createIcons();
+    }
+
+    function closeScoutModal() {
+      document.getElementById('scout-modal-backdrop').classList.add('hidden');
+      document.getElementById('scout-modal').classList.add('hidden');
+    }
+
+    function switchScoutTab(tab) {
+      const processView = document.getElementById('scout-process-view');
+      const reportView = document.getElementById('scout-report-view');
+      const tabProcess = document.getElementById('tab-scout-process');
+      const tabReport = document.getElementById('tab-scout-report');
+
+      if (tab === 'process') {
+        processView.classList.remove('hidden');
+        reportView.classList.add('hidden');
+        tabProcess.className = "px-2.5 py-1 rounded-md text-xs font-medium transition text-white bg-slate-700 shadow-sm flex items-center gap-1.5";
+        tabReport.className = "px-2.5 py-1 rounded-md text-xs font-medium transition text-slate-400 hover:text-white flex items-center gap-1.5";
+      } else {
+        processView.classList.add('hidden');
+        reportView.classList.remove('hidden');
+        tabReport.className = "px-2.5 py-1 rounded-md text-xs font-medium transition text-white bg-slate-700 shadow-sm flex items-center gap-1.5";
+        tabProcess.className = "px-2.5 py-1 rounded-md text-xs font-medium transition text-slate-400 hover:text-white flex items-center gap-1.5";
+        
+        if (currentScoutReport) {
+          renderScoutReport(currentScoutReport);
+        }
+        fetch('/api/scout/report')
+          .then(res => res.json())
+          .then(report => {
+            if (report && !report.error) {
+              currentScoutReport = report;
+              renderScoutReport(report);
+            }
+          })
+          .catch(() => {});
+      }
+      lucide.createIcons();
+    }
+
+    async function triggerScout(mode = 'live') {
+      // Open modal in process tab
+      openScoutModal('process');
+
+      // Update UI to running state
+      const topBtn = document.getElementById('btn-scout');
+      const topIcon = document.getElementById('scout-icon');
+      const topText = document.getElementById('scout-text');
+      const badge = document.getElementById('scout-status-badge');
+      const ping = document.getElementById('scout-ping');
+      const sweep = document.getElementById('radar-sweep');
+      const liveBtn = document.getElementById('btn-trigger-live');
+      const fastBtn = document.getElementById('btn-trigger-fast');
+      const viewReportBtn = document.getElementById('btn-view-report-when-ready');
+
+      topIcon.classList.add('animate-spin');
+      topText.textContent = mode === 'fast' ? "Re-Indexing..." : "Scouting IT Roles...";
+      topBtn.disabled = true;
+
+      badge.className = "text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-sky-500/20 text-sky-400 border border-sky-500/40 animate-pulse";
+      badge.textContent = mode === 'fast' ? "Syncing Feed" : "Scanning Live";
+      ping.classList.remove('hidden');
+      sweep.classList.add('animate-spin');
+      sweep.classList.remove('opacity-40');
+      liveBtn.disabled = true;
+      fastBtn.disabled = true;
+      viewReportBtn.classList.add('hidden');
+
+      document.getElementById('scout-stage-text').textContent = mode === 'fast' ? "Re-indexing candidate database & updating feed..." : "Starting automated IT scout across LinkedIn & Indeed...";
+      document.getElementById('scout-progress-pct').textContent = "5%";
+      document.getElementById('scout-progress-bar').style.width = "5%";
+
+      const term = document.getElementById('scout-terminal-logs');
+      term.innerHTML = `<div class="text-sky-400">[SYSTEM] Initiating ${mode === 'fast' ? 'quick database re-sync' : 'full live web scan across LinkedIn & Indeed'}...</div>`;
+
+      try {
+        const res = await fetch('/api/scout/trigger', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode })
+        });
+        const data = await res.json();
+        if (data.status === 'started') {
+          showToast(`Started ${mode === 'fast' ? 'quick re-sync' : 'automated live scout'}...`);
+          pollScoutStatus();
+        } else if (data.status === 'already_running') {
+          showToast("Scout scan is already in progress.");
+          pollScoutStatus();
+        }
+      } catch (err) {
+        showToast("Failed to start scout scan: " + err.message);
+        topIcon.classList.remove('animate-spin');
+        topText.textContent = "Run IT Scout";
+        topBtn.disabled = false;
+        liveBtn.disabled = false;
+        fastBtn.disabled = false;
+      }
+    }
+
+    function updateScoutProcessUI(data) {
+      if (!data) return;
+      const stageText = document.getElementById('scout-stage-text');
+      const progressPct = document.getElementById('scout-progress-pct');
+      const progressBar = document.getElementById('scout-progress-bar');
+      const badge = document.getElementById('scout-status-badge');
+      const ping = document.getElementById('scout-ping');
+      const sweep = document.getElementById('radar-sweep');
+      const logCounter = document.getElementById('scout-log-counter');
+      const term = document.getElementById('scout-terminal-logs');
+
+      if (data.stage) stageText.textContent = data.stage;
+      const pct = data.progress_percent || 0;
+      progressPct.textContent = `${pct}%`;
+      progressBar.style.width = `${pct}%`;
+
+      // Update checkpoint steps
+      const steps = [
+        { id: 'chk-step-1', minPct: 10, label: '1. Query Ingestion' },
+        { id: 'chk-step-2', minPct: 20, label: '2. Scraping Web' },
+        { id: 'chk-step-3', minPct: 80, label: '3. IT Filtering' },
+        { id: 'chk-step-4', minPct: 90, label: '4. Deduplication' }
+      ];
+      steps.forEach(s => {
+        const el = document.getElementById(s.id);
+        if (el) {
+          if (pct >= s.minPct) {
+            el.className = "flex items-center gap-1.5 text-emerald-400 font-medium";
+            el.innerHTML = `<i data-lucide="check-circle-2" class="w-3 h-3 text-emerald-400 shrink-0"></i><span class="truncate">${s.label}</span>`;
+          } else {
+            el.className = "flex items-center gap-1.5 text-slate-500";
+            el.innerHTML = `<i data-lucide="circle" class="w-3 h-3 text-slate-600 shrink-0"></i><span class="truncate">${s.label}</span>`;
+          }
+        }
+      });
+
+      // Terminal logs update
+      if (data.logs && Array.isArray(data.logs)) {
+        logCounter.textContent = `${data.logs.length} lines`;
+        if (data.logs.length > 0) {
+          term.innerHTML = data.logs.map(line => {
+            let color = "text-slate-300";
+            if (line.includes("✅") || line.includes("Found") || line.includes("unique")) color = "text-emerald-400";
+            else if (line.includes("🔍") || line.includes("Starting")) color = "text-sky-300";
+            else if (line.includes("⚠️") || line.includes("Filtered")) color = "text-amber-300";
+            else if (line.includes("❌") || line.includes("Error")) color = "text-rose-400";
+            return `<div class="${color}">${escapeHtml(line)}</div>`;
+          }).join('');
+          term.scrollTop = term.scrollHeight;
+        }
+      }
+
+      if (data.is_running) {
+        badge.className = "text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-sky-500/20 text-sky-400 border border-sky-500/40 animate-pulse";
+        badge.textContent = "Scanning Live";
+        ping.classList.remove('hidden');
+        sweep.classList.remove('opacity-40');
+      } else {
+        badge.className = "text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/40";
+        badge.textContent = "Completed";
+        ping.classList.add('hidden');
+        sweep.classList.add('opacity-40');
+      }
+      lucide.createIcons();
+    }
+
+    function pollScoutStatus() {
+      if (scoutPollingInterval) clearInterval(scoutPollingInterval);
+      
+      scoutPollingInterval = setInterval(async () => {
+        try {
+          const res = await fetch('/api/scout/status');
+          const data = await res.json();
+          updateScoutProcessUI(data);
+
+          if (!data.is_running) {
+            clearInterval(scoutPollingInterval);
+            scoutPollingInterval = null;
+
+            // Reset top buttons
+            const topBtn = document.getElementById('btn-scout');
+            const topIcon = document.getElementById('scout-icon');
+            const topText = document.getElementById('scout-text');
+            const liveBtn = document.getElementById('btn-trigger-live');
+            const fastBtn = document.getElementById('btn-trigger-fast');
+            const viewReportBtn = document.getElementById('btn-view-report-when-ready');
+
+            topIcon.classList.remove('animate-spin');
+            topText.textContent = "Run IT Scout";
+            topBtn.disabled = false;
+            liveBtn.disabled = false;
+            fastBtn.disabled = false;
+            viewReportBtn.classList.remove('hidden');
+
+            if (data.report) {
+              currentScoutReport = data.report;
+              showToast(`🎯 Scout complete! ${data.report.deduped_count || 0} unique IT roles discovered.`);
+              renderScoutReport(data.report);
+              // Switch automatically to report view on completion
+              switchScoutTab('report');
+            } else {
+              showToast("IT Scout completed & feed updated!");
+            }
+            await loadJobs();
+          }
+        } catch (e) {
+          clearInterval(scoutPollingInterval);
+          scoutPollingInterval = null;
+        }
+      }, 1500);
+    }
+
+    function renderScoutReport(report) {
+      if (!report) return;
+      document.getElementById('rep-raw-count').textContent = report.raw_count || 0;
+      document.getElementById('rep-it-count').textContent = report.it_count || 0;
+      document.getElementById('rep-deduped-count').textContent = report.deduped_count || 0;
+      document.getElementById('rep-high-count').textContent = report.high_match_count || 0;
+      document.getElementById('rep-last-scanned-time').textContent = `Last Scan: ${report.last_scanned || 'Just now'}`;
+
+      const container = document.getElementById('rep-jobs-container');
+      const allJobsInReport = report.jobs || [];
+      allJobsInReport.forEach((j, i) => { j._orig_idx = i; });
+
+      // Filter jobs
+      const filtered = allJobsInReport.filter(j => {
+        if (activeReportFilter === 'high') return (j.match_score || 0) >= 80;
+        if (activeReportFilter === 'intl') return (j.language_tag === 'English / International' || (j.language_badge && j.language_badge.includes('English')));
+        if (activeReportFilter === 'suomi') return (j.language_tag === 'Finnish Required' || (j.language_badge && j.language_badge.includes('Finnish')));
+        if (activeReportFilter === 'new') return !j.already_applied;
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="p-8 text-center text-slate-500 text-xs bg-slate-950/40 rounded-xl border border-slate-800/80">
+            No IT opportunities found matching the selected filter "${activeReportFilter}".
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filtered.map((job) => {
+        const score = job.match_score || 70;
+        let scoreBg = "bg-slate-800 text-slate-300 border border-slate-700";
+        let scoreColor = "text-white";
+        if (score >= 90) {
+          scoreBg = "bg-emerald-500/15 border border-emerald-500/30";
+          scoreColor = "text-emerald-400";
+        } else if (score >= 80) {
+          scoreBg = "bg-sky-500/15 border border-sky-500/30";
+          scoreColor = "text-sky-300";
+        } else {
+          scoreBg = "bg-amber-500/15 border border-amber-500/30";
+          scoreColor = "text-amber-300";
+        }
+
+        const isIntl = (job.language_tag === 'English / International' || (job.language_badge && job.language_badge.includes('English')));
+        const langBadge = isIntl 
+          ? '<span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-medium">🌐 English / Int\'l</span>'
+          : '<span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 font-medium">🇫🇮 Finnish Required</span>';
+
+        const statusTag = job.already_applied
+          ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">⚠️ Already Tracked</span>'
+          : '<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold">⭐ NEW</span>';
+
+        return `
+          <div class="bg-slate-950/70 border border-slate-800/90 hover:border-slate-700 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition">
+            <div class="flex items-start gap-3 min-w-0">
+              <div class="px-2.5 py-1.5 rounded-lg ${scoreBg} flex flex-col items-center justify-center shrink-0 min-w-[50px]">
+                <span class="text-xs font-bold ${scoreColor}">${score}%</span>
+                <span class="text-[8px] uppercase tracking-wider text-slate-400 font-semibold">Match</span>
+              </div>
+
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <h4 class="text-xs font-bold text-white truncate hover:text-sky-300 transition" title="${escapeHtml(job.title)}">
+                    ${escapeHtml(job.title)}
+                  </h4>
+                  ${statusTag}
+                </div>
+
+                <div class="text-[11px] text-slate-300 font-medium flex items-center gap-2 mt-0.5">
+                  <span class="text-white">${escapeHtml(job.company)}</span>
+                  <span class="text-slate-600">•</span>
+                  <span class="text-slate-400 truncate">${escapeHtml(job.location || 'Finland')}</span>
+                </div>
+
+                <div class="flex items-center gap-2 mt-1.5 flex-wrap">
+                  ${langBadge}
+                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800/80 border border-slate-700 text-slate-400">${escapeHtml(job.platform || 'Web')}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2 shrink-0 self-end sm:self-center">
+              ${job.url ? `
+                <a href="${job.url}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-medium flex items-center gap-1 transition" title="View online posting">
+                  <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                  <span>Posting</span>
+                </a>
+              ` : ''}
+              <button onclick="runWorkflowFromReport('${encodeURIComponent(job.url || '')}', ${job._orig_idx})" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition active:scale-95 shadow shadow-amber-500/10" title="Generate tailored CV, Cover Letter & vector PDFs">
+                <i data-lucide="zap" class="w-3.5 h-3.5 fill-slate-950"></i>
+                <span>Run Workflow</span>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    function setReportFilter(f) {
+      activeReportFilter = f;
+      const filterBtns = ['all', 'high', 'intl', 'suomi', 'new'];
+      filterBtns.forEach(btnId => {
+        const b = document.getElementById(`rf-btn-${btnId}`);
+        if (b) {
+          if (btnId === f) {
+            b.className = "px-2.5 py-1 rounded-lg bg-sky-500 text-white font-medium text-[11px] transition shadow-sm";
+          } else {
+            b.className = "px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:text-white font-medium text-[11px] transition";
+          }
+        }
+      });
+      if (currentScoutReport) {
+        renderScoutReport(currentScoutReport);
+      }
+    }
+
+    function runWorkflowFromReport(encodedUrl, origIdx) {
+      if (!currentScoutReport || !currentScoutReport.jobs) return;
+      const targetUrl = encodedUrl ? decodeURIComponent(encodedUrl) : '';
+      let job = null;
+      if (targetUrl) {
+        job = currentScoutReport.jobs.find(j => j.url === targetUrl);
+      }
+      if (!job && typeof origIdx === 'number' && origIdx >= 0 && origIdx < currentScoutReport.jobs.length) {
+        job = currentScoutReport.jobs[origIdx];
+      }
+      if (!job) {
+        showToast("Could not locate the selected job from report.");
+        return;
+      }
+
+      closeScoutModal();
+      triggerWorkflow({
+        id: `scout_${Date.now()}`,
+        title: job.title,
+        company: job.company,
+        url: job.url || '',
+        location: job.location || 'Finland',
+        notes: job.description_snippet || ''
+      });
+    }
+
+    async function checkScoutStatus() {
+      try {
+        const res = await fetch('/api/scout/status');
+        const data = await res.json();
+        if (data.report) {
+          currentScoutReport = data.report;
+        }
+        if (data.is_running) {
+          const topIcon = document.getElementById('scout-icon');
+          const topText = document.getElementById('scout-text');
+          const topBtn = document.getElementById('btn-scout');
+          topIcon.classList.add('animate-spin');
+          topText.textContent = "Scouting IT Roles...";
+          topBtn.disabled = true;
+          pollScoutStatus();
+        }
+      } catch (e) {}
+    }
+
+    let activeWorkflowResult = null;
+
+    function closeWorkflowModal() {
+      document.getElementById('wf-modal-backdrop').classList.add('hidden');
+      document.getElementById('wf-modal').classList.add('hidden');
+    }
+
+    async function triggerWorkflow(jobId, isRegen = false) {
+      const job = (typeof jobId === 'object' && jobId !== null) ? jobId : (allJobs.find(j => j.id === jobId) || currentJob);
+      if (!job) {
+        showToast("No role selected to run workflow.");
+        return;
+      }
+
+      // Open modal
+      document.getElementById('wf-modal-backdrop').classList.remove('hidden');
+      document.getElementById('wf-modal').classList.remove('hidden');
+      document.getElementById('wf-modal-title').textContent = isRegen ? `Regenerating Documents: ${job.title}` : `Workflow: ${job.title}`;
+      document.getElementById('wf-modal-subtitle').textContent = `${job.company} • ${job.location || 'Finland'}`;
+      document.getElementById('wf-result-box').classList.add('hidden');
+      document.getElementById('wf-btn-folder').classList.add('hidden');
+      document.getElementById('wf-btn-inspect').classList.add('hidden');
+
+      const steps = [
+        { id: 'wf-step-1', text: 'Ingesting & scraping job description...' },
+        { id: 'wf-step-2', text: 'Gemini AI deep-reading & tailoring context...' },
+        { id: 'wf-step-3', text: 'Crafting tailored CV with Google X-Y-Z metrics...' },
+        { id: 'wf-step-4', text: 'Generating strategic 3-pillar Cover Letter & screening Q&A...' },
+        { id: 'wf-step-5', text: 'Compiling recruiter-ready vector A4 PDFs (Chromium)...' },
+        { id: 'wf-step-6', text: 'Computing ATS optimization audit & compatibility score...' }
+      ];
+
+      // Reset steps UI
+      steps.forEach((s, idx) => {
+        const el = document.getElementById(s.id);
+        if (el) {
+          el.className = "flex items-center gap-2 " + (idx === 0 ? "text-amber-300 font-medium" : "text-slate-500");
+          el.innerHTML = idx === 0 ? 
+            `<div class="w-4 h-4 flex items-center justify-center shrink-0"><span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span></div><span>${s.text}</span>` :
+            `<div class="w-4 h-4 flex items-center justify-center shrink-0"><i data-lucide="circle" class="w-3 h-3 text-slate-600"></i></div><span>${s.text}</span>`;
+        }
+      });
+      lucide.createIcons();
+
+      try {
+        const res = await fetch('/api/workflow/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: job.title,
+            company: job.company,
+            url: job.url || '',
+            location: job.location || 'Finland',
+            description: job.notes || job.summary || '',
+            folder: job.folder || undefined
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          activeWorkflowResult = data;
+          steps.forEach(s => {
+            const el = document.getElementById(s.id);
+            if (el) {
+              el.className = "flex items-center gap-2 text-emerald-400 font-medium";
+              el.innerHTML = `<i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 shrink-0"></i><span>${s.text.replace('...', '')}</span>`;
+            }
+          });
+          document.getElementById('wf-result-box').classList.remove('hidden');
+          document.getElementById('wf-result-folder').textContent = data.folder;
+          document.getElementById('wf-result-files').textContent = `${data.files.length} artifacts (CV, Letter, PDFs, Q&A, Prep, ATS)`;
+          document.getElementById('wf-result-ats').textContent = `${data.ats_score}% (Audit Passed)`;
+          
+          document.getElementById('wf-btn-folder').classList.remove('hidden');
+          document.getElementById('wf-btn-inspect').classList.remove('hidden');
+
+          if (data.prompt && navigator.clipboard) {
+            try { await navigator.clipboard.writeText(data.prompt); } catch (e) {}
+          }
+
+          showToast(isRegen ? `🔄 Documents regenerated with Gemini AI for ${job.company}!` : `🎉 Application package generated for ${job.company}!`);
+          lucide.createIcons();
+
+          // Refresh jobs list
+          await loadJobs();
+
+          // If drawer is currently open, switch to the prepared role and keep tab
+          const updated = allJobs.find(j => (data.folder && j.folder === data.folder) || j.id === job.id);
+          if (updated && currentJob && currentJob.id === job.id) {
+            openDrawer(updated, currentTab);
+          }
+        } else {
+          showToast(`Error: ${data.error || 'Failed to generate package'}`);
+        }
+      } catch (err) {
+        showToast(`Failed to trigger workflow: ${err.message}`);
+      }
+    }
+
+    function copyWorkflowPrompt(job) {
+      if (!job) return;
+      const prompt = `do the workflow for this: ${job.url || (job.company + ' ' + job.title)}`;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(prompt);
+      }
+      showToast(`📋 Copied agent prompt to clipboard: "${prompt}"`);
+    }
+
+    function copyWfCommand() {
+      if (activeWorkflowResult && activeWorkflowResult.prompt) {
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(activeWorkflowResult.prompt);
+        }
+        showToast(`Copied prompt: "${activeWorkflowResult.prompt}"`);
+      } else if (currentJob) {
+        copyWorkflowPrompt(currentJob);
+      }
+    }
+
+    function openWfResultFolder() {
+      if (activeWorkflowResult && activeWorkflowResult.folder) {
+        triggerOpenFolder(activeWorkflowResult.folder);
+      }
+    }
+
+    function inspectWfResultJob() {
+      closeWorkflowModal();
+      if (activeWorkflowResult && activeWorkflowResult.folder) {
+        const job = allJobs.find(j => j.folder === activeWorkflowResult.folder);
+        if (job) {
+          openDrawer(job);
+        }
+      }
+    }
+
+    async function fetchTelegramStatus() {
+      try {
+        const res = await fetch('/api/telegram/status');
+        const data = await res.json();
+        const badge = document.getElementById('telegram-modal-badge');
+        const headerDot = document.getElementById('telegram-header-dot');
+        const statusText = document.getElementById('tg-status-text');
+        const tokenText = document.getElementById('tg-token-text');
+        const chatText = document.getElementById('tg-chat-text');
+        const threshText = document.getElementById('tg-thresh-text');
+
+        if (threshText) threshText.textContent = `Match ≥ ${data.min_score || 80}%`;
+
+        if (data.enabled) {
+          if (headerDot) {
+            headerDot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+            headerDot.title = 'Telegram Alerts Active';
+          }
+          if (badge) {
+            badge.className = 'text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+            badge.textContent = 'Active';
+          }
+          if (statusText) statusText.innerHTML = '<span class="text-emerald-400 font-semibold">● Connected & Listening</span>';
+          if (tokenText) tokenText.textContent = 'Configured (Active)';
+          if (chatText) chatText.textContent = 'Configured';
+        } else {
+          if (headerDot) {
+            headerDot.className = 'w-2 h-2 rounded-full bg-slate-500';
+            headerDot.title = 'Telegram Alerts Not Configured';
+          }
+          if (badge) {
+            badge.className = 'text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-slate-800 text-slate-400 border border-slate-700';
+            badge.textContent = 'Not Configured';
+          }
+          if (statusText) statusText.innerHTML = '<span class="text-slate-400">Not Configured</span>';
+          if (tokenText) tokenText.textContent = data.has_token ? 'Configured' : 'Missing';
+          if (chatText) chatText.textContent = data.has_chat_id ? 'Configured' : 'Missing';
+        }
+      } catch (e) {
+        console.error('Failed to fetch Telegram status:', e);
+      }
+    }
+
+    function openTelegramModal() {
+      document.getElementById('telegram-modal-backdrop').classList.remove('hidden');
+      document.getElementById('telegram-modal').classList.remove('hidden');
+      const testResult = document.getElementById('tg-test-result');
+      if (testResult) testResult.classList.add('hidden');
+      fetchTelegramStatus();
+      lucide.createIcons();
+    }
+
+    function closeTelegramModal() {
+      document.getElementById('telegram-modal-backdrop').classList.add('hidden');
+      document.getElementById('telegram-modal').classList.add('hidden');
+    }
+
+    async function testTelegramAlert() {
+      const btn = document.getElementById('btn-test-telegram');
+      const testResult = document.getElementById('tg-test-result');
+      const origHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>Sending...</span>';
+      lucide.createIcons();
+
+      try {
+        const res = await fetch('/api/telegram/test', { method: 'POST' });
+        const data = await res.json();
+        testResult.classList.remove('hidden');
+        if (data.success) {
+          testResult.className = 'text-xs p-2.5 rounded-lg border bg-emerald-500/10 border-emerald-500/30 text-emerald-300';
+          testResult.innerHTML = `✅ <strong>Success:</strong> ${data.message}`;
+          showToast('Telegram test alert sent!');
+          fetchTelegramStatus();
+        } else {
+          testResult.className = 'text-xs p-2.5 rounded-lg border bg-rose-500/10 border-rose-500/30 text-rose-300';
+          testResult.innerHTML = `⚠️ <strong>Error:</strong> ${data.message || 'Failed to dispatch alert.'}`;
+        }
+      } catch (e) {
+        testResult.classList.remove('hidden');
+        testResult.className = 'text-xs p-2.5 rounded-lg border bg-rose-500/10 border-rose-500/30 text-rose-300';
+        testResult.innerHTML = `⚠️ <strong>Connection failed:</strong> ${e.message}`;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+        lucide.createIcons();
+      }
+    }
+
+    let currentRetentionData = null;
+
+    function openRetentionModal() {
+      document.getElementById('retention-modal-backdrop').classList.remove('hidden');
+      document.getElementById('retention-modal').classList.remove('hidden');
+      const resBox = document.getElementById('retention-result-box');
+      if (resBox) resBox.classList.add('hidden');
+      previewRetentionScan();
+      lucide.createIcons();
+    }
+
+    function closeRetentionModal() {
+      document.getElementById('retention-modal-backdrop').classList.add('hidden');
+      document.getElementById('retention-modal').classList.add('hidden');
+    }
+
+    function onRetentionDaysChange() {
+      previewRetentionScan();
+    }
+
+    async function previewRetentionScan() {
+      const days = document.getElementById('retention-days-select').value;
+      const badge = document.getElementById('retention-modal-badge');
+      if (badge) badge.textContent = 'Scanning...';
+
+      try {
+        const res = await fetch(`/api/retention/status?days=${days}`);
+        const data = await res.json();
+        currentRetentionData = data;
+        updateRetentionUI(data);
+      } catch (e) {
+        console.error('Failed to scan retention candidates:', e);
+      } finally {
+        if (badge) badge.textContent = 'Audit Ready';
+      }
+    }
+
+    function updateRetentionUI(data) {
+      if (!data || !data.scan) return;
+      const scan = data.scan;
+      const candidates = scan.candidates || [];
+      
+      const mbEl = document.getElementById('retention-reclaim-mb');
+      const countEl = document.getElementById('retention-reclaim-count');
+      const summaryEl = document.getElementById('retention-table-summary');
+      const tbody = document.getElementById('retention-candidates-tbody');
+
+      if (mbEl) mbEl.textContent = `${scan.total_mb || 0} MB`;
+      if (countEl) countEl.textContent = `(${candidates.length} packages)`;
+      if (summaryEl) summaryEl.textContent = `${candidates.length} eligible (${scan.total_mb} MB)`;
+
+      if (!tbody) return;
+
+      if (candidates.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="4" class="p-4 text-center text-slate-500 italic">
+              No expired postings found older than ${scan.days} days (active stages safe).
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = candidates.map(c => `
+        <tr class="hover:bg-slate-900/60 transition">
+          <td class="p-2.5 font-medium text-white flex items-center gap-2">
+            <i data-lucide="folder" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
+            <span class="truncate max-w-[220px]" title="${escapeHtml(c.folder)}">${escapeHtml(c.folder)}</span>
+          </td>
+          <td class="p-2.5">
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-800 text-slate-300 border border-slate-700">
+              ${escapeHtml(c.status)}
+            </span>
+          </td>
+          <td class="p-2.5 text-slate-400">${c.age_days}d ago</td>
+          <td class="p-2.5 text-right font-mono text-amber-300 font-semibold">${c.size_kb} KB</td>
+        </tr>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    async function triggerRetentionCleanup() {
+      const days = document.getElementById('retention-days-select').value;
+      const mode = document.getElementById('retention-mode-select').value;
+      const btn = document.getElementById('btn-execute-cleanup');
+      const resBox = document.getElementById('retention-result-box');
+
+      if (!currentRetentionData || !currentRetentionData.scan || currentRetentionData.scan.candidates.length === 0) {
+        showToast('No expired candidates to clean!');
+        return;
+      }
+
+      const count = currentRetentionData.scan.candidates.length;
+      const mb = currentRetentionData.scan.total_mb;
+      if (!confirm(`Are you sure you want to clean ${count} expired posting packages older than ${days} days?\n\nMode: ${mode.toUpperCase()}\nEstimated Space Freed: ${mb} MB\n\nActive Interviewing, Offer, and Applied stages remain protected.`)) {
+        return;
+      }
+
+      const origHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>Cleaning...</span>';
+      lucide.createIcons();
+
+      try {
+        const res = await fetch('/api/retention/cleanup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ days: parseInt(days), mode: mode, dry_run: false })
+        });
+        const data = await res.json();
+        resBox.classList.remove('hidden');
+        if (data.success) {
+          resBox.className = 'text-xs p-3 rounded-xl border bg-emerald-500/10 border-emerald-500/30 text-emerald-300 space-y-1';
+          resBox.innerHTML = `
+            <div class="font-bold flex items-center gap-1.5">
+              <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+              <span>Cleanup Succeeded!</span>
+            </div>
+            <p>Purged ${data.removed_count} expired postings, reclaiming <strong>${data.freed_mb} MB</strong>.</p>
+          `;
+          showToast(`Freed ${data.freed_mb} MB!`);
+          previewRetentionScan();
+          loadJobs();
+        } else {
+          resBox.className = 'text-xs p-3 rounded-xl border bg-rose-500/10 border-rose-500/30 text-rose-300';
+          resBox.innerHTML = `⚠️ <strong>Error:</strong> Failed to execute cleanup.`;
+        }
+      } catch (e) {
+        resBox.classList.remove('hidden');
+        resBox.className = 'text-xs p-3 rounded-xl border bg-rose-500/10 border-rose-500/30 text-rose-300';
+        resBox.innerHTML = `⚠️ <strong>Connection failed:</strong> ${e.message}`;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+        lucide.createIcons();
+      }
+    }
+
+    function refreshData() {
+      loadJobs();
+      fetchTelegramStatus();
+      showToast("Dashboard refreshed!");
+    }
+  </script>
+</body>
+</html>
