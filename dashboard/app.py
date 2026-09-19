@@ -17,7 +17,11 @@ import zipfile
 import subprocess
 from datetime import datetime
 from pathlib import Path
-from flask import Flask, render_template, jsonify, request, send_file, send_from_directory, abort
+import secrets
+from flask import (
+    Flask, render_template, jsonify, request, send_file,
+    send_from_directory, abort, session, redirect, url_for
+)
 
 # Set up imports for scripts.job_filters
 APP_DIR = Path(__file__).resolve().parent.parent
@@ -28,6 +32,39 @@ sys.path.insert(0, str(APP_DIR / "scripts"))
 if str(WORKSPACE_DIR) != str(APP_DIR):
     sys.path.insert(0, str(WORKSPACE_DIR))
     sys.path.insert(0, str(WORKSPACE_DIR / "scripts"))
+
+try:
+    from scripts.auth_manager import (
+        load_auth_config, save_auth_config, verify_credentials,
+        check_rate_limit, record_failed_attempt, reset_rate_limit,
+        generate_csrf_token, validate_csrf_token, generate_totp_secret,
+        get_totp_uri, verify_totp, consume_recovery_code,
+        generate_qr_svg, generate_recovery_codes
+    )
+except ImportError:
+    try:
+        from auth_manager import (
+            load_auth_config, save_auth_config, verify_credentials,
+            check_rate_limit, record_failed_attempt, reset_rate_limit,
+            generate_csrf_token, validate_csrf_token, generate_totp_secret,
+            get_totp_uri, verify_totp, consume_recovery_code,
+            generate_qr_svg, generate_recovery_codes
+        )
+    except ImportError:
+        load_auth_config = lambda: {"auth_enabled": False, "username": "admin", "password_hash": "", "mfa_enabled": False}
+        save_auth_config = lambda c: None
+        verify_credentials = lambda u, p, c: True
+        check_rate_limit = lambda ip: (True, 0)
+        record_failed_attempt = lambda ip: 5
+        reset_rate_limit = lambda ip: None
+        generate_csrf_token = lambda s, k: ""
+        validate_csrf_token = lambda t, s, k: True
+        generate_totp_secret = lambda: ""
+        get_totp_uri = lambda u, s: ""
+        verify_totp = lambda s, t: True
+        consume_recovery_code = lambda c, cfg: False
+        generate_qr_svg = lambda u: None
+        generate_recovery_codes = lambda n=8: []
 
 from scripts.job_filters import (
     is_it_job,
@@ -82,6 +119,78 @@ except ImportError:
         clean_expired_postings = lambda **kwargs: {"success": False, "removed_count": 0, "freed_mb": 0.0}
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
+
+AUTH_CONFIG = load_auth_config()
+app.secret_key = AUTH_CONFIG.get("secret_key") or secrets.token_hex(32)
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["PERMANENT_SESSION_LIFETIME"] = 86400 * 7  # 7 days
+
+def get_client_ip() -> str:
+    """Extract real client IP behind reverse proxy or direct."""
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.remote_addr or "127.0.0.1"
+
+def is_client_authenticated() -> bool:
+    global AUTH_CONFIG
+    AUTH_CONFIG = load_auth_config()
+    if not AUTH_CONFIG.get("auth_enabled"):
+        return True
+    
+    if session.get("authenticated") and session.get("user") == AUTH_CONFIG.get("username", "admin"):
+        if AUTH_CONFIG.get("mfa_enabled"):
+            return session.get("mfa_verified") is True
+        return True
+    return False
+
+def get_or_create_csrf_token() -> str:
+    if "csrf_session_id" not in session:
+        session["csrf_session_id"] = secrets.token_hex(16)
+    return generate_csrf_token(session["csrf_session_id"], app.secret_key)
+
+@app.before_request
+def security_and_auth_guard():
+    global AUTH_CONFIG
+    AUTH_CONFIG = load_auth_config()
+
+    path = request.path
+    # Public exemptions
+    if (
+        path.startswith("/static/") or
+        path in ("/login", "/login/verify-mfa", "/login/setup-mfa", "/logout", "/healthz")
+    ):
+        return None
+
+    # Enforce authentication if enabled
+    if not is_client_authenticated():
+        if path.startswith("/api/"):
+            return jsonify({"error": "Unauthorized. Please authenticate."}), 401
+        return redirect(f"/login?next={path}")
+
+    # Enforce CSRF protection on mutation requests if auth is enabled
+    if AUTH_CONFIG.get("auth_enabled") and request.method in ("POST", "PUT", "DELETE", "PATCH"):
+        token = request.headers.get("X-CSRF-Token") or request.form.get("csrf_token")
+        session_id = session.get("csrf_session_id", "")
+        if not token or not validate_csrf_token(token, session_id, app.secret_key):
+            if path.startswith("/api/"):
+                return jsonify({"error": "Forbidden: Invalid or expired CSRF token."}), 403
+            return render_template("login.html", error="Session expired or invalid security token. Please log in again.", stage="credentials"), 403
+
+@app.after_request
+def apply_security_headers(response):
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self' https: data: 'unsafe-inline' 'unsafe-eval'; "
+        "img-src 'self' data: https: blob:; "
+        "font-src 'self' https: data:; "
+        "connect-src 'self' https:;"
+    )
+    return response
 
 PIPELINE_DB = WORKSPACE_DIR / "pipeline_data.json"
 JOB_FEED_FILE = WORKSPACE_DIR / "JOB_SCOUT_FEED.md"
@@ -571,11 +680,210 @@ def scan_scouted_feed(prepared_applications: list) -> list:
         
     return scouted_jobs
 
-# --- Routes ---
+# --- Authentication & Security Routes ---
+
+@app.route("/healthz")
+def healthz():
+    return jsonify({"status": "healthy", "timestamp": datetime.now().isoformat()}), 200
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    global AUTH_CONFIG
+    AUTH_CONFIG = load_auth_config()
+    client_ip = get_client_ip()
+
+    if is_client_authenticated():
+        return redirect("/")
+
+    is_allowed, wait_seconds = check_rate_limit(client_ip)
+    if not is_allowed:
+        wait_mins = (wait_seconds // 60) + 1
+        return render_template(
+            "login.html",
+            error=f"Too many failed attempts. Security lockout active. Please wait {wait_mins} minute(s).",
+            stage="credentials",
+            csrf_token=get_or_create_csrf_token()
+        ), 429
+
+    if request.method == "GET":
+        # Check if user is in MFA verification stage
+        if session.get("pending_user") and session.get("pending_authenticated"):
+            if not AUTH_CONFIG.get("totp_secret"):
+                if "setup_totp_secret" not in session:
+                    session["setup_totp_secret"] = generate_totp_secret()
+                    session["setup_recovery_codes"] = generate_recovery_codes(8)
+                totp_uri = get_totp_uri(session["pending_user"], session["setup_totp_secret"])
+                qr_svg = generate_qr_svg(totp_uri)
+                return render_template(
+                    "login.html",
+                    stage="setup_mfa",
+                    totp_secret=session["setup_totp_secret"],
+                    qr_svg=qr_svg,
+                    recovery_codes=session["setup_recovery_codes"],
+                    csrf_token=get_or_create_csrf_token(),
+                    next_url=request.args.get("next", "/")
+                )
+            return render_template(
+                "login.html",
+                stage="mfa",
+                csrf_token=get_or_create_csrf_token(),
+                next_url=request.args.get("next", "/")
+            )
+        
+        msg = "You have been logged out securely." if request.args.get("msg") == "logged_out" else None
+        return render_template(
+            "login.html",
+            stage="credentials",
+            message=msg,
+            csrf_token=get_or_create_csrf_token(),
+            next_url=request.args.get("next", "/")
+        )
+
+    # POST credentials
+    username = request.form.get("username", "").strip()
+    password = request.form.get("password", "")
+    next_url = request.form.get("next") or "/"
+
+    if not verify_credentials(username, password, AUTH_CONFIG):
+        remaining = record_failed_attempt(client_ip)
+        if remaining == 0:
+            return render_template(
+                "login.html",
+                error="Too many failed attempts. Security lockout active for 15 minutes.",
+                stage="credentials",
+                csrf_token=get_or_create_csrf_token()
+            ), 429
+        return render_template(
+            "login.html",
+            error=f"Invalid username or password. {remaining} attempt(s) remaining.",
+            stage="credentials",
+            csrf_token=get_or_create_csrf_token()
+        ), 401
+
+    reset_rate_limit(client_ip)
+
+    if AUTH_CONFIG.get("mfa_enabled"):
+        session["pending_user"] = username
+        session["pending_authenticated"] = True
+        session["next_url"] = next_url
+        return redirect("/login")
+
+    session.permanent = True
+    session["authenticated"] = True
+    session["user"] = username
+    return redirect(next_url)
+
+@app.route("/login/verify-mfa", methods=["POST"])
+def verify_mfa_post():
+    global AUTH_CONFIG
+    AUTH_CONFIG = load_auth_config()
+    client_ip = get_client_ip()
+
+    if not session.get("pending_user") or not session.get("pending_authenticated"):
+        return redirect("/login")
+
+    is_allowed, wait_seconds = check_rate_limit(client_ip)
+    if not is_allowed:
+        wait_mins = (wait_seconds // 60) + 1
+        return render_template(
+            "login.html",
+            error=f"Security lockout active. Please wait {wait_mins} minute(s).",
+            stage="mfa",
+            csrf_token=get_or_create_csrf_token()
+        ), 429
+
+    totp_token = request.form.get("totp_token", "").strip()
+    recovery_code = request.form.get("recovery_code", "").strip()
+    next_url = session.get("next_url") or "/"
+
+    if recovery_code:
+        if consume_recovery_code(recovery_code, AUTH_CONFIG):
+            reset_rate_limit(client_ip)
+            session.permanent = True
+            session["authenticated"] = True
+            session["mfa_verified"] = True
+            session["user"] = session.pop("pending_user")
+            session.pop("pending_authenticated", None)
+            return redirect(next_url)
+        else:
+            remaining = record_failed_attempt(client_ip)
+            return render_template(
+                "login.html",
+                error=f"Invalid recovery code. {remaining} attempt(s) remaining.",
+                stage="mfa",
+                csrf_token=get_or_create_csrf_token()
+            ), 401
+
+    secret = AUTH_CONFIG.get("totp_secret", "")
+    if verify_totp(secret, totp_token):
+        reset_rate_limit(client_ip)
+        session.permanent = True
+        session["authenticated"] = True
+        session["mfa_verified"] = True
+        session["user"] = session.pop("pending_user")
+        session.pop("pending_authenticated", None)
+        return redirect(next_url)
+
+    remaining = record_failed_attempt(client_ip)
+    return render_template(
+        "login.html",
+        error=f"Invalid verification code. {remaining} attempt(s) remaining.",
+        stage="mfa",
+        csrf_token=get_or_create_csrf_token()
+    ), 401
+
+@app.route("/login/setup-mfa", methods=["POST"])
+def setup_mfa_post():
+    global AUTH_CONFIG
+    AUTH_CONFIG = load_auth_config()
+
+    if not session.get("pending_user") or not session.get("pending_authenticated"):
+        return redirect("/login")
+
+    setup_secret = session.get("setup_totp_secret")
+    recovery_codes = session.get("setup_recovery_codes", [])
+    totp_token = request.form.get("totp_token", "").strip()
+
+    if not setup_secret or not verify_totp(setup_secret, totp_token):
+        totp_uri = get_totp_uri(session["pending_user"], setup_secret or "")
+        qr_svg = generate_qr_svg(totp_uri)
+        return render_template(
+            "login.html",
+            error="Invalid code. Please verify the 6-digit code shown in your authenticator app.",
+            stage="setup_mfa",
+            totp_secret=setup_secret,
+            qr_svg=qr_svg,
+            recovery_codes=recovery_codes,
+            csrf_token=get_or_create_csrf_token()
+        ), 400
+
+    AUTH_CONFIG["mfa_enabled"] = True
+    AUTH_CONFIG["totp_secret"] = setup_secret
+    AUTH_CONFIG["recovery_codes"] = recovery_codes
+    save_auth_config(AUTH_CONFIG)
+
+    session.pop("setup_totp_secret", None)
+    session.pop("setup_recovery_codes", None)
+    session.permanent = True
+    session["authenticated"] = True
+    session["mfa_verified"] = True
+    session["user"] = session.pop("pending_user")
+    session.pop("pending_authenticated", None)
+    next_url = session.pop("next_url", "/")
+    return redirect(next_url)
+
+@app.route("/logout", methods=["POST", "GET"])
+def logout():
+    session.clear()
+    return redirect("/login?msg=logged_out")
+
+# --- Core Web Dashboard & API Routes ---
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    csrf_token = get_or_create_csrf_token() if AUTH_CONFIG.get("auth_enabled") else ""
+    user = session.get("user") if AUTH_CONFIG.get("auth_enabled") else None
+    return render_template("index.html", csrf_token=csrf_token, user=user)
 
 @app.route("/api/jobs")
 def get_jobs():
@@ -729,15 +1037,15 @@ def update_notes():
 
 @app.route("/api/files/<folder>/<filename>")
 def get_file(folder, filename):
-    folder_path = WORKSPACE_DIR / folder
-    if not folder_path.exists() or not folder_path.is_dir():
+    safe_folder = Path(folder).name
+    safe_filename = Path(filename).name
+    folder_path = (WORKSPACE_DIR / safe_folder).resolve()
+    file_path = (folder_path / safe_filename).resolve()
+    
+    if not file_path.is_relative_to(WORKSPACE_DIR) or not file_path.exists() or not file_path.is_file():
         abort(404)
         
-    file_path = folder_path / filename
-    if not file_path.exists():
-        abort(404)
-        
-    if filename.endswith(".pdf"):
+    if safe_filename.endswith(".pdf"):
         return send_file(file_path, mimetype="application/pdf")
     else:
         return send_file(file_path, mimetype="text/markdown")
@@ -781,22 +1089,33 @@ def get_content(folder, doc_type):
 
 @app.route("/api/open_folder", methods=["POST"])
 def open_folder():
-    """Open application folder in native system file manager (xdg-open)."""
+    """Open application folder in native system file manager (xdg-open) when desktop is present."""
     payload = request.json or {}
     folder = payload.get("folder")
     if not folder:
         return jsonify({"error": "Missing folder parameter"}), 400
         
-    folder_path = WORKSPACE_DIR / folder
-    if not folder_path.exists() or not folder_path.is_dir():
+    safe_folder = Path(folder).name
+    folder_path = (WORKSPACE_DIR / safe_folder).resolve()
+    if not folder_path.is_relative_to(WORKSPACE_DIR) or not folder_path.exists() or not folder_path.is_dir():
         return jsonify({"error": f"Folder '{folder}' does not exist on disk"}), 404
         
-    abs_path = str(folder_path.resolve())
+    abs_path = str(folder_path)
     opened = False
     error_msg = None
     
+    # Check if a display server is running (desktop vs headless server)
+    has_display = bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
+    if not has_display:
+        return jsonify({
+            "success": True,
+            "opened": False,
+            "path": safe_folder,
+            "folder": safe_folder,
+            "message": "Headless server environment: folder exists, GUI file manager unavailable."
+        })
+
     try:
-        # Launch xdg-open in background to open native Linux file manager
         subprocess.Popen(["xdg-open", abs_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         opened = True
     except Exception as e:
@@ -806,7 +1125,7 @@ def open_folder():
         "success": True,
         "opened": opened,
         "path": abs_path,
-        "folder": folder,
+        "folder": safe_folder,
         "error": error_msg
     })
 

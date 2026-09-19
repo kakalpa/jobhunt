@@ -12,6 +12,11 @@ services:
       # Mount host directory into container workspace so all generated packages, PDFs, and data persist
       - .:/workspace
     environment:
+      - AUTH_ENABLED=${AUTH_ENABLED:-false}
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
+      - MFA_ENABLED=${MFA_ENABLED:-false}
+      - SECRET_KEY=${SECRET_KEY:-}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}

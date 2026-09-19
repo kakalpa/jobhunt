@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Job Hunt Command Center</title>
+  <meta name="csrf-token" content="{{ csrf_token or '' }}">
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -253,6 +254,21 @@
         <button onclick="refreshData()" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition hover:text-white" title="Refresh Applications">
           <i data-lucide="refresh-cw" class="w-4 h-4"></i>
         </button>
+        {% if user %}
+        <div class="h-6 w-px bg-slate-800 hidden md:block"></div>
+        <div class="flex items-center gap-2 pl-1">
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800/90 border border-slate-700 text-xs text-slate-300 font-medium" title="Logged in user">
+            <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i>
+            <span class="max-w-[110px] truncate font-semibold text-white">{{ user }}</span>
+          </span>
+          <form method="POST" action="/logout" class="inline m-0">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token or '' }}">
+            <button type="submit" class="p-2 rounded-lg bg-slate-800 hover:bg-rose-500/20 border border-slate-700 hover:border-rose-500/40 text-slate-400 hover:text-rose-300 transition" title="Logout Securely">
+              <i data-lucide="log-out" class="w-4 h-4"></i>
+            </button>
+          </form>
+        </div>
+        {% endif %}
       </div>
 
     </div>
@@ -1160,6 +1176,32 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
 
   <!-- Application Logic -->
   <script>
+    // Global CSRF & Security Fetch Interceptor
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    const _originalFetch = window.fetch;
+    window.fetch = async function(...args) {
+      let [resource, config] = args;
+      config = config || {};
+      const method = (config.method || 'GET').toUpperCase();
+      if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
+        config.headers = config.headers || {};
+        if (config.headers instanceof Headers) {
+          if (!config.headers.has('X-CSRF-Token') && csrfToken) {
+            config.headers.append('X-CSRF-Token', csrfToken);
+          }
+        } else {
+          if (!config.headers['X-CSRF-Token'] && csrfToken) {
+            config.headers['X-CSRF-Token'] = csrfToken;
+          }
+        }
+      }
+      const response = await _originalFetch(resource, config);
+      if (response.status === 401) {
+        window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
+      }
+      return response;
+    };
+
     let allJobs = [];
     let currentJob = null;
     let currentTab = 'cover_letter';

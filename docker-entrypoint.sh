@@ -80,6 +80,12 @@ if [ "${SCOUT_ENABLED:-true}" = "true" ]; then
     SCOUT_PID=$!
 fi
 
-# Run Flask Dashboard in foreground
-echo "🚀 Starting Flask Dashboard on 0.0.0.0:${PORT}..."
-exec python3 -u /app/dashboard/app.py
+# Run Gunicorn in production if available, else fallback to python3
+if command -v gunicorn >/dev/null 2>&1; then
+    WORKERS="${GUNICORN_WORKERS:-4}"
+    echo "🚀 Starting Production Gunicorn Server on 0.0.0.0:${PORT} (${WORKERS} workers)..."
+    exec gunicorn --workers "$WORKERS" --bind "0.0.0.0:${PORT}" --timeout 120 dashboard.app:app
+else
+    echo "🚀 Starting Dashboard on 0.0.0.0:${PORT}..."
+    exec python3 -u /app/dashboard/app.py
+fi

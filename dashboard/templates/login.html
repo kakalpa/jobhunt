@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Security Gateway | Job Hunt Command Center</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 0.3; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(1.05); }
+    }
+    .glow-effect {
+      animation: pulseGlow 6s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex items-center justify-center p-4 relative overflow-hidden font-sans">
+  
+  <!-- Ambient background glow -->
+  <div class="absolute -top-32 -left-32 w-96 h-96 bg-sky-600/20 rounded-full blur-3xl pointer-events-none glow-effect"></div>
+  <div class="absolute -bottom-32 -right-32 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none glow-effect"></div>
+
+  <div class="w-full max-w-md z-10">
+    <!-- Header brand -->
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-sky-500 to-indigo-600 shadow-lg shadow-sky-500/25 mb-4 border border-white/10">
+        <i data-lucide="shield-check" class="w-7 h-7 text-white"></i>
+      </div>
+      <h1 class="text-2xl font-black tracking-tight text-white">Job Hunt Command Center</h1>
+      <p class="text-xs text-slate-400 mt-1 uppercase tracking-wider font-medium">Enterprise Security & Access Gateway</p>
+    </div>
+
+    <!-- Main Card -->
+    <div class="bg-slate-900/90 border border-slate-800 backdrop-blur-xl rounded-2xl shadow-2xl p-6 md:p-8">
+      
+      <!-- Error Message Banner -->
+      {% if error %}
+      <div class="mb-5 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-start gap-2.5">
+        <i data-lucide="alert-circle" class="w-4 h-4 text-rose-400 shrink-0 mt-0.5"></i>
+        <div>{{ error }}</div>
+      </div>
+      {% endif %}
+
+      <!-- Info/Success Message Banner -->
+      {% if message %}
+      <div class="mb-5 p-3.5 rounded-xl bg-sky-500/10 border border-sky-500/30 text-sky-300 text-xs flex items-start gap-2.5">
+        <i data-lucide="info" class="w-4 h-4 text-sky-400 shrink-0 mt-0.5"></i>
+        <div>{{ message }}</div>
+      </div>
+      {% endif %}
+
+      <!-- STAGE 1: Standard Username / Password -->
+      {% if stage == "credentials" or not stage %}
+      <form method="POST" action="/login" class="space-y-4">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="next" value="{{ next_url or "/" }}">
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wide">Administrator Username</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+              <i data-lucide="user" class="w-4 h-4"></i>
+            </span>
+            <input type="text" name="username" required autofocus autocomplete="username"
+                   placeholder="Enter username"
+                   class="w-full pl-9 pr-3 py-2.5 bg-slate-950/80 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wide">Master Password</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+              <i data-lucide="key-round" class="w-4 h-4"></i>
+            </span>
+            <input type="password" name="password" required autocomplete="current-password"
+                   placeholder="••••••••••••"
+                   class="w-full pl-9 pr-3 py-2.5 bg-slate-950/80 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition">
+          </div>
+        </div>
+
+        <button type="submit"
+                class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-semibold text-sm shadow-lg shadow-sky-500/20 hover:shadow-sky-500/30 transition flex items-center justify-center gap-2 mt-2">
+          <span>Authenticate</span>
+          <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </button>
+      </form>
+
+      <!-- STAGE 2: MFA Verification -->
+      {% elif stage == "mfa" %}
+      <form method="POST" action="/login/verify-mfa" class="space-y-5">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="next" value="{{ next_url or "/" }}">
+
+        <div class="text-center">
+          <div class="inline-flex p-3 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20 mb-2">
+            <i data-lucide="smartphone" class="w-6 h-6"></i>
+          </div>
+          <h2 class="text-base font-bold text-white">Two-Factor Authentication</h2>
+          <p class="text-xs text-slate-400 mt-1">Enter the 6-digit verification code from your mobile authenticator app (Google Authenticator, Aegis, 1Password, etc.).</p>
+        </div>
+
+        <div id="totp-input-container">
+          <label class="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wide text-center">6-Digit Verification Code</label>
+          <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" name="totp_token" required autofocus autocomplete="one-time-code"
+                 placeholder="000000"
+                 class="w-full text-center text-2xl tracking-[0.5em] font-mono py-3 bg-slate-950/80 border border-slate-700/80 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition">
+        </div>
+
+        <!-- Optional Recovery Code Toggle -->
+        <div class="pt-1">
+          <button type="button" onclick="toggleRecoveryInput()" class="text-xs text-slate-400 hover:text-sky-400 transition underline underline-offset-4 flex items-center justify-center gap-1 w-full">
+            <i data-lucide="life-buoy" class="w-3.5 h-3.5"></i>
+            <span id="recovery-toggle-label">Lost device? Use emergency recovery code</span>
+          </button>
+          
+          <div id="recovery-container" class="hidden mt-3 p-3 rounded-xl bg-slate-950/90 border border-slate-800">
+            <label class="block text-[11px] font-medium text-slate-300 mb-1">Emergency Recovery Code (e.g. A1B2-C3D4)</label>
+            <input type="text" name="recovery_code" placeholder="XXXX-XXXX"
+                   class="w-full text-center uppercase tracking-wider font-mono py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-amber-500">
+            <p class="text-[10px] text-slate-400 mt-1">Recovery codes are one-time use and immediately burned after validation.</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 pt-2">
+          <a href="/login" class="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-sm transition">
+            Back
+          </a>
+          <button type="submit"
+                  class="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-semibold text-sm shadow-lg shadow-sky-500/20 transition flex items-center justify-center gap-2">
+            <span>Verify & Access</span>
+            <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </form>
+
+      <!-- STAGE 3: Initial MFA Setup / Enrollment -->
+      {% elif stage == "setup_mfa" %}
+      <form method="POST" action="/login/setup-mfa" class="space-y-4">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="next" value="{{ next_url or "/" }}">
+        <input type="hidden" name="totp_secret" value="{{ totp_secret }}">
+
+        <div class="text-center">
+          <div class="inline-flex p-2.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 mb-1.5">
+            <i data-lucide="qr-code" class="w-5 h-5"></i>
+          </div>
+          <h2 class="text-sm font-bold text-white">Initial Two-Factor Setup</h2>
+          <p class="text-[11px] text-slate-400 mt-0.5">Scan the QR code with your mobile authenticator app (Google Authenticator, Aegis, 1Password).</p>
+        </div>
+
+        <!-- QR Code Container -->
+        <div class="p-3 rounded-xl bg-white flex items-center justify-center mx-auto max-w-[210px] shadow-md border border-slate-700">
+          {% if qr_svg %}
+            <div class="w-44 h-44 flex items-center justify-center">
+              {{ qr_svg | safe }}
+            </div>
+          {% else %}
+            <div class="p-4 text-center text-slate-900 text-xs font-mono break-all">
+              {{ totp_secret }}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Manual Secret Key -->
+        <div class="p-2.5 rounded-lg bg-slate-950/90 border border-slate-800 text-center">
+          <div class="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Manual Secret Key</div>
+          <div class="flex items-center justify-center gap-2 font-mono text-xs text-sky-400 font-semibold select-all">
+            <span id="totp-secret-text">{{ totp_secret }}</span>
+            <button type="button" onclick="copySecret()" class="p-1 hover:text-white transition" title="Copy Secret">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Emergency Recovery Codes Warning -->
+        {% if recovery_codes %}
+        <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs">
+          <div class="font-bold flex items-center gap-1.5 mb-1 text-amber-200">
+            <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-amber-400"></i>
+            Emergency Recovery Codes
+          </div>
+          <p class="text-[11px] text-amber-300/80 mb-2">Save these codes safely! They can unlock your account if your authenticator is lost:</p>
+          <div class="grid grid-cols-2 gap-1.5 font-mono text-[11px] bg-slate-950/80 p-2 rounded-lg border border-amber-500/20 text-center select-all">
+            {% for code in recovery_codes %}
+            <span class="text-amber-300">{{ code }}</span>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wide text-center">Enter 6-digit code to verify setup</label>
+          <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" name="totp_token" required autofocus autocomplete="one-time-code"
+                 placeholder="000000"
+                 class="w-full text-center text-xl tracking-[0.4em] font-mono py-2.5 bg-slate-950/80 border border-slate-700/80 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition">
+        </div>
+
+        <button type="submit"
+                class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-semibold text-sm shadow-lg shadow-emerald-500/20 transition flex items-center justify-center gap-2">
+          <span>Confirm & Activate MFA</span>
+          <i data-lucide="check" class="w-4 h-4"></i>
+        </button>
+      </form>
+      {% endif %}
+
+    </div>
+
+    <!-- Footer note -->
+    <div class="text-center mt-6 text-xs text-slate-500">
+      Protected with Argon2/PBKDF2 Password Hashing &bull; RFC 6238 TOTP &bull; Session Isolation
+    </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    function toggleRecoveryInput() {
+      const el = document.getElementById('recovery-container');
+      const label = document.getElementById('recovery-toggle-label');
+      if (el.classList.contains('hidden')) {
+        el.classList.remove('hidden');
+        label.textContent = "Back to authenticator code";
+      } else {
+        el.classList.add('hidden');
+        label.textContent = "Lost device? Use emergency recovery code";
+      }
+    }
+
+    async function copySecret() {
+      const secret = document.getElementById('totp-secret-text').textContent.trim();
+      try {
+        await navigator.clipboard.writeText(secret);
+        alert("MFA Secret copied to clipboard!");
+      } catch (e) {
+        prompt("Copy this secret key:", secret);
+      }
+    }
+  </script>
+</body>
+</html>

@@ -140,5 +140,33 @@ You can host Job Hunt Command Center **100% free** 24/7 using:
 
 ---
 
+## 🔐 Public Server Hardening & Multi-Factor Authentication (MFA)
+
+When hosting on a public IP or internet-facing domain, enable the built-in security subsystem in `.env`:
+
+```ini
+AUTH_ENABLED=true
+ADMIN_USERNAME="admin"
+ADMIN_PASSWORD="YourStrongPasswordHere"
+MFA_ENABLED=true
+SECRET_KEY="your-random-32-byte-hex-secret"
+```
+
+### Security Guarantees:
+1. **Scrypt/PBKDF2 Password Hashing:** Salted, collision-resistant cryptographic verification via `werkzeug.security`.
+2. **RFC 6238 TOTP Multi-Factor Authentication:** Native TOTP compatible with **Google Authenticator**, **Microsoft Authenticator**, **Aegis**, and **1Password**.
+3. **First-Time QR Setup:** Client-side SVG QR code generator keeps secrets off third-party APIs.
+4. **Emergency Recovery Codes:** Generates 8 one-time emergency backup codes for account restoration.
+5. **Brute-Force Rate Limiting:** 5-attempt threshold with automatic 15-minute IP lockouts to prevent credential stuffing.
+6. **CSRF Protection & Security Headers:** Enforces `X-CSRF-Token` on all mutations; delivers `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, and `Content-Security-Policy`.
+7. **Production WSGI Readiness:** Automatically launches with **Gunicorn** in Docker for multi-worker concurrency.
+8. **CLI Management Tool:** Configure users or reset MFA anytime via:
+   ```bash
+   python3 scripts/auth_manager.py
+   python3 scripts/auth_manager.py reset-mfa
+   ```
+
+---
+
 ## 📄 License
 MIT License. Feel free to customize and automate your career hunt!
