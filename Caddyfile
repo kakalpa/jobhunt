@@ -1,0 +1,34 @@
+{
+    # Global options
+    admin off
+}
+
+# If DOMAIN_NAME is set (e.g. jobhunt.is-a.dev), Caddy automatically provisions
+# free Let's Encrypt / ZeroSSL TLS certificates and redirects HTTP to HTTPS.
+# If unset, defaults to :80 (HTTP reverse proxy).
+{$DOMAIN_NAME::80} {
+    reverse_proxy job-hunt-command-center:5500 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+
+    # High-performance compression
+    encode gzip zstd
+
+    # Strict security headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+
+    # Real-time request logging to stdout
+    log {
+        output stdout
+        format console
+    }
+}

@@ -24,6 +24,7 @@ services:
       - SCOUT_ENABLED=${SCOUT_ENABLED:-true}
       - SCOUT_INTERVAL_HOURS=${SCOUT_INTERVAL_HOURS:-2}
       - SCOUT_RUN_ON_START=${SCOUT_RUN_ON_START:-false}
+      - SCOUT_QUERIES=${SCOUT_QUERIES:-}
       - POSTING_RETENTION_DAYS=${POSTING_RETENTION_DAYS:-30}
       - RETENTION_PROTECT_STATUS=${RETENTION_PROTECT_STATUS:-interviewing,offer,applied}
       - RETENTION_MODE=${RETENTION_MODE:-full}
@@ -33,3 +34,27 @@ services:
     env_file:
       - path: .env
         required: false
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: job-hunt-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp" # HTTP/3 QUIC
+    environment:
+      - DOMAIN_NAME=${DOMAIN_NAME:-:80}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - job-hunt-command-center
+    env_file:
+      - path: .env
+        required: false
+
+volumes:
+  caddy_data:
+  caddy_config:
