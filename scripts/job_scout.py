@@ -248,7 +248,7 @@ def run_scout(queries: list, location: str, hours: int, limit: int, remote_only:
         f.write(f"**Target Location:** {location} | **Remote Filter:** {remote_only} | **Lookback:** {hours} hours  \n")
         f.write(f"**Discovered Postings:** {len(deduped_records)} unique IT roles (Cross-Site Deduplicated)  \n\n")
         f.write("---\n\n")
-        cand = get_candidate_contact_info(output_dir)
+        cand = get_candidate_contact_info(workspace_dir)
         f.write(f"## 🎯 Prioritized IT Opportunities for {cand['name']}\n\n")
         f.write("| Match Score | Role Title | Company | Location | Language Requirement | Platform | Status | Direct Link |\n")
         f.write("| :---: | :--- | :--- | :--- | :---: | :---: | :---: | :--- |\n")
