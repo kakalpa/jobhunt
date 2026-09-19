@@ -1452,15 +1452,18 @@ def trigger_scout_scan():
                     scout_process_status["progress_percent"] = min(scout_process_status["progress_percent"] + 6, 75)
                 elif "Found" in clean and "postings" in clean:
                     scout_process_status["progress_percent"] = min(scout_process_status["progress_percent"] + 3, 78)
-                elif "Filtered for IT-only roles" in clean or "Filtered:" in clean:
+                elif "Applying Strict IT-Role Filtering" in clean or "Filtered for IT-only roles" in clean or "Filtered:" in clean:
                     scout_process_status["stage"] = "Applying strict IT keyword & role taxonomy filters..."
                     scout_process_status["progress_percent"] = 84
                 elif "Cross-site deduplication" in clean or "Cross-site deduplicated" in clean:
                     scout_process_status["stage"] = "Cross-site deduplication & language classification..."
                     scout_process_status["progress_percent"] = 92
-                elif "Scan complete" in clean or "Successfully updated" in clean:
+                elif "Generating Markdown Feed" in clean or "Generating Structured JSON" in clean:
+                    scout_process_status["stage"] = "Writing feed & compiling structured mission report..."
+                    scout_process_status["progress_percent"] = 96
+                elif "Scout Mission Complete" in clean or "Scan complete" in clean or "Successfully updated" in clean:
                     scout_process_status["stage"] = "Finalizing feed & compiling scout report..."
-                    scout_process_status["progress_percent"] = 98
+                    scout_process_status["progress_percent"] = 99
 
             proc.stdout.close()
             code = proc.wait()

@@ -8,8 +8,8 @@ WORKSPACE_DIR="$(dirname "$SCRIPT_DIR")"
 echo "🔎 Running Automated IT Job Scout..."
 
 if command -v uv >/dev/null 2>&1; then
-    exec uv run --python 3.12 --with python-jobspy python3 "$SCRIPT_DIR/job_scout.py" "$@"
+    exec uv run --python 3.12 --with python-jobspy python3 -u "$SCRIPT_DIR/job_scout.py" "$@"
 else
-    exec python3 "$SCRIPT_DIR/job_scout.py" "$@"
+    exec python3 -u "$SCRIPT_DIR/job_scout.py" "$@"
 fi
 

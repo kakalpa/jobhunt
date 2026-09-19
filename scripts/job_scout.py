@@ -10,16 +10,28 @@ import sys
 import os
 import re
 import json
+import time
 import argparse
 from datetime import datetime
 from pathlib import Path
+
+# Ensure immediate real-time unbuffered log output
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(line_buffering=True)
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(line_buffering=True)
+
+def log_scout(msg: str):
+    """Print timestamped scout log with immediate flush."""
+    ts = datetime.now().strftime("%H:%M:%S")
+    print(f"[{ts}] {msg}", flush=True)
 
 # Try importing jobspy
 try:
     from jobspy import scrape_jobs
 except ImportError:
-    print("❌ Error: python-jobspy is not installed.")
-    print("Run with: uv run --python 3.12 --with python-jobspy python3 scripts/job_scout.py")
+    log_scout("❌ Error: python-jobspy is not installed.")
+    log_scout("Run with: uv run --python 3.12 --with python-jobspy python3 scripts/job_scout.py")
     sys.exit(1)
 
 import pandas as pd
@@ -115,10 +127,11 @@ def scrape_duunitori(query: str, location: str = "Finland", limit: int = 15) -> 
             if len(jobs) >= limit:
                 break
     except Exception as e:
-        print(f"   ⚠️ [Duunitori] notice: {e}")
+        log_scout(f"   ⚠️ [Duunitori] notice: {e}")
     return jobs
 
 def run_scout(queries: list, location: str, hours: int, limit: int, remote_only: bool, sites: list):
+    start_time = time.time()
     workspace_dir = Path(os.environ.get("WORKSPACE_DIR", Path(__file__).resolve().parent.parent)).resolve()
     applied_data = get_already_applied_titles(workspace_dir)
     
@@ -133,14 +146,23 @@ def run_scout(queries: list, location: str, hours: int, limit: int, remote_only:
     if not valid_sites:
         valid_sites = ["linkedin", "indeed"]
         
-    print(f"\n🚀 Starting Streamlined IT Job Scout at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}...")
-    print(f"📍 Location: {location} | Remote Only: {remote_only} | Lookback: {hours}h | Platforms: {valid_sites} + Duunitori")
+    log_scout("==================================================================")
+    log_scout(f"🚀 Starting Streamlined IT Job Scout at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    log_scout(f"📍 Location: {location} | Remote Only: {remote_only} | Lookback: {hours}h")
+    log_scout(f"🌐 Platforms: {', '.join(valid_sites)} + Duunitori | Queries to scan: {len(queries)}")
+    log_scout("==================================================================")
     
     all_jobs = []
     
-    for query in queries:
-        print(f"\n🔍 Searching for: '{query}' across {', '.join(valid_sites)} & Duunitori...")
+    for idx, query in enumerate(queries, 1):
+        pct = int((idx / len(queries)) * 100)
+        log_scout(f"\n🔍 [{idx}/{len(queries)} - {pct}%] Searching for: '{query}' across {', '.join(valid_sites)} & Duunitori...")
+        
+        query_start = time.time()
+        query_jobs_count = 0
+        
         for site in valid_sites:
+            log_scout(f"   ⏳ Querying [{site.capitalize()}] for '{query}'...")
             try:
                 jobs: pd.DataFrame = scrape_jobs(
                     site_name=[site],
@@ -154,27 +176,45 @@ def run_scout(queries: list, location: str, hours: int, limit: int, remote_only:
                 )
                 
                 if jobs is not None and not jobs.empty:
-                    print(f"   ↳ [{site.capitalize()}] Found {len(jobs)} postings")
+                    log_scout(f"   ↳ [{site.capitalize()}] Found {len(jobs)} postings:")
+                    # Preview discovered titles
+                    for _, row in jobs.head(3).iterrows():
+                        t_title = str(row.get("title", "N/A")).strip()
+                        t_comp = str(row.get("company", "N/A")).strip()
+                        t_loc = str(row.get("location", location)).strip()
+                        log_scout(f"      • {t_title} @ {t_comp} ({t_loc})")
+                    if len(jobs) > 3:
+                        log_scout(f"      ... and {len(jobs) - 3} more postings")
                     all_jobs.append(jobs)
+                    query_jobs_count += len(jobs)
                 else:
-                    print(f"   ↳ [{site.capitalize()}] 0 postings")
+                    log_scout(f"   ↳ [{site.capitalize()}] 0 postings found")
             except Exception as e:
-                print(f"   ⚠️ [{site.capitalize()}] encountered notice: {e}")
+                log_scout(f"   ⚠️ [{site.capitalize()}] notice: {e}")
 
         # Query Duunitori for Finnish local opportunities
         if "finland" in location.lower() or "duunitori" in sites:
+            log_scout(f"   ⏳ Querying [Duunitori] for '{query}'...")
             try:
                 duuni_list = scrape_duunitori(query, location, limit=limit)
                 if duuni_list:
-                    print(f"   ↳ [Duunitori] Found {len(duuni_list)} postings")
+                    log_scout(f"   ↳ [Duunitori] Found {len(duuni_list)} postings:")
+                    for d_job in duuni_list[:3]:
+                        log_scout(f"      • {d_job['title']} @ {d_job['company']}")
+                    if len(duuni_list) > 3:
+                        log_scout(f"      ... and {len(duuni_list) - 3} more postings")
                     all_jobs.append(pd.DataFrame(duuni_list))
+                    query_jobs_count += len(duuni_list)
                 else:
-                    print(f"   ↳ [Duunitori] 0 postings")
+                    log_scout(f"   ↳ [Duunitori] 0 postings found")
             except Exception as e:
-                print(f"   ⚠️ [Duunitori] notice: {e}")
+                log_scout(f"   ⚠️ [Duunitori] notice: {e}")
+                
+        cumulative_count = sum(len(df) for df in all_jobs)
+        log_scout(f"   ✓ Query '{query}' completed in {time.time() - query_start:.1f}s (+{query_jobs_count} postings, total: {cumulative_count})")
             
     if not all_jobs:
-        print("\n❌ No jobs found across the specified criteria. Try widening the hours or search terms.")
+        log_scout("\n❌ No jobs found across the specified criteria. Try widening the hours or search terms.")
         return None
         
     combined_df = pd.concat(all_jobs, ignore_index=True)
@@ -184,16 +224,24 @@ def run_scout(queries: list, location: str, hours: int, limit: int, remote_only:
     raw_records = combined_df.to_dict(orient="records")
     
     # 2. Strict IT-Only Filtering
+    log_scout(f"\n🎯 Applying Strict IT-Role Filtering to {raw_count} raw postings...")
     it_records = []
+    excluded_samples = []
     for r in raw_records:
         title = str(r.get("title", ""))
         desc = str(r.get("description", ""))
         if is_it_job(title, desc):
             it_records.append(r)
+        elif len(excluded_samples) < 3:
+            excluded_samples.append(f"{title} @ {r.get('company', 'Unknown')}")
             
-    print(f"\n🎯 Filtered for IT-only roles: {len(it_records)} of {raw_count} raw postings (removed {raw_count - len(it_records)} non-IT postings)")
+    log_scout(f"   • Retained IT Roles: {len(it_records)} of {raw_count} raw postings")
+    log_scout(f"   • Excluded Non-IT:  {raw_count - len(it_records)} postings")
+    if excluded_samples:
+        log_scout(f"   • Sample Excluded:  {', '.join(excluded_samples)}")
     
     # 3. Language Requirement Classification & Scoring
+    log_scout("\n🧠 Calculating Profile Match Scores & Finnish Language Requirements...")
     scored_records = []
     for r in it_records:
         title = str(r.get("title", "Unknown Title"))
@@ -234,13 +282,20 @@ def run_scout(queries: list, location: str, hours: int, limit: int, remote_only:
         
     # 4. Cross-Site Deduplication Engine
     deduped_records = deduplicate_job_records(scored_records)
-    print(f"✨ Cross-site deduplication merged multi-platform postings: {len(scored_records)} -> {len(deduped_records)} unique IT roles")
+    log_scout(f"✨ Cross-site deduplication merged multi-platform postings: {len(scored_records)} -> {len(deduped_records)} unique IT roles")
     
     # 5. Sort by match score descending
     deduped_records.sort(key=lambda x: x["match_score"], reverse=True)
     
+    # Preview top matches
+    log_scout("\n🏆 Top Prioritized Opportunities for Candidate:")
+    for idx, job in enumerate(deduped_records[:5], 1):
+        status_str = "⚠️ Tracked" if job["already_applied"] else "⭐ NEW"
+        log_scout(f"   #{idx} [{job['match_score']}% Match] {job['title']} — {job['company']} ({job.get('platform_display', job['site'])}) [{job['language_badge']}] [{status_str}]")
+    
     # 6. Generate Markdown Report
     output_md = workspace_dir / "JOB_SCOUT_FEED.md"
+    log_scout(f"\n💾 Generating Markdown Feed: {output_md}...")
     
     with open(output_md, "w", encoding="utf-8") as f:
         f.write(f"# Automated IT Job Scout Feed\n\n")
@@ -273,6 +328,7 @@ def run_scout(queries: list, location: str, hours: int, limit: int, remote_only:
             
     # 6. Save Structured JSON Report
     output_json = workspace_dir / "scout_latest_report.json"
+    log_scout(f"💾 Generating Structured JSON Report: {output_json}...")
     report_data = {
         "last_scanned": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "location": location,
@@ -345,7 +401,7 @@ def run_scout(queries: list, location: str, hours: int, limit: int, remote_only:
                 unnotified_new_high.append(j)
 
         if unnotified_new_high:
-            print(f"📱 Dispatching Telegram alerts for {len(unnotified_new_high)} new high-match IT roles...")
+            log_scout(f"📱 Dispatching Telegram alerts for {len(unnotified_new_high)} new high-match IT roles...")
             for j in unnotified_new_high[:3]:
                 notify_new_job_opportunity(j)
 
@@ -356,9 +412,9 @@ def run_scout(queries: list, location: str, hours: int, limit: int, remote_only:
                 total_unique=report_data["deduped_count"]
             )
         else:
-            print("📱 Telegram alerts: No new postings to send (all active roles already alerted).")
+            log_scout("📱 Telegram alerts: No new unalerted postings to send (all active roles previously notified).")
     except Exception as e:
-        print(f"⚠️ Telegram notification notice: {e}")
+        log_scout(f"⚠️ Telegram notification notice: {e}")
 
     # 3. Automated Storage Retention Management
     try:
@@ -376,31 +432,41 @@ def run_scout(queries: list, location: str, hours: int, limit: int, remote_only:
                 dry_run=False
             )
             if ret_res["removed_count"] > 0:
-                print(f"🧹 Retention policy cleaned {ret_res['removed_count']} expired posting packages (freed {ret_res['freed_mb']} MB)")
+                log_scout(f"🧹 Retention policy cleaned {ret_res['removed_count']} expired posting packages (freed {ret_res['freed_mb']} MB)")
     except Exception as e:
-        print(f"⚠️ Retention cleanup notice: {e}")
+        log_scout(f"⚠️ Retention cleanup notice: {e}")
 
-    print(f"\n✅ Scan complete! Saved streamlined IT feed to: {output_md}")
+    elapsed = time.time() - start_time
+    log_scout("==================================================================")
+    log_scout(f"✅ Scout Mission Complete in {elapsed:.1f}s!")
+    log_scout(f"📊 Discovered {len(deduped_records)} unique IT roles ({sum(1 for j in deduped_records if j['match_score'] >= 80)} high matches)")
+    log_scout(f"📁 Live feed saved to: {output_md}")
     return output_md
 
 def main():
+    env_queries = os.environ.get("SCOUT_QUERIES", "").strip()
+    if env_queries:
+        default_queries = [q.strip() for q in env_queries.split(",") if q.strip()]
+    else:
+        default_queries = [
+            "Junior IT",
+            "Junior Security",
+            "Junior Systems Administrator",
+            "IT Support Specialist",
+            "Service Desk Analyst",
+            "Data Center Technician",
+            "Field Service Technician",
+            "SOC Analyst",
+            "IT Specialist",
+            "Cybersecurity",
+            "IT Trainee"
+        ]
+
     parser = argparse.ArgumentParser(description="Automated IT Job Discovery Scout for Finland & EU Remote")
-    parser.add_argument("--queries", "-q", nargs="+", default=[
-        "Junior IT",
-        "Junior Security",
-        "Junior Systems Administrator",
-        "IT Support Specialist",
-        "Service Desk Analyst",
-        "Data Center Technician",
-        "Field Service Technician",
-        "SOC Analyst",
-        "IT Specialist",
-        "Cybersecurity",
-        "IT Trainee"
-    ], help="Search terms to query")
-    parser.add_argument("--location", "-l", default="Finland", help="Target location (default: Finland)")
-    parser.add_argument("--hours", "-t", type=int, default=168, help="Hours old to search (default: 168h / 7 days)")
-    parser.add_argument("--limit", "-n", type=int, default=10, help="Results wanted per query per site (default: 10)")
+    parser.add_argument("--queries", "-q", nargs="+", default=default_queries, help="Search terms to query")
+    parser.add_argument("--location", "-l", default=os.environ.get("SCOUT_LOCATION", "Finland"), help="Target location (default: Finland)")
+    parser.add_argument("--hours", "-t", type=int, default=int(os.environ.get("SCOUT_LOOKBACK_HOURS", 168)), help="Hours old to search (default: 168h / 7 days)")
+    parser.add_argument("--limit", "-n", type=int, default=int(os.environ.get("SCOUT_LIMIT_PER_QUERY", 10)), help="Results wanted per query per site (default: 10)")
     parser.add_argument("--remote", action="store_true", help="Filter for remote jobs only")
     parser.add_argument("--sites", nargs="+", default=["linkedin", "indeed"], help="Sites to scrape")
     
