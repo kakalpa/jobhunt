@@ -118,7 +118,15 @@ except ImportError:
         scan_retention_candidates = lambda **kwargs: {"candidates": [], "protected": [], "total_mb": 0.0}
         clean_expired_postings = lambda **kwargs: {"success": False, "removed_count": 0, "freed_mb": 0.0}
 
-app = Flask(__name__, template_folder="templates", static_folder="static")
+template_dir = WORKSPACE_DIR / "dashboard" / "templates"
+if not template_dir.exists():
+    template_dir = Path(__file__).resolve().parent / "templates"
+
+static_dir = WORKSPACE_DIR / "dashboard" / "static"
+if not static_dir.exists():
+    static_dir = Path(__file__).resolve().parent / "static"
+
+app = Flask(__name__, template_folder=str(template_dir), static_folder=str(static_dir))
 
 AUTH_CONFIG = load_auth_config()
 app.secret_key = AUTH_CONFIG.get("secret_key") or secrets.token_hex(32)

@@ -29,10 +29,9 @@ fi
 
 # Export critical paths
 export WORKSPACE_DIR="$WORKSPACE_DIR"
-export CHROMIUM_PATH="${CHROMIUM_PATH:-/usr/bin/chromium}"
 export PORT="${PORT:-5500}"
-
-export PYTHONPATH="/app:/app/scripts:${WORKSPACE_DIR}:${WORKSPACE_DIR}/scripts:$PYTHONPATH"
+export CHROMIUM_PATH="${CHROMIUM_PATH:-/usr/bin/chromium}"
+export PYTHONPATH="${WORKSPACE_DIR}:${WORKSPACE_DIR}/scripts:/app:/app/scripts:$PYTHONPATH"
 
 # If custom command was passed, execute it directly
 if [ $# -gt 0 ]; then
@@ -66,15 +65,20 @@ if [ "${SCOUT_ENABLED:-true}" = "true" ]; then
     echo "⏰ Autonomous scout daemon scheduled to run every ${INTERVAL_HOURS} hour(s)"
 
     (
+        SCOUT_SCRIPT="/app/scripts/job_scout.py"
+        if [ -f "${WORKSPACE_DIR}/scripts/job_scout.py" ]; then
+            SCOUT_SCRIPT="${WORKSPACE_DIR}/scripts/job_scout.py"
+        fi
+
         if [ "${SCOUT_RUN_ON_START:-false}" = "true" ]; then
             echo "📡 Running initial scout discovery on startup..."
-            python3 -u /app/scripts/job_scout.py || echo "⚠️ Startup scout notice"
+            python3 -u "$SCOUT_SCRIPT" || echo "⚠️ Startup scout notice"
         fi
 
         while true; do
             sleep "$INTERVAL_SEC"
             echo "📡 Running autonomous background IT scout scan at $(date)..."
-            python3 -u /app/scripts/job_scout.py || echo "⚠️ Autonomous scout notice"
+            python3 -u "$SCOUT_SCRIPT" || echo "⚠️ Autonomous scout notice"
         done
     ) &
     SCOUT_PID=$!
