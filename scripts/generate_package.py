@@ -429,15 +429,18 @@ Sincerely,
     if ai_data and ai_data.get("phone_call_script"):
         pcs = ai_data["phone_call_script"]
         if isinstance(pcs, dict):
+            pcs_intro = pcs.get('intro') or f"Hei, my name is {cand['name']}, calling to ask a couple of brief questions about the role."
+            pcs_q1 = pcs.get('question_1') or "How is your current deployment automation structured across your environments?"
+            pcs_q2 = pcs.get('question_2') or "What is the biggest infrastructure migration planned for the team in the coming months?"
             phone_script_block = f"""
 
 ---
 
 ## 6. Finnish Recruitment Strategy: Recruiter Phone Call Guide (*Lisätietoja antaa*)
 *In Finland, calling the contact person before applying is welcomed and sets your application apart.*
-- **Opening Hook:** "{pcs.get('intro', f'Hei, my name is {cand[\"name\"]}, calling to ask a couple of brief questions about the role.')}"
-- **Technical Question 1:** "{pcs.get('question_1', 'How is your current deployment automation structured across your environments?')}"
-- **Technical Question 2:** "{pcs.get('question_2', 'What is the biggest infrastructure migration planned for the team in the coming months?')}"
+- **Opening Hook:** "{pcs_intro}"
+- **Technical Question 1:** "{pcs_q1}"
+- **Technical Question 2:** "{pcs_q2}"
 """
 
     qa_file = folder_path / f"Application_Form_Answers_{folder_name}.md"
