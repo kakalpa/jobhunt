@@ -1467,15 +1467,19 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
             </div>
           </td>
           <td class="py-3 px-4 text-right">
-            <div class="flex items-center justify-end gap-2">
+            <div class="flex items-center justify-end gap-1.5">
               ${job.folder ? `
                 <button onclick="event.stopPropagation(); triggerWorkflow('${job.id}', true)" title="Regenerate documents with Gemini AI" class="px-2 py-1 bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 hover:text-indigo-200 rounded border border-indigo-500/30 text-xs inline-flex items-center gap-1 transition active:scale-95 shadow-sm">
                   <i data-lucide="refresh-cw" class="w-3 h-3"></i>
                   <span>Regen</span>
                 </button>
-                <button onclick="event.stopPropagation(); triggerOpenFolder('${job.folder}')" title="Open Folder in File Manager" class="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 rounded border border-amber-500/30 text-xs inline-flex items-center gap-1 transition active:scale-95">
+                <button onclick="event.stopPropagation(); downloadJobBundle('${job.folder}')" title="Download all documents and PDFs as a ZIP" class="px-2 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 rounded border border-emerald-500/30 text-xs inline-flex items-center gap-1 transition active:scale-95 shadow-sm">
+                  <i data-lucide="download" class="w-3 h-3"></i>
+                  <span>ZIP</span>
+                </button>
+                <button onclick="event.stopPropagation(); triggerOpenFolder('${job.folder}')" title="View Files & Documents in Browser" class="px-2 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 rounded border border-amber-500/30 text-xs inline-flex items-center gap-1 transition active:scale-95">
                   <i data-lucide="folder" class="w-3 h-3"></i>
-                  <span>Folder</span>
+                  <span>Files</span>
                 </button>
               ` : `
                 <button onclick="event.stopPropagation(); triggerWorkflow('${job.id}')" title="Generate Complete Application Package" class="px-2.5 py-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold rounded text-xs inline-flex items-center gap-1 transition active:scale-95 shadow-md shadow-amber-500/20">
@@ -1636,15 +1640,19 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
           folderActions.innerHTML = `
             <button onclick="triggerWorkflow('${job.id}', true)" title="Regenerate all application documents using Gemini AI" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 hover:text-indigo-200 border border-indigo-500/30 text-xs font-semibold transition active:scale-95 shadow-sm">
               <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-              <span>Regen Docs</span>
+              <span>Regen</span>
             </button>
-            <button onclick="triggerOpenFolder('${job.folder}')" title="Open folder in System File Manager" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 hover:text-amber-200 border border-amber-500/30 text-xs font-semibold transition active:scale-95 shadow-sm">
+            <button onclick="downloadJobBundle('${job.folder}')" title="Download entire application package as a ZIP archive" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 hover:text-emerald-200 border border-emerald-500/30 text-xs font-semibold transition active:scale-95 shadow-sm">
+              <i data-lucide="download" class="w-3.5 h-3.5"></i>
+              <span>Download ZIP</span>
+            </button>
+            <button onclick="triggerOpenFolder('${job.folder}')" title="View Files & Documents in Browser" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 hover:text-amber-200 border border-amber-500/30 text-xs font-semibold transition active:scale-95 shadow-sm">
               <i data-lucide="folder-open" class="w-3.5 h-3.5"></i>
-              <span>Open Folder</span>
+              <span>Files</span>
             </button>
-            <button onclick="copyFolderPath('${job.folder}')" title="Copy Folder Absolute Path" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs transition flex items-center gap-1">
+            <button onclick="copyFolderPath('${job.folder}')" title="Copy Folder Name" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs transition flex items-center gap-1">
               <i data-lucide="copy" class="w-3.5 h-3.5"></i>
-              <span>Path</span>
+              <span>Copy</span>
             </button>
           `;
         } else {
@@ -2016,9 +2024,20 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
 
     async function triggerOpenFolder(folder) {
       if (!folder) {
-        showToast("No folder exists for this role yet.");
+        showToast("No application folder exists for this role yet.");
         return;
       }
+      
+      const job = allJobs.find(j => j.folder === folder || j.id === folder);
+      
+      // Always open the in-browser files tab so web users get immediate visual access
+      if (job) {
+        openDrawer(job, 'folder_files');
+      } else if (currentJob) {
+        await switchDrawerTab('folder_files');
+      }
+
+      // Also try opening desktop file manager if running locally with a display
       try {
         const res = await fetch('/api/open_folder', {
           method: 'POST',
@@ -2026,16 +2045,13 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
           body: JSON.stringify({ folder: folder })
         });
         const data = await res.json();
-        if (data.success) {
-          if (data.path && navigator.clipboard) {
-            try { await navigator.clipboard.writeText(data.path); } catch (e) {}
-          }
-          showToast(`📁 Opened folder: ${folder}`);
+        if (data.success && data.opened) {
+          showToast(`📁 Opened folder in local file manager: ${folder}`);
         } else {
-          showToast(`Error: ${data.error || 'Could not open folder'}`);
+          showToast(`📂 Showing application files for ${folder}`);
         }
       } catch (e) {
-        showToast(`Failed to trigger folder opening.`);
+        showToast(`📂 Showing application files for ${folder}`);
       }
     }
 
