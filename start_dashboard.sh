@@ -30,4 +30,8 @@ if command -v xdg-open > /dev/null 2>&1; then
 fi
 
 export PORT=$PORT
-exec uv run --python 3.12 --with flask python3 dashboard/app.py
+if command -v uv >/dev/null 2>&1; then
+    exec uv run --python 3.12 --with flask python3 dashboard/app.py
+else
+    exec python3 dashboard/app.py
+fi
