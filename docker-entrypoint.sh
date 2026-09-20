@@ -60,25 +60,41 @@ trap cleanup SIGINT SIGTERM
 
 # Optional background scout loop
 if [ "${SCOUT_ENABLED:-true}" = "true" ]; then
-    INTERVAL_HOURS="${SCOUT_INTERVAL_HOURS:-2}"
-    INTERVAL_SEC=$(( INTERVAL_HOURS * 3600 ))
-    echo "⏰ Autonomous scout daemon scheduled to run every ${INTERVAL_HOURS} hour(s)"
+    if [ -n "$SCOUT_INTERVAL_MINUTES" ]; then
+        INTERVAL_SEC=$(( SCOUT_INTERVAL_MINUTES * 60 ))
+        SCHEDULE_DESC="${SCOUT_INTERVAL_MINUTES} minute(s)"
+    else
+        INTERVAL_HOURS="${SCOUT_INTERVAL_HOURS:-2}"
+        INTERVAL_SEC=$(( INTERVAL_HOURS * 3600 ))
+        SCHEDULE_DESC="${INTERVAL_HOURS} hour(s)"
+    fi
+    echo "⏰ Autonomous scout daemon scheduled to run every ${SCHEDULE_DESC}"
 
     (
-        SCOUT_SCRIPT="/app/scripts/job_scout.py"
-        if [ -f "${WORKSPACE_DIR}/scripts/job_scout.py" ]; then
-            SCOUT_SCRIPT="${WORKSPACE_DIR}/scripts/job_scout.py"
-        fi
+        get_scout_script() {
+            if [ -f "${WORKSPACE_DIR}/scripts/job_scout.py" ]; then
+                echo "${WORKSPACE_DIR}/scripts/job_scout.py"
+            else
+                echo "/app/scripts/job_scout.py"
+            fi
+        }
 
-        if [ "${SCOUT_RUN_ON_START:-false}" = "true" ]; then
-            echo "📡 Running initial scout discovery on startup..."
-            python3 -u "$SCOUT_SCRIPT" || echo "⚠️ Startup scout notice"
+        # Run on startup if enabled (default: true so user doesn't have to wait 2h for first run)
+        if [ "${SCOUT_RUN_ON_START:-true}" = "true" ]; then
+            echo "📡 Running initial scout discovery on startup at $(date '+%Y-%m-%d %H:%M:%S')..."
+            SCRIPT_TO_RUN=$(get_scout_script)
+            python3 -u "$SCRIPT_TO_RUN" || echo "⚠️ Startup scout completed with notice"
         fi
 
         while true; do
+            NEXT_TIME=$(date -d "@$(( $(date +%s) + INTERVAL_SEC ))" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo "in ${SCHEDULE_DESC}")
+            echo "⏰ Next autonomous IT scout scan scheduled for: ${NEXT_TIME}"
             sleep "$INTERVAL_SEC"
-            echo "📡 Running autonomous background IT scout scan at $(date)..."
-            python3 -u "$SCOUT_SCRIPT" || echo "⚠️ Autonomous scout notice"
+            echo "=================================================================="
+            echo "📡 Running autonomous background IT scout scan at $(date '+%Y-%m-%d %H:%M:%S')..."
+            SCRIPT_TO_RUN=$(get_scout_script)
+            python3 -u "$SCRIPT_TO_RUN" || echo "⚠️ Autonomous scout cycle notice"
+            echo "=================================================================="
         done
     ) &
     SCOUT_PID=$!
