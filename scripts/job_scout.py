@@ -130,33 +130,70 @@ def scrape_duunitori(query: str, location: str = "Finland", limit: int = 15) -> 
         log_scout(f"   ⚠️ [Duunitori] notice: {e}")
     return jobs
 
+def scrape_arbeitnow(query: str, limit: int = 15) -> list:
+    """Scrapes Arbeitnow API for European English-speaking and remote IT jobs."""
+    import urllib.request
+    import urllib.parse
+    import html as html_lib
+    encoded_query = urllib.parse.quote_plus(query)
+    url = f"https://www.arbeitnow.com/api/job-board-api?search={encoded_query}"
+    headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) JobHuntScout/1.0"}
+    jobs = []
+    try:
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=10) as r:
+            payload = json.loads(r.read().decode("utf-8", errors="ignore"))
+        data_items = payload.get("data", [])
+        for item in data_items:
+            title = html_lib.unescape(item.get("title", "").strip())
+            comp = html_lib.unescape(item.get("company_name", "").strip())
+            job_url = item.get("url", "")
+            loc = item.get("location", "EU Remote")
+            desc_raw = re.sub(r'<[^>]+>', ' ', item.get("description", ""))
+            clean_desc = html_lib.unescape(desc_raw).strip()
+            
+            jobs.append({
+                "title": title,
+                "company": comp,
+                "location": f"{loc} (Remote)" if item.get("remote") else loc,
+                "job_url": job_url,
+                "site": "arbeitnow",
+                "date_posted": "Recently",
+                "description": clean_desc[:2000]
+            })
+            if len(jobs) >= limit:
+                break
+    except Exception as e:
+        log_scout(f"   ⚠️ [Arbeitnow API] notice: {e}")
+    return jobs
+
 def run_scout(queries: list, location: str, hours: int, limit: int, remote_only: bool, sites: list):
     start_time = time.time()
     workspace_dir = Path(os.environ.get("WORKSPACE_DIR", Path(__file__).resolve().parent.parent)).resolve()
     applied_data = get_already_applied_titles(workspace_dir)
     
-    # Sanitize sites for Finland
+    # Supported engines in JobSpy
+    supported_sites = ["linkedin", "indeed", "google", "glassdoor"]
+    valid_sites = [s for s in sites if s in supported_sites]
     if "finland" in location.lower():
-        valid_sites = [s for s in sites if s in ["linkedin", "indeed"]]
         country_indeed = "finland"
     else:
-        valid_sites = sites
         country_indeed = "usa"
         
     if not valid_sites:
-        valid_sites = ["linkedin", "indeed"]
+        valid_sites = ["linkedin", "indeed", "google"]
         
     log_scout("==================================================================")
     log_scout(f"🚀 Starting Streamlined IT Job Scout at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     log_scout(f"📍 Location: {location} | Remote Only: {remote_only} | Lookback: {hours}h")
-    log_scout(f"🌐 Platforms: {', '.join(valid_sites)} + Duunitori | Queries to scan: {len(queries)}")
+    log_scout(f"🌐 Platforms: {', '.join(valid_sites)} + Duunitori + Arbeitnow (EU) | Queries: {len(queries)}")
     log_scout("==================================================================")
     
     all_jobs = []
     
     for idx, query in enumerate(queries, 1):
         pct = int((idx / len(queries)) * 100)
-        log_scout(f"\n🔍 [{idx}/{len(queries)} - {pct}%] Searching for: '{query}' across {', '.join(valid_sites)} & Duunitori...")
+        log_scout(f"\n🔍 [{idx}/{len(queries)} - {pct}%] Searching for: '{query}' across {', '.join(valid_sites)}, Duunitori & Arbeitnow...")
         
         query_start = time.time()
         query_jobs_count = 0
@@ -209,6 +246,23 @@ def run_scout(queries: list, location: str, hours: int, limit: int, remote_only:
                     log_scout(f"   ↳ [Duunitori] 0 postings found")
             except Exception as e:
                 log_scout(f"   ⚠️ [Duunitori] notice: {e}")
+
+        # Query Arbeitnow for European English-speaking & Remote IT opportunities
+        log_scout(f"   ⏳ Querying [Arbeitnow EU API] for '{query}'...")
+        try:
+            arbeit_list = scrape_arbeitnow(query, limit=limit)
+            if arbeit_list:
+                log_scout(f"   ↳ [Arbeitnow] Found {len(arbeit_list)} postings:")
+                for a_job in arbeit_list[:3]:
+                    log_scout(f"      • {a_job['title']} @ {a_job['company']} ({a_job['location']})")
+                if len(arbeit_list) > 3:
+                    log_scout(f"      ... and {len(arbeit_list) - 3} more postings")
+                all_jobs.append(pd.DataFrame(arbeit_list))
+                query_jobs_count += len(arbeit_list)
+            else:
+                log_scout(f"   ↳ [Arbeitnow] 0 postings found")
+        except Exception as e:
+            log_scout(f"   ⚠️ [Arbeitnow] notice: {e}")
                 
         cumulative_count = sum(len(df) for df in all_jobs)
         log_scout(f"   ✓ Query '{query}' completed in {time.time() - query_start:.1f}s (+{query_jobs_count} postings, total: {cumulative_count})")
@@ -468,7 +522,7 @@ def main():
     parser.add_argument("--hours", "-t", type=int, default=int(os.environ.get("SCOUT_LOOKBACK_HOURS", 168)), help="Hours old to search (default: 168h / 7 days)")
     parser.add_argument("--limit", "-n", type=int, default=int(os.environ.get("SCOUT_LIMIT_PER_QUERY", 10)), help="Results wanted per query per site (default: 10)")
     parser.add_argument("--remote", action="store_true", help="Filter for remote jobs only")
-    parser.add_argument("--sites", nargs="+", default=["linkedin", "indeed"], help="Sites to scrape")
+    parser.add_argument("--sites", nargs="+", default=["linkedin", "indeed", "google"], help="Sites to scrape (linkedin, indeed, google, glassdoor)")
     
     args = parser.parse_args()
     
