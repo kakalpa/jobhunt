@@ -13,6 +13,15 @@ cd "$DIR"
 export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
 
 LOG_FILE="$DIR/scout_cron.log"
+
+# Prevent overlapping runs with file lock
+LOCK_FILE="/tmp/jobhunt_scout_cron.lock"
+exec 200>"$LOCK_FILE"
+if ! flock -n 200; then
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Another scout process is already in progress. Skipping duplicate cron cycle." >> "$LOG_FILE"
+    exit 0
+fi
+
 echo "==================================================================" >> "$LOG_FILE"
 echo "⏰ [$(date '+%Y-%m-%d %H:%M:%S')] Triggering Scheduled IT Scout Scan" >> "$LOG_FILE"
 echo "==================================================================" >> "$LOG_FILE"
