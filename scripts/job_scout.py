@@ -167,9 +167,36 @@ def scrape_arbeitnow(query: str, limit: int = 15) -> list:
         log_scout(f"   ⚠️ [Arbeitnow API] notice: {e}")
     return jobs
 
+def acquire_scout_lock(workspace_dir: Path):
+    lock_path = workspace_dir / ".scout.lock"
+    try:
+        import fcntl
+        fd = open(lock_path, "w")
+        fcntl.flock(fd.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        return fd
+    except (IOError, OSError):
+        return None
+    except Exception:
+        return None
+
+def release_scout_lock(fd):
+    if fd:
+        try:
+            import fcntl
+            fcntl.flock(fd.fileno(), fcntl.LOCK_UN)
+            fd.close()
+        except Exception:
+            pass
+
 def run_scout(queries: list, location: str, hours: int, limit: int, remote_only: bool, sites: list):
     start_time = time.time()
     workspace_dir = Path(os.environ.get("WORKSPACE_DIR", Path(__file__).resolve().parent.parent)).resolve()
+
+    lock_fd = acquire_scout_lock(workspace_dir)
+    if lock_fd is None:
+        log_scout("⚠️ Another scout discovery run is already in progress. Exiting cleanly.")
+        return None
+
     applied_data = get_already_applied_titles(workspace_dir)
     
     # Supported engines in JobSpy
@@ -269,6 +296,7 @@ def run_scout(queries: list, location: str, hours: int, limit: int, remote_only:
             
     if not all_jobs:
         log_scout("\n❌ No jobs found across the specified criteria. Try widening the hours or search terms.")
+        release_scout_lock(lock_fd)
         return None
         
     combined_df = pd.concat(all_jobs, ignore_index=True)
@@ -495,6 +523,7 @@ def run_scout(queries: list, location: str, hours: int, limit: int, remote_only:
     log_scout(f"✅ Scout Mission Complete in {elapsed:.1f}s!")
     log_scout(f"📊 Discovered {len(deduped_records)} unique IT roles ({sum(1 for j in deduped_records if j['match_score'] >= 80)} high matches)")
     log_scout(f"📁 Live feed saved to: {output_md}")
+    release_scout_lock(lock_fd)
     return output_md
 
 def main():
