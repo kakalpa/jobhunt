@@ -1,17 +1,16 @@
 {
     # Global options
     admin off
+    email kalpakuruwita@gmail.com
 }
 
-# If DOMAIN_NAME is set (e.g. jobhunt.is-a.dev), Caddy automatically provisions
+# If DOMAIN_NAME is set (e.g. job.kalpa.eu.cc), Caddy automatically provisions
 # free Let's Encrypt / ZeroSSL TLS certificates and redirects HTTP to HTTPS.
 # If unset, defaults to :80 (HTTP reverse proxy).
 {$DOMAIN_NAME::80} {
     reverse_proxy job-hunt-command-center:5500 {
         header_up Host {host}
         header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
-        header_up X-Forwarded-Proto {scheme}
     }
 
     # High-performance compression
