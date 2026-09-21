@@ -36,7 +36,8 @@ IT_TITLE_KEYWORDS = [
     "security", "tietoturva", "soc", "siem", "cyber", "kyber",
     "cloud", "pilvi", "azure", "aws", "gcp",
     "network", "verkko", "infrastructure", "infrastruktuuri",
-    "devops", "sre", "site reliability", "data center", "datacenter", "konesali",
+    "devops", "dev ops", "dv ops", "secops", "sec ops", "devsecops", "sysops", "cloud ops", "cloud operations",
+    "sre", "site reliability", "data center", "datacenter", "konesali",
     "field service", "field technician", "hardware", "laite", "iot", "scada", "ot",
     "data", "database", "tietokanta", "erp", "crm", "dynamics", "sap",
     "solutions architect", "solution architect", "platform engineer"
@@ -47,7 +48,8 @@ IT_TECH_STACK_KEYWORDS = [
     "intune", "powershell", "bash", "python", "docker", "kubernetes", "vmware",
     "proxmox", "sql", "cisco", "firewall", "vpn", "tcp/ip", "vlan", "itil",
     "servicenow", "jira", "zendesk", "siem", "splunk", "wazuh", "opc ua", "modbus",
-    "git", "api", "rest api", "cloud"
+    "git", "api", "rest api", "cloud", "ci/cd", "terraform", "ansible", "gitlab",
+    "github actions", "jenkins"
 ]
 
 # Known Company Aliases for Cross-Site Deduplication
@@ -85,7 +87,7 @@ def is_it_job(title: str, description: str = "") -> bool:
         # If title is broad/generic (e.g. just "Engineer", "Analyst", "Trainee", "Specialist")
         generic_tokens = {"engineer", "analyst", "trainee", "specialist", "consultant"}
         title_tokens = set(re.findall(r"\w+", t_low))
-        if title_tokens.issubset(generic_tokens) or (len(title_tokens) <= 3 and any(t in generic_tokens for t in title_tokens) and not any(k in t_low for k in ["it", "software", "cloud", "security", "data", "support", "network", "system", "cyber", "devops"])):
+        if title_tokens.issubset(generic_tokens) or (len(title_tokens) <= 3 and any(t in generic_tokens for t in title_tokens) and not any(k in t_low for k in ["it", "software", "cloud", "security", "data", "support", "network", "system", "cyber", "devops", "secops", "sec ops", "dev ops", "dv ops", "devsecops", "sysops"])):
             # Require at least 2 IT tech stack keywords in description
             tech_hits = sum(1 for kw in IT_TECH_STACK_KEYWORDS if kw in d_low)
             return tech_hits >= 2

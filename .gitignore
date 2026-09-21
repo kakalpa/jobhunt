@@ -35,6 +35,8 @@ workspace/
 # 5. Local Dev & System Caches
 .pytest_cache/
 *.log
+*.lock
+.scout.lock
 .DS_Store
 .vscode/
 .idea/

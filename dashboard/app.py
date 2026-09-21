@@ -1343,7 +1343,7 @@ def get_settings_api():
     gemini_key = env.get("GEMINI_API_KEY", "")
     telegram_token = env.get("TELEGRAM_BOT_TOKEN", "")
     
-    default_queries = "Junior IT, Junior Security, Junior Systems Administrator, IT Support Specialist, Service Desk Analyst, Data Center Technician, Field Service Technician, SOC Analyst, IT Specialist, Cybersecurity, IT Trainee"
+    default_queries = "Junior IT, Junior Security, Junior Systems Administrator, IT Support Specialist, Service Desk Analyst, Data Center Technician, Field Service Technician, SOC Analyst, IT Specialist, Cybersecurity, IT Trainee, System Administrator, Sec Ops, Dev ops, Junior Sec Ops, DV Ops"
     
     data = {
         "gemini": {

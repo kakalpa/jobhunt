@@ -48,6 +48,7 @@ except ImportError:
 CANDIDATE_KEYWORDS = {
     "Tier 1 (High Match)": [
         "cybersecurity", "security analyst", "soc", "siem", "splunk", "wazuh",
+        "secops", "sec ops", "security operations", "security specialist", "security engineer",
         "incident response", "vulnerability", "tenable", "iso 27001", "iso 27005",
         "systems administrator", "system administrator", "it specialist",
         "it support", "field service", "infrastructure engineer", "active directory",
@@ -56,7 +57,8 @@ CANDIDATE_KEYWORDS = {
         "data center technician", "hardware technician"
     ],
     "Tier 2 (Adjacent Match)": [
-        "devops", "cloud engineer", "network engineer", "firewall", "edr",
+        "devops", "dev ops", "dv ops", "devsecops", "sysops", "cloud ops", "platform engineer",
+        "cloud engineer", "network engineer", "firewall", "edr", "ci/cd", "terraform", "ansible",
         "carbon black", "crowdstrike", "intune", "vmware", "proxmox", "docker",
         "kubernetes", "cisco", "iec 62443", "scada", "ot security", "pos", "hardware",
         "break-fix", "troubleshooting", "customer support", "tuki", "it-tuki", "lahituki",
@@ -542,7 +544,12 @@ def main():
             "SOC Analyst",
             "IT Specialist",
             "Cybersecurity",
-            "IT Trainee"
+            "IT Trainee",
+            "System Administrator",
+            "Sec Ops",
+            "Dev ops",
+            "Junior Sec Ops",
+            "DV Ops"
         ]
 
     parser = argparse.ArgumentParser(description="Automated IT Job Discovery Scout for Finland & EU Remote")
