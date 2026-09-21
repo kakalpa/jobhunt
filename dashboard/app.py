@@ -1257,6 +1257,218 @@ def toggle_pin():
         "pinned": new_pin
     })
 
+def get_env_file_path() -> Path:
+    env_path = WORKSPACE_DIR / ".env"
+    if not env_path.exists():
+        alt_path = Path(__file__).resolve().parent.parent / ".env"
+        if alt_path.exists():
+            return alt_path
+    return env_path
+
+def read_raw_env_dict() -> dict:
+    env_path = get_env_file_path()
+    res = {}
+    if env_path.exists():
+        try:
+            for line in env_path.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, v = line.split("=", 1)
+                    k = k.strip()
+                    v = v.strip().strip('"').strip("'")
+                    res[k] = v
+        except Exception:
+            pass
+    for k, v in os.environ.items():
+        if k not in res and v:
+            res[k] = v
+    return res
+
+def write_env_dict(updates: dict):
+    env_path = get_env_file_path()
+    lines = []
+    seen = set()
+    if env_path.exists():
+        try:
+            lines = env_path.read_text(encoding="utf-8").splitlines()
+        except Exception:
+            lines = []
+    
+    new_lines = []
+    for line in lines:
+        stripped = line.strip()
+        if stripped and not stripped.startswith("#") and "=" in stripped:
+            k, _ = stripped.split("=", 1)
+            k = k.strip()
+            if k in updates:
+                seen.add(k)
+                val = updates[k]
+                if isinstance(val, bool):
+                    val_str = "true" if val else "false"
+                else:
+                    val_str = str(val).strip()
+                if any(c in val_str for c in [" ", "#", "=", "\t", ","]) or not val_str.isalnum():
+                    val_str = f'"{val_str}"'
+                new_lines.append(f"{k}={val_str}")
+                continue
+        new_lines.append(line)
+        
+    for k, val in updates.items():
+        if k not in seen:
+            if isinstance(val, bool):
+                val_str = "true" if val else "false"
+            else:
+                val_str = str(val).strip()
+            if any(c in val_str for c in [" ", "#", "=", "\t", ","]) or not val_str.isalnum():
+                val_str = f'"{val_str}"'
+            new_lines.append(f"{k}={val_str}")
+            
+    env_path.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
+    
+    # Update current process environment
+    for k, val in updates.items():
+        os.environ[k] = str(val) if not isinstance(val, bool) else ("true" if val else "false")
+
+def mask_secret(secret: str) -> str:
+    if not secret:
+        return ""
+    if len(secret) <= 8:
+        return "****"
+    return secret[:4] + "..." + secret[-4:]
+
+@app.route("/api/settings", methods=["GET"])
+def get_settings_api():
+    """Return current tool configuration with sensitive credentials masked."""
+    env = read_raw_env_dict()
+    gemini_key = env.get("GEMINI_API_KEY", "")
+    telegram_token = env.get("TELEGRAM_BOT_TOKEN", "")
+    
+    default_queries = "Junior IT, Junior Security, Junior Systems Administrator, IT Support Specialist, Service Desk Analyst, Data Center Technician, Field Service Technician, SOC Analyst, IT Specialist, Cybersecurity, IT Trainee"
+    
+    data = {
+        "gemini": {
+            "has_key": bool(gemini_key),
+            "masked_key": mask_secret(gemini_key),
+        },
+        "telegram": {
+            "enabled": bool(telegram_token and env.get("TELEGRAM_CHAT_ID")),
+            "has_token": bool(telegram_token),
+            "masked_token": mask_secret(telegram_token),
+            "chat_id": env.get("TELEGRAM_CHAT_ID", ""),
+            "min_score": int(env.get("TELEGRAM_MIN_MATCH_SCORE", 80)),
+        },
+        "scout": {
+            "enabled": env.get("SCOUT_ENABLED", "false").lower() in ("true", "1", "yes"),
+            "interval_hours": int(env.get("SCOUT_INTERVAL_HOURS", 2)),
+            "location": env.get("SCOUT_LOCATION", "Finland"),
+            "lookback_hours": int(env.get("SCOUT_LOOKBACK_HOURS", 168)),
+            "limit": int(env.get("SCOUT_LIMIT_PER_QUERY", 10)),
+            "queries": env.get("SCOUT_QUERIES", default_queries),
+            "platforms": env.get("SCOUT_PLATFORMS", "linkedin,indeed,google,duunitori,arbeitnow"),
+        },
+        "retention": {
+            "enabled": int(env.get("POSTING_RETENTION_DAYS", 30)) > 0,
+            "days": int(env.get("POSTING_RETENTION_DAYS", 30)),
+            "mode": env.get("RETENTION_MODE", "full"),
+            "protect_statuses": env.get("RETENTION_PROTECT_STATUS", "interviewing,offer,applied"),
+            "notify_telegram": env.get("RETENTION_NOTIFY_TELEGRAM", "true").lower() in ("true", "1", "yes"),
+        },
+        "security": {
+            "auth_enabled": AUTH_CONFIG.get("auth_enabled", False),
+            "mfa_enabled": AUTH_CONFIG.get("mfa_enabled", False),
+            "admin_username": AUTH_CONFIG.get("username", "admin"),
+        }
+    }
+    return jsonify(data)
+
+@app.route("/api/settings", methods=["POST"])
+def update_settings_api():
+    """Save tool configuration to .env and hot-reload process environment."""
+    payload = request.json or {}
+    current_env = read_raw_env_dict()
+    updates = {}
+    
+    # 1. Gemini
+    if "gemini_api_key" in payload:
+        new_key = payload["gemini_api_key"].strip()
+        if new_key and not ("..." in new_key and "****" in new_key):
+            updates["GEMINI_API_KEY"] = new_key
+            
+    # 2. Telegram
+    if "telegram_bot_token" in payload:
+        new_tok = payload["telegram_bot_token"].strip()
+        if new_tok and not ("..." in new_tok and "****" in new_tok):
+            updates["TELEGRAM_BOT_TOKEN"] = new_tok
+    if "telegram_chat_id" in payload:
+        updates["TELEGRAM_CHAT_ID"] = str(payload["telegram_chat_id"]).strip()
+    if "telegram_min_match_score" in payload:
+        try:
+            updates["TELEGRAM_MIN_MATCH_SCORE"] = str(int(payload["telegram_min_match_score"]))
+        except (ValueError, TypeError):
+            pass
+            
+    # 3. Scout
+    if "scout_enabled" in payload:
+        updates["SCOUT_ENABLED"] = "true" if payload["scout_enabled"] else "false"
+    if "scout_interval_hours" in payload:
+        try:
+            val = max(1, min(72, int(payload["scout_interval_hours"])))
+            updates["SCOUT_INTERVAL_HOURS"] = str(val)
+        except (ValueError, TypeError):
+            pass
+    if "scout_location" in payload:
+        updates["SCOUT_LOCATION"] = payload["scout_location"].strip() or "Finland"
+    if "scout_lookback_hours" in payload:
+        try:
+            updates["SCOUT_LOOKBACK_HOURS"] = str(int(payload["scout_lookback_hours"]))
+        except (ValueError, TypeError):
+            pass
+    if "scout_limit_per_query" in payload:
+        try:
+            updates["SCOUT_LIMIT_PER_QUERY"] = str(int(payload["scout_limit_per_query"]))
+        except (ValueError, TypeError):
+            pass
+    if "scout_queries" in payload:
+        updates["SCOUT_QUERIES"] = payload["scout_queries"].strip()
+    if "scout_platforms" in payload:
+        if isinstance(payload["scout_platforms"], list):
+            updates["SCOUT_PLATFORMS"] = ",".join(payload["scout_platforms"])
+        else:
+            updates["SCOUT_PLATFORMS"] = str(payload["scout_platforms"]).strip()
+            
+    # 4. Retention
+    if "retention_days" in payload:
+        try:
+            updates["POSTING_RETENTION_DAYS"] = str(int(payload["retention_days"]))
+        except (ValueError, TypeError):
+            pass
+    if "retention_mode" in payload:
+        if payload["retention_mode"] in ("full", "pdfs_only"):
+            updates["RETENTION_MODE"] = payload["retention_mode"]
+    if "retention_protect_status" in payload:
+        updates["RETENTION_PROTECT_STATUS"] = str(payload["retention_protect_status"]).strip()
+    if "retention_notify_telegram" in payload:
+        updates["RETENTION_NOTIFY_TELEGRAM"] = "true" if payload["retention_notify_telegram"] else "false"
+        
+    if updates:
+        write_env_dict(updates)
+        
+        # If scout interval was updated, synchronize crontab on Linux if running as opc/host
+        if "SCOUT_INTERVAL_HOURS" in updates:
+            try:
+                import subprocess
+                hours = updates["SCOUT_INTERVAL_HOURS"]
+                cmd = f"(crontab -l 2>/dev/null | grep -v 'cron_scout.sh'; echo '# Job Hunt Command Center - Autonomous IT Scout Scan (Every {hours} hours)'; echo '0 */{hours} * * * /home/opc/jobhunt/scripts/cron_scout.sh >/dev/null 2>&1') | crontab -"
+                subprocess.run(cmd, shell=True, timeout=3, capture_output=True)
+            except Exception:
+                pass
+        
+    return jsonify({
+        "success": True,
+        "message": "Settings updated successfully!",
+        "updated_keys": list(updates.keys())
+    })
+
 @app.route("/api/folder_files/<folder>")
 def get_folder_files(folder):
     """Return a detailed list of all files inside an application folder."""

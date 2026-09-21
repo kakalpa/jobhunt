@@ -251,6 +251,10 @@
           <i data-lucide="hard-drive" class="w-3.5 h-3.5 text-amber-400"></i>
           <span class="hidden sm:inline">Retention</span>
         </button>
+        <button id="btn-settings" onclick="openSettingsModal()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition text-xs font-medium hover:text-white" title="Configure Tools, Keys & Schedule">
+          <i data-lucide="settings" class="w-3.5 h-3.5 text-indigo-400"></i>
+          <span class="hidden sm:inline">Settings</span>
+        </button>
         <button onclick="refreshData()" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition hover:text-white" title="Refresh Applications">
           <i data-lucide="refresh-cw" class="w-4 h-4"></i>
         </button>
@@ -1162,6 +1166,284 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
         <span class="text-[11px] text-slate-500">Auto-runs in background every 2h scout scan</span>
         <button onclick="closeRetentionModal()" class="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition">
           Close
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- TOOL SETTINGS & CONFIGURATION MODAL -->
+  <div id="settings-modal-backdrop" onclick="closeSettingsModal()" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden transition-opacity"></div>
+  <div id="settings-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-3 sm:p-4 pointer-events-none">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-3xl w-full p-5 sm:p-6 shadow-2xl relative pointer-events-auto flex flex-col max-h-[92vh] overflow-hidden">
+      
+      <!-- Header -->
+      <div class="flex items-start justify-between gap-3 mb-4 pb-3 border-b border-slate-800 shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="h-10 w-10 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center shrink-0">
+            <i data-lucide="settings" class="w-5 h-5 text-indigo-400"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-sm font-bold text-white tracking-tight">Command Center Configuration</h3>
+              <span id="settings-save-badge" class="text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-slate-800 text-slate-400 border border-slate-700">Settings</span>
+            </div>
+            <p class="text-xs text-slate-400">Manage AI keys, Telegram bot alerts, autonomous scout schedule & storage</p>
+          </div>
+        </div>
+
+        <button onclick="closeSettingsModal()" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition" title="Close">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="flex items-center gap-1.5 border-b border-slate-800 pb-2 mb-4 shrink-0 overflow-x-auto text-xs">
+        <button type="button" id="st-tab-ai" onclick="switchSettingsTab('ai')" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 bg-indigo-600 text-white shadow-sm">
+          <i data-lucide="bot" class="w-3.5 h-3.5"></i>
+          <span>AI & Gemini</span>
+        </button>
+        <button type="button" id="st-tab-telegram" onclick="switchSettingsTab('telegram')" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 bg-slate-800 text-slate-300 hover:text-white">
+          <i data-lucide="send" class="w-3.5 h-3.5 text-sky-400"></i>
+          <span>Telegram Alerts</span>
+        </button>
+        <button type="button" id="st-tab-scout" onclick="switchSettingsTab('scout')" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 bg-slate-800 text-slate-300 hover:text-white">
+          <i data-lucide="radar" class="w-3.5 h-3.5 text-emerald-400"></i>
+          <span>Scout Scheduler</span>
+        </button>
+        <button type="button" id="st-tab-retention" onclick="switchSettingsTab('retention')" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 bg-slate-800 text-slate-300 hover:text-white">
+          <i data-lucide="hard-drive" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span>Retention & Disk</span>
+        </button>
+      </div>
+
+      <!-- Scrollable Form Body -->
+      <form id="settings-form" onsubmit="saveSettings(event)" class="overflow-y-auto custom-scrollbar flex-1 space-y-4 pr-1">
+
+        <!-- TAB 1: AI & GEMINI -->
+        <div id="st-pane-ai" class="space-y-4">
+          <div class="p-4 rounded-xl bg-slate-800/50 border border-slate-700/60 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <i data-lucide="sparkles" class="w-4 h-4 text-indigo-400"></i>
+                <h4 class="text-xs font-bold text-white uppercase tracking-wider">Google Gemini AI Engine</h4>
+              </div>
+              <span id="gemini-status-pill" class="text-[10px] px-2 py-0.5 rounded-full font-semibold border bg-slate-800 text-slate-400 border-slate-700">Checking...</span>
+            </div>
+            <p class="text-xs text-slate-400">Powers intelligent CV tailoring, 3-pillar cover letter drafting, STAR interview answers, and ATS audit evaluations.</p>
+            
+            <div class="space-y-1.5">
+              <label class="text-[11px] font-medium text-slate-300 flex items-center justify-between">
+                <span>Gemini API Key (<code class="text-indigo-300">GEMINI_API_KEY</code>)</span>
+                <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="text-indigo-400 hover:underline flex items-center gap-1">
+                  <span>Get Free Key at Google AI Studio</span>
+                  <i data-lucide="external-link" class="w-3 h-3"></i>
+                </a>
+              </label>
+              <div class="relative flex items-center">
+                <input type="password" id="input-gemini-key" placeholder="AIzaSy..." class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 font-mono pr-10">
+                <button type="button" onclick="toggleInputSecret('input-gemini-key')" class="absolute right-2.5 p-1 text-slate-400 hover:text-white" title="Show/Hide Key">
+                  <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+              <p class="text-[10px] text-slate-500">Leaving masked values (e.g. <code class="text-slate-400">AIza...****</code>) unchanged keeps your existing key secure.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: TELEGRAM ALERTS -->
+        <div id="st-pane-telegram" class="space-y-4 hidden">
+          <div class="p-4 rounded-xl bg-slate-800/50 border border-slate-700/60 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <i data-lucide="send" class="w-4 h-4 text-sky-400"></i>
+                <h4 class="text-xs font-bold text-white uppercase tracking-wider">Telegram Bot Alerts</h4>
+              </div>
+              <span id="telegram-status-pill" class="text-[10px] px-2 py-0.5 rounded-full font-semibold border bg-slate-800 text-slate-400 border-slate-700">Checking...</span>
+            </div>
+            <p class="text-xs text-slate-400">Instant notifications whenever the autonomous scout discovers newly posted high-match IT roles in Finland or Europe.</p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div class="space-y-1.5">
+                <label class="text-[11px] font-medium text-slate-300">Bot Token (<code class="text-sky-300">TELEGRAM_BOT_TOKEN</code>)</label>
+                <div class="relative flex items-center">
+                  <input type="password" id="input-tg-token" placeholder="7123456789:AA..." class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-sky-500 font-mono pr-10">
+                  <button type="button" onclick="toggleInputSecret('input-tg-token')" class="absolute right-2.5 p-1 text-slate-400 hover:text-white" title="Show/Hide Token">
+                    <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="space-y-1.5">
+                <label class="text-[11px] font-medium text-slate-300">Chat ID (<code class="text-sky-300">TELEGRAM_CHAT_ID</code>)</label>
+                <input type="text" id="input-tg-chatid" placeholder="7724686429" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-sky-500 font-mono">
+              </div>
+            </div>
+
+            <!-- Min Score Threshold Slider -->
+            <div class="space-y-1.5 pt-2 border-t border-slate-700/60">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-medium text-slate-300">Minimum Match Score Threshold</span>
+                <span id="slider-score-label" class="font-mono text-emerald-400 font-bold text-xs bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">80%</span>
+              </div>
+              <input type="range" id="input-tg-minscore" min="50" max="95" step="5" value="80" oninput="document.getElementById('slider-score-label').textContent = this.value + '%'" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+              <div class="flex justify-between text-[10px] text-slate-500">
+                <span>50% (All IT roles)</span>
+                <span>70% (Moderate)</span>
+                <span>80% (High Match - Recommended)</span>
+                <span>95% (Top Matches Only)</span>
+              </div>
+            </div>
+
+            <!-- Live Test Button -->
+            <div class="pt-2 flex items-center justify-between">
+              <span class="text-[11px] text-slate-500">Verify your bot credentials directly:</span>
+              <button type="button" id="btn-st-test-tg" onclick="testTelegramFromSettings()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-medium flex items-center gap-1.5 transition">
+                <i data-lucide="send" class="w-3.5 h-3.5 text-sky-400"></i>
+                <span>Send Test Alert</span>
+              </button>
+            </div>
+            <div id="st-tg-result" class="hidden text-xs p-2.5 rounded-lg border"></div>
+          </div>
+        </div>
+
+        <!-- TAB 3: SCOUT SCHEDULER -->
+        <div id="st-pane-scout" class="space-y-4 hidden">
+          <div class="p-4 rounded-xl bg-slate-800/50 border border-slate-700/60 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <i data-lucide="radar" class="w-4 h-4 text-emerald-400"></i>
+                <h4 class="text-xs font-bold text-white uppercase tracking-wider">Autonomous IT Job Scout</h4>
+              </div>
+              <label class="inline-flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="input-scout-enabled" class="sr-only peer">
+                <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600 relative"></div>
+                <span class="text-xs font-semibold text-slate-300">Auto-Scout Active</span>
+              </label>
+            </div>
+            <p class="text-xs text-slate-400">Automated periodic discovery of fresh job openings across LinkedIn, Indeed, Google Jobs, Duunitori, and Arbeitnow EU API.</p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+              <div class="space-y-1">
+                <label class="text-[11px] font-medium text-slate-300">Run Frequency</label>
+                <select id="input-scout-interval" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500">
+                  <option value="1">Every 1 Hour</option>
+                  <option value="2" selected>Every 2 Hours (Default)</option>
+                  <option value="4">Every 4 Hours</option>
+                  <option value="6">Every 6 Hours</option>
+                  <option value="12">Every 12 Hours</option>
+                  <option value="24">Every 24 Hours</option>
+                </select>
+              </div>
+
+              <div class="space-y-1">
+                <label class="text-[11px] font-medium text-slate-300">Target Location</label>
+                <input type="text" id="input-scout-location" value="Finland" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500">
+              </div>
+
+              <div class="space-y-1">
+                <label class="text-[11px] font-medium text-slate-300">Lookback Window</label>
+                <select id="input-scout-lookback" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500">
+                  <option value="24">Past 24 Hours</option>
+                  <option value="72">Past 3 Days (72h)</option>
+                  <option value="168" selected>Past 7 Days (168h)</option>
+                  <option value="336">Past 14 Days (336h)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Active Platforms -->
+            <div class="space-y-1.5 pt-2 border-t border-slate-700/60">
+              <label class="text-[11px] font-medium text-slate-300">Active Search Engines</label>
+              <div class="flex items-center gap-3 flex-wrap text-xs">
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" id="plat-linkedin" checked class="rounded border-slate-700 text-sky-500 bg-slate-900 focus:ring-0">
+                  <span class="text-slate-300">LinkedIn</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" id="plat-indeed" checked class="rounded border-slate-700 text-sky-500 bg-slate-900 focus:ring-0">
+                  <span class="text-slate-300">Indeed</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" id="plat-google" checked class="rounded border-slate-700 text-sky-500 bg-slate-900 focus:ring-0">
+                  <span class="text-slate-300">Google Jobs</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" id="plat-duunitori" checked class="rounded border-slate-700 text-sky-500 bg-slate-900 focus:ring-0">
+                  <span class="text-slate-300">Duunitori (🇫🇮)</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" id="plat-arbeitnow" checked class="rounded border-slate-700 text-sky-500 bg-slate-900 focus:ring-0">
+                  <span class="text-slate-300">Arbeitnow (🇪🇺 Remote API)</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Target Queries -->
+            <div class="space-y-1.5 pt-2 border-t border-slate-700/60">
+              <label class="text-[11px] font-medium text-slate-300">Target Search Queries (Comma-separated)</label>
+              <textarea id="input-scout-queries" rows="3" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 font-mono leading-relaxed"></textarea>
+              <span class="text-[10px] text-slate-500">Each query is scanned across all selected platforms during autonomous and live scout runs.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 4: RETENTION & DISK -->
+        <div id="st-pane-retention" class="space-y-4 hidden">
+          <div class="p-4 rounded-xl bg-slate-800/50 border border-slate-700/60 space-y-3">
+            <div class="flex items-center gap-2">
+              <i data-lucide="hard-drive" class="w-4 h-4 text-amber-400"></i>
+              <h4 class="text-xs font-bold text-white uppercase tracking-wider">Storage Retention & Cleanup</h4>
+            </div>
+            <p class="text-xs text-slate-400">Manage automatic disk space reclamation policy for old prepared packages and generated vector PDFs.</p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div class="space-y-1">
+                <label class="text-[11px] font-medium text-slate-300">Retention Window (Days)</label>
+                <select id="input-ret-days" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500">
+                  <option value="14">14 Days</option>
+                  <option value="30" selected>30 Days (Default)</option>
+                  <option value="60">60 Days</option>
+                  <option value="90">90 Days</option>
+                  <option value="0">Disabled (Keep Forever)</option>
+                </select>
+              </div>
+
+              <div class="space-y-1">
+                <label class="text-[11px] font-medium text-slate-300">Cleanup Mode</label>
+                <select id="input-ret-mode" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500">
+                  <option value="full" selected>Full (Deletes entire folder)</option>
+                  <option value="pdfs_only">PDFs Only (Preserves tailored markdown)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="space-y-1.5 pt-2 border-t border-slate-700/60">
+              <label class="text-[11px] font-medium text-slate-300">Protected Statuses (Never deleted)</label>
+              <input type="text" id="input-ret-protect" value="interviewing,offer,applied" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500 font-mono">
+              <span class="text-[10px] text-slate-500">Packages marked with these statuses or pinned will never be pruned automatically.</span>
+            </div>
+
+            <div class="pt-1">
+              <label class="flex items-center gap-2 cursor-pointer text-xs">
+                <input type="checkbox" id="input-ret-notify" checked class="rounded border-slate-700 text-amber-500 bg-slate-900 focus:ring-0">
+                <span class="text-slate-300">Send summary alert to Telegram when cleanup reclaims storage space</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+      </form>
+
+      <!-- Modal Footer -->
+      <div class="pt-3 border-t border-slate-800 mt-4 flex items-center justify-between shrink-0">
+        <button type="button" onclick="closeSettingsModal()" class="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition">
+          Cancel
+        </button>
+
+        <button type="button" id="btn-save-settings" onclick="saveSettings(event)" class="px-5 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-indigo-600/20 transition active:scale-95">
+          <i data-lucide="check" class="w-4 h-4"></i>
+          <span>Save Settings</span>
         </button>
       </div>
 
@@ -2975,6 +3257,210 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
       } finally {
         btn.disabled = false;
         btn.innerHTML = origHtml;
+        lucide.createIcons();
+      }
+    }
+
+    // ==========================================
+    // TOOL SETTINGS & CONFIGURATION CONTROLLER
+    // ==========================================
+    let currentSettings = null;
+
+    function openSettingsModal(initialTab = 'ai') {
+      document.getElementById('settings-modal-backdrop').classList.remove('hidden');
+      document.getElementById('settings-modal').classList.remove('hidden');
+      switchSettingsTab(initialTab);
+      loadSettingsData();
+      lucide.createIcons();
+    }
+
+    function closeSettingsModal() {
+      document.getElementById('settings-modal-backdrop').classList.add('hidden');
+      document.getElementById('settings-modal').classList.add('hidden');
+    }
+
+    function switchSettingsTab(tabName) {
+      const tabs = ['ai', 'telegram', 'scout', 'retention'];
+      tabs.forEach(t => {
+        const btn = document.getElementById(`st-tab-${t}`);
+        const pane = document.getElementById(`st-pane-${t}`);
+        if (t === tabName) {
+          btn.className = "px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 bg-indigo-600 text-white shadow-sm";
+          pane.classList.remove('hidden');
+        } else {
+          btn.className = "px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 bg-slate-800 text-slate-300 hover:text-white";
+          pane.classList.add('hidden');
+        }
+      });
+      lucide.createIcons();
+    }
+
+    function toggleInputSecret(inputId) {
+      const input = document.getElementById(inputId);
+      if (input.type === "password") {
+        input.type = "text";
+      } else {
+        input.type = "password";
+      }
+    }
+
+    async function loadSettingsData() {
+      try {
+        const res = await fetch('/api/settings');
+        if (!res.ok) throw new Error("Failed to fetch settings");
+        const data = await res.json();
+        currentSettings = data;
+
+        // 1. Gemini
+        const geminiInput = document.getElementById('input-gemini-key');
+        const geminiPill = document.getElementById('gemini-status-pill');
+        if (data.gemini && data.gemini.has_key) {
+          geminiInput.value = data.gemini.masked_key;
+          geminiPill.className = "text-[10px] px-2 py-0.5 rounded-full font-semibold border bg-emerald-500/10 text-emerald-400 border-emerald-500/30";
+          geminiPill.textContent = "Configured ✅";
+        } else {
+          geminiInput.value = "";
+          geminiPill.className = "text-[10px] px-2 py-0.5 rounded-full font-semibold border bg-amber-500/10 text-amber-300 border-amber-500/30";
+          geminiPill.textContent = "Not Configured ⚠️";
+        }
+
+        // 2. Telegram
+        const tgTokenInput = document.getElementById('input-tg-token');
+        const tgChatInput = document.getElementById('input-tg-chatid');
+        const tgScoreInput = document.getElementById('input-tg-minscore');
+        const tgScoreLabel = document.getElementById('slider-score-label');
+        const tgPill = document.getElementById('telegram-status-pill');
+
+        if (data.telegram && data.telegram.has_token) {
+          tgTokenInput.value = data.telegram.masked_token;
+        } else {
+          tgTokenInput.value = "";
+        }
+        tgChatInput.value = (data.telegram && data.telegram.chat_id) || "";
+        const minScore = (data.telegram && data.telegram.min_score) || 80;
+        tgScoreInput.value = minScore;
+        tgScoreLabel.textContent = minScore + "%";
+
+        if (data.telegram && data.telegram.enabled) {
+          tgPill.className = "text-[10px] px-2 py-0.5 rounded-full font-semibold border bg-emerald-500/10 text-emerald-400 border-emerald-500/30";
+          tgPill.textContent = "Active ✅";
+        } else {
+          tgPill.className = "text-[10px] px-2 py-0.5 rounded-full font-semibold border bg-slate-800 text-slate-400 border-slate-700";
+          tgPill.textContent = "Disabled / Incomplete";
+        }
+
+        // 3. Scout
+        if (data.scout) {
+          document.getElementById('input-scout-enabled').checked = !!data.scout.enabled;
+          document.getElementById('input-scout-interval').value = String(data.scout.interval_hours || 2);
+          document.getElementById('input-scout-location').value = data.scout.location || "Finland";
+          document.getElementById('input-scout-lookback').value = String(data.scout.lookback_hours || 168);
+          document.getElementById('input-scout-queries').value = data.scout.queries || "";
+
+          const platforms = (data.scout.platforms || "linkedin,indeed,google,duunitori,arbeitnow").toLowerCase();
+          document.getElementById('plat-linkedin').checked = platforms.includes('linkedin');
+          document.getElementById('plat-indeed').checked = platforms.includes('indeed');
+          document.getElementById('plat-google').checked = platforms.includes('google');
+          document.getElementById('plat-duunitori').checked = platforms.includes('duunitori');
+          document.getElementById('plat-arbeitnow').checked = platforms.includes('arbeitnow');
+        }
+
+        // 4. Retention
+        if (data.retention) {
+          document.getElementById('input-ret-days').value = String(data.retention.days || 30);
+          document.getElementById('input-ret-mode').value = data.retention.mode || "full";
+          document.getElementById('input-ret-protect').value = data.retention.protect_statuses || "interviewing,offer,applied";
+          document.getElementById('input-ret-notify').checked = !!data.retention.notify_telegram;
+        }
+
+      } catch (err) {
+        showToast("Error loading settings: " + err.message);
+      }
+    }
+
+    async function testTelegramFromSettings() {
+      const btn = document.getElementById('btn-st-test-tg');
+      const resBox = document.getElementById('st-tg-result');
+      const origHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>Sending...</span>';
+      lucide.createIcons();
+
+      try {
+        const res = await fetch('/api/telegram/test', { method: 'POST' });
+        const data = await res.json();
+        resBox.classList.remove('hidden');
+        if (data.success) {
+          resBox.className = 'text-xs p-2.5 rounded-lg border bg-emerald-500/10 border-emerald-500/30 text-emerald-300';
+          resBox.innerHTML = `✅ <strong>Success:</strong> ${data.message}`;
+          showToast('Telegram test alert sent!');
+        } else {
+          resBox.className = 'text-xs p-2.5 rounded-lg border bg-rose-500/10 border-rose-500/30 text-rose-300';
+          resBox.innerHTML = `⚠️ <strong>Error:</strong> ${data.message || 'Failed to dispatch alert.'}`;
+        }
+      } catch (e) {
+        resBox.classList.remove('hidden');
+        resBox.className = 'text-xs p-2.5 rounded-lg border bg-rose-500/10 border-rose-500/30 text-rose-300';
+        resBox.innerHTML = `⚠️ <strong>Connection failed:</strong> ${e.message}`;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+        lucide.createIcons();
+      }
+    }
+
+    async function saveSettings(e) {
+      if (e) e.preventDefault();
+      const saveBtn = document.getElementById('btn-save-settings');
+      const origHtml = saveBtn.innerHTML;
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Saving...</span>';
+      lucide.createIcons();
+
+      // Collect platforms
+      const selectedPlatforms = [];
+      if (document.getElementById('plat-linkedin').checked) selectedPlatforms.push('linkedin');
+      if (document.getElementById('plat-indeed').checked) selectedPlatforms.push('indeed');
+      if (document.getElementById('plat-google').checked) selectedPlatforms.push('google');
+      if (document.getElementById('plat-duunitori').checked) selectedPlatforms.push('duunitori');
+      if (document.getElementById('plat-arbeitnow').checked) selectedPlatforms.push('arbeitnow');
+
+      const payload = {
+        gemini_api_key: document.getElementById('input-gemini-key').value.trim(),
+        telegram_bot_token: document.getElementById('input-tg-token').value.trim(),
+        telegram_chat_id: document.getElementById('input-tg-chatid').value.trim(),
+        telegram_min_match_score: parseInt(document.getElementById('input-tg-minscore').value, 10),
+        scout_enabled: document.getElementById('input-scout-enabled').checked,
+        scout_interval_hours: parseInt(document.getElementById('input-scout-interval').value, 10),
+        scout_location: document.getElementById('input-scout-location').value.trim(),
+        scout_lookback_hours: parseInt(document.getElementById('input-scout-lookback').value, 10),
+        scout_platforms: selectedPlatforms,
+        scout_queries: document.getElementById('input-scout-queries').value.trim(),
+        retention_days: parseInt(document.getElementById('input-ret-days').value, 10),
+        retention_mode: document.getElementById('input-ret-mode').value,
+        retention_protect_status: document.getElementById('input-ret-protect').value.trim(),
+        retention_notify_telegram: document.getElementById('input-ret-notify').checked
+      };
+
+      try {
+        const res = await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast("Settings saved successfully!");
+          closeSettingsModal();
+          fetchTelegramStatus();
+        } else {
+          showToast("Failed to save settings: " + (data.error || "Unknown error"));
+        }
+      } catch (err) {
+        showToast("Save failed: " + err.message);
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = origHtml;
         lucide.createIcons();
       }
     }
