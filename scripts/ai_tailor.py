@@ -291,3 +291,163 @@ Generate a comprehensive, tailored Interview Preparation Guide in strict JSON fo
 
     return None
 
+def generate_top_choice_pitch(title: str, company: str, location: str = "Finland", jd_text: str = "") -> dict:
+    """
+    Generates tailored pitches explaining:
+    1. Why the candidate is the top choice for this role (Candidate Pitch for Recruiter / Easy Apply)
+    2. Why this job & company is the candidate's #1 choice (Motivation Statement)
+    3. Quick LinkedIn connection request note (< 300 chars)
+    4. Full LinkedIn post / share draft
+    """
+    import re
+    cand = get_candidate_contact_info(WORKSPACE_DIR)
+    cand_name = cand["name"]
+    cleaned_jd = (jd_text or "")[:4500].strip()
+
+    tech_catalog = {
+        "azure": "Microsoft Azure cloud services & hybrid infrastructure",
+        "m365": "Microsoft 365, Entra ID & Intune endpoint management",
+        "active directory": "Active Directory (AD DS) & hybrid identity provisioning",
+        "windows server": "Windows Server administration & enterprise services",
+        "linux": "Linux enterprise server administration (RHEL, Ubuntu, Rocky Linux)",
+        "powershell": "PowerShell automation & administrative scripting",
+        "python": "Python automation scripting & REST API integrations",
+        "docker": "Docker containerization & deployment pipelines",
+        "kubernetes": "Kubernetes cluster operations & cloud-native workflows",
+        "wazuh": "Wazuh SIEM host monitoring & endpoint compliance",
+        "siem": "SIEM security event correlation & incident triage",
+        "sentinel": "Microsoft Sentinel cloud-native SIEM & threat hunting",
+        "itil": "ITIL service desk operations, SLA discipline & CAB change control",
+        "ansible": "Ansible configuration management & infrastructure as code",
+        "terraform": "Terraform cloud infrastructure provisioning",
+        "vmware": "VMware ESXi & vSphere virtualization management",
+        "proxmox": "Proxmox VE virtualization & high-availability clustering",
+        "cisco": "Cisco networking, VLANs, switching & routing protocols",
+        "firewall": "Enterprise firewall configuration & network perimeter security",
+        "servicenow": "ServiceNow incident, request & CMDB management",
+        "jira": "Jira Service Management & agile issue tracking"
+    }
+
+    jd_low = cleaned_jd.lower()
+    matched_tech = [desc for kw, desc in tech_catalog.items() if kw in jd_low]
+    if not matched_tech:
+        matched_tech = [
+            "Hybrid Azure & Microsoft 365 enterprise administration",
+            "Windows Server & Linux multi-platform operations",
+            "PowerShell & Python operational automation",
+            "ITIL-aligned incident management and SLA delivery"
+        ]
+
+    def build_deterministic_pitch():
+        top_skills_preview = ", ".join([kw.capitalize() for kw in list(tech_catalog.keys()) if kw in jd_low][:3])
+        if not top_skills_preview:
+            top_skills_preview = "Azure, M365, and Systems Automation"
+
+        clean_comp_tag = re.sub(r'[^a-zA-Z0-9]', '', company)
+
+        why_candidate = (
+            f"🎯 Why I Am the Top Choice for {company} — {title}:\n\n"
+            f"1. Proven Enterprise Infrastructure & Cloud Depth:\n"
+            f"Over 8 years of hands-on experience maintaining enterprise systems, server environments (Windows Server, Linux RHEL/Ubuntu), and hybrid cloud infrastructure (Azure, Entra ID, M365). My background directly covers {matched_tech[0]}.\n\n"
+            f"2. Academic Rigor & Proven Operational Excellence:\n"
+            f"Bachelor of Engineering in Information Technology from Turku University of Applied Sciences (TUAS) with a perfect 4.0 / 4.0 GPA. As Associate Tech Lead, I maintained a 94% First-Time-Fix rate across 200+ endpoints under strict ITIL SLA and CAB change governance, combined with a 1st place victory in the 2026 DNCS Cyber Hackathon.\n\n"
+            f"3. Turnkey, Frictionless Onboarding in Finland:\n"
+            f"Based permanently in Finland with EU work authorization, immediate 0-day notice availability, and full readiness for Supo standard security clearance (perusmuotoinen turvallisuusselvitys)."
+        )
+
+        why_company = (
+            f"💡 Why {company} is My #1 Top Choice:\n\n"
+            f"{company} stands out as an exceptional organization where technological reliability and modern engineering standards drive measurable impact. The {title} role is a natural next step for my background, giving me the opportunity to deploy my expertise in {matched_tech[0]} and {matched_tech[1] if len(matched_tech) > 1 else 'operational automation'}.\n\n"
+            f"I am specifically energized by your focus on scalable systems and high service availability. Collaborating with {company}'s team in {location} offers the ideal environment where my dedication to preventative engineering, zero-downtime operations, and continuous learning will deliver immediate and lasting value."
+        )
+
+        quick_connect = (
+            f"Hi! I'm an IT systems engineer based in Finland (TUAS 4.0 GPA, 8+ yrs enterprise infra). "
+            f"I saw the {title} role at {company} and would love to connect! "
+            f"My background in {top_skills_preview} directly aligns with your team's mission."
+        )
+        if len(quick_connect) > 295:
+            quick_connect = (
+                f"Hi! I'm an IT systems engineer in Finland (TUAS 4.0 GPA, 8+ yrs infra). "
+                f"I saw the {title} role at {company} and would love to connect! "
+                f"My background in {top_skills_preview} directly matches your team."
+            )
+
+        post_draft = (
+            f"🚀 Why I'm targeting the {title} opportunity at {company}:\n\n"
+            f"As an IT systems and infrastructure engineer based in Finland (B.Eng. TUAS, 4.0 GPA), I am drawn to teams where operational resilience and modern architecture make a real difference.\n\n"
+            f"Here is why this role at {company} is a standout alignment with my technical background:\n"
+            f"🔹 {matched_tech[0]}\n"
+            f"🔹 {matched_tech[1] if len(matched_tech) > 1 else 'Automation scripting with PowerShell & Python'}\n"
+            f"🔹 {matched_tech[2] if len(matched_tech) > 2 else 'ITIL-aligned incident response & high-availability systems'}\n\n"
+            f"With 8+ years of hands-on enterprise systems experience, permanent EU work authorization, and immediate 0-day notice availability, I'm excited to connect with anyone on the {company} team!\n\n"
+            f"#{clean_comp_tag} #FinlandTech #ITOperations #CloudSecurity #DevOps #Helsinki #Turku"
+        )
+
+        return {
+            "title": title,
+            "company": company,
+            "location": location,
+            "why_top_choice_candidate": why_candidate,
+            "why_top_choice_company": why_company,
+            "linkedin_quick_pitch": quick_connect,
+            "linkedin_post_draft": post_draft,
+            "matched_skills": matched_tech[:5],
+            "generated_by": "deterministic_engine"
+        }
+
+    api_key = get_api_key()
+    if api_key and len(cleaned_jd) > 100:
+        prompt = f"""You are an expert LinkedIn Career Coach and Executive Pitch Specialist for {cand_name}, an experienced IT systems and infrastructure engineer based in Finland.
+
+COMPANY: {company}
+POSITION: {title}
+LOCATION: {location}
+JOB DESCRIPTION / TECHNICAL REQUIREMENTS:
+{cleaned_jd}
+
+---
+CANDIDATE FACTUAL PROFILE ({cand_name}):
+- Education: B.Eng. in Information Technology, Turku University of Applied Sciences (TUAS), 4.0 / 4.0 GPA.
+- Experience: 8+ years hands-on enterprise systems administration, bare-metal server infrastructure (HPE DL20/DL380), hybrid cloud (Azure, M365, Entra ID, Intune), Linux (RHEL, Ubuntu), virtualization, security operations (Wazuh SIEM, Sentinel), automation (Python, Bash, PowerShell).
+- Track Record: Associate Tech Lead at Mainframe (200+ endpoints, 94% First-Time-Fix rate, CAB change management). 1st Place in 2026 DNCS Cyber Hackathon.
+- Finnish Grounding: Permanent EU Work Authorization, immediate 0-day notice availability, resident in Finland, prepared for Supo security clearance. Fluent English (C1), working Finnish.
+
+---
+TASK:
+Generate a specialized, high-converting LinkedIn Pitch Package in strict JSON format with these exact keys:
+{{
+  "why_top_choice_candidate": "Detailed, punchy 3-part recruiter pitch (Hook + 3 bullet points with real metrics + immediate availability) explaining exactly why {cand_name} is the #1 candidate for {company}.",
+  "why_top_choice_company": "Compelling, authentic 2-paragraph motivation statement explaining why {company} and this role are {cand_name}'s top choice, referencing company context from the JD.",
+  "linkedin_quick_pitch": "Concise LinkedIn connection request note strictly under 280 characters.",
+  "linkedin_post_draft": "Ready-to-publish professional LinkedIn post with emojis, key alignment bullets, and hashtags.",
+  "matched_skills": ["Top 4-5 technical skills extracted from JD that match the candidate"]
+}}
+"""
+        data = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {
+                "responseMimeType": "application/json",
+                "temperature": 0.2
+            }
+        }
+        payload = json.dumps(data).encode("utf-8")
+        for model_name in MODELS:
+            url = f"https://generativelanguage.googleapis.com/v1beta/{model_name}:generateContent?key={api_key}"
+            req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+            try:
+                with urllib.request.urlopen(req, timeout=15) as response:
+                    res_json = json.loads(response.read().decode("utf-8"))
+                    text = res_json["candidates"][0]["content"]["parts"][0]["text"]
+                    parsed = json.loads(text)
+                    if parsed.get("why_top_choice_candidate") and parsed.get("linkedin_quick_pitch"):
+                        parsed["title"] = title
+                        parsed["company"] = company
+                        parsed["location"] = location
+                        parsed["generated_by"] = f"gemini ({model_name})"
+                        return parsed
+            except Exception:
+                continue
+
+    return build_deterministic_pitch()
+

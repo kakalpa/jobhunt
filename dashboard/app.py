@@ -1608,6 +1608,135 @@ def generate_outreach_drafts(folder):
         "cl_pdf_path": cl_pdfs[0] if cl_pdfs else None
     })
 
+@app.route("/api/top-choice/<folder>")
+def get_top_choice_pitch_for_folder(folder):
+    """Generate or retrieve cached 'Why Top Choice' LinkedIn pitch for an application folder."""
+    folder_path = WORKSPACE_DIR / folder
+    if not folder_path.exists() or not folder_path.is_dir():
+        return jsonify({"error": "Folder not found"}), 404
+        
+    role_info = extract_role_info_from_jd(folder_path, folder)
+    title = role_info["title"]
+    company = role_info["company"]
+    location = role_info.get("location", "Finland")
+
+    jd_text = ""
+    for f in list(folder_path.glob("*Job_Description*.md")) + list(folder_path.glob("*Analysis*.md")):
+        try:
+            jd_text = f.read_text(encoding="utf-8", errors="ignore")
+            if len(jd_text) > 100:
+                break
+        except Exception:
+            pass
+
+    cache_file = folder_path / f"Top_Choice_Pitch_{folder}.json"
+    regenerate = request.args.get("regenerate", "false").lower() in ("true", "1")
+    if cache_file.exists() and not regenerate:
+        try:
+            cached_data = json.loads(cache_file.read_text(encoding="utf-8"))
+            if cached_data.get("why_top_choice_candidate"):
+                cached_data["cached"] = True
+                return jsonify(cached_data)
+        except Exception:
+            pass
+
+    try:
+        from scripts.ai_tailor import generate_top_choice_pitch
+    except ImportError:
+        try:
+            from ai_tailor import generate_top_choice_pitch
+        except ImportError:
+            generate_top_choice_pitch = None
+
+    if generate_top_choice_pitch:
+        pitch_data = generate_top_choice_pitch(title=title, company=company, location=location, jd_text=jd_text)
+    else:
+        pitch_data = {
+            "title": title,
+            "company": company,
+            "location": location,
+            "why_top_choice_candidate": f"Candidate pitch for {company} — {title}",
+            "why_top_choice_company": f"Motivation statement for {company}",
+            "linkedin_quick_pitch": f"Hi! I'm an IT systems engineer based in Finland. I saw the {title} role at {company} and would love to connect!",
+            "linkedin_post_draft": f"Excited about the {title} opportunity at {company}!",
+            "matched_skills": []
+        }
+
+    try:
+        cache_file.write_text(json.dumps(pitch_data, indent=2, ensure_ascii=False), encoding="utf-8")
+    except Exception:
+        pass
+
+    pitch_data["cached"] = False
+    return jsonify(pitch_data)
+
+@app.route("/api/top-choice", methods=["POST"])
+def generate_top_choice_custom():
+    """Generate on-the-fly 'Why Top Choice' pitch for any job (folder, scout feed, or manual)."""
+    payload = request.get_json(silent=True) or {}
+    folder = payload.get("folder", "").strip()
+    
+    if folder:
+        folder_path = WORKSPACE_DIR / folder
+        if folder_path.exists() and folder_path.is_dir():
+            role_info = extract_role_info_from_jd(folder_path, folder)
+            title = payload.get("title") or role_info["title"]
+            company = payload.get("company") or role_info["company"]
+            location = payload.get("location") or role_info.get("location", "Finland")
+            
+            jd_text = payload.get("description", "")
+            if not jd_text:
+                for f in list(folder_path.glob("*Job_Description*.md")) + list(folder_path.glob("*Analysis*.md")):
+                    try:
+                        jd_text = f.read_text(encoding="utf-8", errors="ignore")
+                        if len(jd_text) > 100:
+                            break
+                    except Exception:
+                        pass
+        else:
+            title = payload.get("title", "IT Specialist")
+            company = payload.get("company", "Company")
+            location = payload.get("location", "Finland")
+            jd_text = payload.get("description", "")
+    else:
+        title = payload.get("title", "IT Specialist")
+        company = payload.get("company", "Company")
+        location = payload.get("location", "Finland")
+        jd_text = payload.get("description", "")
+
+    try:
+        from scripts.ai_tailor import generate_top_choice_pitch
+    except ImportError:
+        try:
+            from ai_tailor import generate_top_choice_pitch
+        except ImportError:
+            generate_top_choice_pitch = None
+
+    if generate_top_choice_pitch:
+        pitch_data = generate_top_choice_pitch(title=title, company=company, location=location, jd_text=jd_text)
+    else:
+        pitch_data = {
+            "title": title,
+            "company": company,
+            "location": location,
+            "why_top_choice_candidate": f"Candidate pitch for {company} — {title}",
+            "why_top_choice_company": f"Motivation statement for {company}",
+            "linkedin_quick_pitch": f"Hi! I'm an IT systems engineer based in Finland. I saw the {title} role at {company} and would love to connect!",
+            "linkedin_post_draft": f"Excited about the {title} opportunity at {company}!",
+            "matched_skills": []
+        }
+
+    if folder:
+        folder_path = WORKSPACE_DIR / folder
+        if folder_path.exists() and folder_path.is_dir():
+            try:
+                cache_file = folder_path / f"Top_Choice_Pitch_{folder}.json"
+                cache_file.write_text(json.dumps(pitch_data, indent=2, ensure_ascii=False), encoding="utf-8")
+            except Exception:
+                pass
+
+    return jsonify(pitch_data)
+
 @app.route("/api/scout/trigger", methods=["POST"])
 def trigger_scout_scan():
     """Trigger background job scout script with streaming progress."""
