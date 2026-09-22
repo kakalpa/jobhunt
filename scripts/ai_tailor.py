@@ -573,16 +573,18 @@ def generate_top_choice_pitch(title: str, company: str, location: str = "Finland
         )
 
         quick_connect = (
-            f"Hi! I'm an IT systems engineer based in Finland (TUAS 4.0 GPA, 8+ yrs enterprise infra). "
-            f"I saw the {title} role at {company} and would love to connect! "
-            f"My background in {top_skills_preview} directly aligns with your team's mission."
+            f"Hi! I'm an IT systems & infrastructure engineer based in Finland (TUAS B.Eng., 4.0 GPA). "
+            f"I saw the {title} role at {company} and wanted to reach out. "
+            f"With 8+ yrs in enterprise infra ({top_skills_preview}), 94% first-time-fix rate, 0-day notice, and permanent EU work authorization, I'd love to connect and discuss how I can support your team!"
         )
-        if len(quick_connect) > 295:
+        if len(quick_connect) > 395:
             quick_connect = (
-                f"Hi! I'm an IT systems engineer in Finland (TUAS 4.0 GPA, 8+ yrs infra). "
+                f"Hi! I'm an IT systems engineer based in Finland (TUAS 4.0 GPA, 8+ yrs infra). "
                 f"I saw the {title} role at {company} and would love to connect! "
-                f"My background in {top_skills_preview} directly matches your team."
+                f"With hands-on expertise in {top_skills_preview}, 0-day notice, and permanent EU authorization, I'm eager to contribute to your team."
             )
+        if len(quick_connect) > 400:
+            quick_connect = quick_connect[:397].rsplit(" ", 1)[0] + "..."
 
         post_draft = (
             f"🚀 Why I'm targeting the {title} opportunity at {company}:\n\n"
@@ -630,7 +632,7 @@ Generate a specialized, high-converting LinkedIn Pitch Package in strict JSON fo
 {{
   "why_top_choice_candidate": "Detailed, punchy 3-part recruiter pitch (Hook + 3 bullet points with real metrics + immediate availability) explaining exactly why {cand_name} is the #1 candidate for {company}.",
   "why_top_choice_company": "Compelling, authentic 2-paragraph motivation statement explaining why {company} and this role are {cand_name}'s top choice, referencing company context from the JD.",
-  "linkedin_quick_pitch": "Concise LinkedIn connection request note strictly under 280 characters.",
+  "linkedin_quick_pitch": "Concise, high-converting LinkedIn pitch strictly under 400 characters (aim for 320-390 characters). Punchy hook citing role title and company, TUAS 4.0 GPA, key tech match from JD, 0-day notice, and permanent EU work authorization.",
   "linkedin_post_draft": "Ready-to-publish professional LinkedIn post with emojis, key alignment bullets, and hashtags.",
   "matched_skills": ["Top 4-5 technical skills extracted from JD that match the candidate"]
 }}
@@ -652,6 +654,10 @@ Generate a specialized, high-converting LinkedIn Pitch Package in strict JSON fo
                     text = res_json["candidates"][0]["content"]["parts"][0]["text"]
                     parsed = json.loads(text)
                     if parsed.get("why_top_choice_candidate") and parsed.get("linkedin_quick_pitch"):
+                        q = str(parsed["linkedin_quick_pitch"]).strip()
+                        if len(q) > 400:
+                            q = q[:397].rsplit(" ", 1)[0] + "..."
+                            parsed["linkedin_quick_pitch"] = q
                         parsed["title"] = title
                         parsed["company"] = company
                         parsed["location"] = location

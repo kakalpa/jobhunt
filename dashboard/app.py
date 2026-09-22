@@ -1548,13 +1548,18 @@ def generate_outreach_drafts(folder):
     title = role_info["title"]
     company = role_info["company"]
     
-    # 1. LinkedIn Connection Request Note (< 300 chars)
+    # 1. LinkedIn Connection Request Note (< 400 chars)
     linkedin_connect = (
-        f"Hi! I'm an IT engineer in Finland with 8+ yrs in systems & security automation (TUAS 4.0). "
-        f"I saw the {title} role at {company} and would love to connect and follow your team's work!"
+        f"Hi! I'm an IT systems & infrastructure engineer based in Finland (TUAS B.Eng., 4.0 GPA). "
+        f"I saw the {title} opening at {company} and wanted to reach out. "
+        f"With 8+ yrs in enterprise systems, 94% first-time-fix rate, 0-day notice, and permanent EU authorization, I'd love to connect and follow your team's work!"
     )
-    if len(linkedin_connect) > 295:
-        linkedin_connect = f"Hi! I'm an IT engineer in Finland (TUAS 4.0). I saw the {title} role at {company} and would love to connect!"
+    if len(linkedin_connect) > 395:
+        linkedin_connect = (
+            f"Hi! I'm an IT systems engineer in Finland (TUAS 4.0 GPA, 8+ yrs infra). "
+            f"I saw the {title} role at {company} and would love to connect. "
+            f"With 0-day notice and EU authorization, I'm eager to discuss how I can support your team."
+        )
 
     # 2. Hiring Manager / Recruiter InMail / Direct Email
     cand = get_candidate_contact_info(WORKSPACE_DIR)
@@ -1657,7 +1662,7 @@ def get_top_choice_pitch_for_folder(folder):
             "location": location,
             "why_top_choice_candidate": f"Candidate pitch for {company} — {title}",
             "why_top_choice_company": f"Motivation statement for {company}",
-            "linkedin_quick_pitch": f"Hi! I'm an IT systems engineer based in Finland. I saw the {title} role at {company} and would love to connect!",
+            "linkedin_quick_pitch": f"Hi! I'm an IT systems engineer based in Finland (TUAS 4.0 GPA, 8+ yrs infra). I saw the {title} role at {company} and would love to connect. With 0-day notice and permanent EU authorization, I'm eager to discuss how I can bring immediate value to your team!",
             "linkedin_post_draft": f"Excited about the {title} opportunity at {company}!",
             "matched_skills": []
         }
@@ -1721,7 +1726,7 @@ def generate_top_choice_custom():
             "location": location,
             "why_top_choice_candidate": f"Candidate pitch for {company} — {title}",
             "why_top_choice_company": f"Motivation statement for {company}",
-            "linkedin_quick_pitch": f"Hi! I'm an IT systems engineer based in Finland. I saw the {title} role at {company} and would love to connect!",
+            "linkedin_quick_pitch": f"Hi! I'm an IT systems engineer based in Finland (TUAS 4.0 GPA, 8+ yrs infra). I saw the {title} role at {company} and would love to connect. With 0-day notice and permanent EU authorization, I'm eager to discuss how I can bring immediate value to your team!",
             "linkedin_post_draft": f"Excited about the {title} opportunity at {company}!",
             "matched_skills": []
         }
