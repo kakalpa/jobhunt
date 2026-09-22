@@ -1639,7 +1639,10 @@ def get_top_choice_pitch_for_folder(folder):
     if cache_file.exists() and not regenerate:
         try:
             cached_data = json.loads(cache_file.read_text(encoding="utf-8"))
-            if cached_data.get("why_top_choice_candidate"):
+            c_pitch = cached_data.get("why_top_choice_candidate", "")
+            q_pitch = cached_data.get("linkedin_quick_pitch", "")
+            # Only serve from cache if it conforms to the strict <= 400 chars limit
+            if c_pitch and len(c_pitch) <= 400 and q_pitch and len(q_pitch) <= 400:
                 cached_data["cached"] = True
                 return jsonify(cached_data)
         except Exception:
