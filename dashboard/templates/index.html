@@ -2981,10 +2981,9 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
       switchTopChoiceModalTab(activeModalTab || 'candidate');
 
       try {
-        let res, data;
+        let res;
         if (job.folder) {
           res = await fetch(`/api/top-choice/${job.folder}${regenerate ? '?regenerate=true' : ''}`);
-          data = await res.json();
         } else {
           res = await fetch('/api/top-choice', {
             method: 'POST',
@@ -2996,8 +2995,20 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
               description: job.description || job.snippet || ''
             })
           });
-          data = await res.json();
         }
+
+        if (!res.ok) {
+          let errMsg = `Server returned HTTP ${res.status}`;
+          try {
+            const errData = await res.json();
+            if (errData && errData.error) errMsg = errData.error;
+          } catch (_) {}
+          if (loader) loader.classList.add('hidden');
+          showToast("Error generating pitch: " + errMsg);
+          return;
+        }
+
+        const data = await res.json();
 
         if (loader) loader.classList.add('hidden');
 
@@ -3011,6 +3022,7 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
           showToast("✨ Fresh pitch generated with AI!");
         }
       } catch (err) {
+        console.error("Top Choice error:", err);
         if (loader) loader.classList.add('hidden');
         showToast("Failed to communicate with pitch generator.");
       }
@@ -3109,10 +3121,9 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
       if (regenBtn) regenBtn.disabled = true;
 
       try {
-        let res, data;
+        let res;
         if (job.folder) {
           res = await fetch(`/api/top-choice/${job.folder}${regenerate ? '?regenerate=true' : ''}`);
-          data = await res.json();
         } else {
           res = await fetch('/api/top-choice', {
             method: 'POST',
@@ -3124,10 +3135,22 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
               description: job.description || job.snippet || ''
             })
           });
-          data = await res.json();
         }
 
         if (regenBtn) regenBtn.disabled = false;
+
+        if (!res.ok) {
+          let errMsg = `Server returned HTTP ${res.status}`;
+          try {
+            const errData = await res.json();
+            if (errData && errData.error) errMsg = errData.error;
+          } catch (_) {}
+          if (candEl) candEl.textContent = `Error: ${errMsg}`;
+          showToast("Failed to load pitch package: " + errMsg);
+          return;
+        }
+
+        const data = await res.json();
 
         if (data.error) {
           const errText = "Error: " + data.error;
@@ -3153,6 +3176,7 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
           showToast("✨ Fresh Top Choice Pitch generated!");
         }
       } catch (err) {
+        console.error("Top Choice drawer error:", err);
         if (regenBtn) regenBtn.disabled = false;
         if (candEl) candEl.textContent = "Failed to load pitch package.";
       }

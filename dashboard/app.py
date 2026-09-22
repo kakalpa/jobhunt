@@ -1735,6 +1735,9 @@ def generate_top_choice_custom():
             except Exception:
                 pass
 
+    pitch_data["cached"] = False
+    return jsonify(pitch_data)
+
 @app.route("/api/cover-letter/<folder>/expand", methods=["POST"])
 def expand_cover_letter_for_folder(folder):
     """
