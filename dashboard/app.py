@@ -1735,7 +1735,86 @@ def generate_top_choice_custom():
             except Exception:
                 pass
 
-    return jsonify(pitch_data)
+@app.route("/api/cover-letter/<folder>/expand", methods=["POST"])
+def expand_cover_letter_for_folder(folder):
+    """
+    Expands the cover letter for a folder into a comprehensive 4-pillar letter (~350–450 words),
+    updates the markdown document, and recompiles the vector A4 PDF.
+    """
+    folder_path = WORKSPACE_DIR / folder
+    if not folder_path.exists() or not folder_path.is_dir():
+        return jsonify({"error": "Folder not found"}), 404
+
+    role_info = extract_role_info_from_jd(folder_path, folder)
+    title = role_info["title"]
+    company = role_info["company"]
+    location = role_info.get("location", "Finland")
+
+    jd_text = ""
+    for f in list(folder_path.glob("*Job_Description*.md")) + list(folder_path.glob("*Analysis*.md")):
+        try:
+            jd_text = f.read_text(encoding="utf-8", errors="ignore")
+            if len(jd_text) > 100:
+                break
+        except Exception:
+            pass
+
+    # Check if posting is in Finnish
+    is_finnish = False
+    fi_markers = ("hakemus", "tehtävään", "suomi", "työtehtävä", "odotamme", "tarjoamme")
+    if any(m in jd_text.lower() for m in fi_markers) or any(m in title.lower() for m in ("kehittäjä", "asiantuntija", "tukihenkilö", "ylläpitäjä")):
+        is_finnish = True
+
+    try:
+        from scripts.ai_tailor import generate_expanded_cover_letter
+    except ImportError:
+        try:
+            from ai_tailor import generate_expanded_cover_letter
+        except ImportError:
+            generate_expanded_cover_letter = None
+
+    if not generate_expanded_cover_letter:
+        return jsonify({"error": "Cover letter expansion engine unavailable"}), 500
+
+    result = generate_expanded_cover_letter(
+        title=title,
+        company=company,
+        location=location,
+        jd_text=jd_text,
+        is_finnish=is_finnish
+    )
+
+    new_markdown = result["full_markdown"]
+
+    # Write to existing cover letter file or create one
+    cl_files = list(folder_path.glob("*Cover_Letter*.md"))
+    if cl_files:
+        cl_file = cl_files[0]
+    else:
+        cand = get_candidate_contact_info(WORKSPACE_DIR)
+        cand_slug = cand["name"].replace(" ", "_")
+        cl_file = folder_path / f"{cand_slug}_Cover_Letter_{folder}.md"
+
+    cl_file.write_text(new_markdown, encoding="utf-8")
+
+    # Recompile PDF
+    pdf_file = cl_file.with_suffix(".pdf")
+    pdf_generated = False
+    try:
+        from scripts.export_pdf import generate_pdf
+        generate_pdf(str(cl_file), str(pdf_file))
+        pdf_generated = True
+    except Exception as e:
+        print(f"Warning: PDF re-generation failed for expanded cover letter: {e}")
+
+    return jsonify({
+        "success": True,
+        "content": new_markdown,
+        "filename": cl_file.name,
+        "pdf_name": pdf_file.name if pdf_generated else None,
+        "word_count": result.get("word_count", len(new_markdown.split())),
+        "generated_by": result.get("generated_by", "ai")
+    })
 
 @app.route("/api/scout/trigger", methods=["POST"])
 def trigger_scout_scan():

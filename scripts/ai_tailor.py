@@ -90,8 +90,8 @@ INCORPORATE THESE SPECIALIZED SKILL METHODOLOGIES:
    - Generate a 3-minute recruiter call script ("Lisätietoja antaa") with 2 intelligent technical questions.
 
 2. cover-letter-generator:
-   - 3-pillar structure: Hook (specific to {company}'s tech/mission), Core technical match with quantifiable results, and Synergy/Availability.
-   - Core body must be strictly under 750 characters total, ensuring complete letter stays under 1,500 characters. No salutations or sign-offs.
+   - 4-pillar expanded structure: Opening hook tailored to {company}'s environment, Core technical match with quantifiable results, Operational track record & metrics (94% FTF, 200+ endpoints, ITIL governance, automation scripts, 2026 hackathon win), and authentic motivation for {company}.
+   - Total cover letter body should be comprehensive, persuasive, and substantial (320-400 words total). Avoid generic 'I am writing to apply for...'. No salutations or sign-offs.
 
 3. tech-resume-optimizer & resume-bullet-writer & resume-quantifier:
    - Mandatory Google X-Y-Z formula: "Accomplished [X] as measured by [Y], by doing [Z]".
@@ -124,7 +124,7 @@ Return a STRICT JSON object with these exact keys:
     "Accomplished [X] as measured by [Y], by doing [Z] bullet 1 targeting {company}'s stack...",
     "Accomplished [X] as measured by [Y], by doing [Z] bullet 2 targeting {company}'s stack..."
   ],
-  "cover_letter_body": "1-2 focused body paragraphs (strictly under 750 characters total) explaining technical alignment and contribution to {company}'s mission. Do NOT include salutations or sign-offs.",
+  "cover_letter_body": "4 substantive body paragraphs (320-400 words total) combining: 1) Strong opening hook connecting candidate to {company}'s mission, 2) Deep hands-on technical alignment with JD technologies, 3) Real operational metrics (94% FTF rate, 200+ endpoints, ITIL governance, automation in Python/Bash/PowerShell, 2026 hackathon win), and 4) Genuine motivation for why {company} is the candidate's top choice. Do NOT include salutations, dates, or sign-offs.",
   "qa_why": "Direct, genuine 2-3 sentence answer explaining motivation for {company} and this role.",
   "qa_tech": "Direct summary of hands-on experience with the core technologies in the posting (format: [Tech] — [Years]. [Project/Impact]).",
   "qa_strength": "Candidate's greatest technical strength relevant to this role in 2 sentences.",
@@ -290,6 +290,217 @@ Generate a comprehensive, tailored Interview Preparation Guide in strict JSON fo
             continue
 
     return None
+
+def generate_expanded_cover_letter(title: str, company: str, location: str = "Finland", jd_text: str = "", is_finnish: bool = False) -> dict:
+    """
+    Generates a comprehensive, high-converting 4-pillar expanded cover letter (~350–450 words)
+    adhering to cover-letter-generator and finnish-job-market-tailor methodologies.
+    Returns a dictionary with full_markdown, word_count, and metadata.
+    """
+    from datetime import datetime
+    import re
+
+    cand = get_candidate_contact_info(WORKSPACE_DIR)
+    cand_name = cand["name"]
+    cand_phone = cand["phone"]
+    cand_email = cand["email"]
+    cand_linkedin = cand["linkedin"]
+    cand_location = cand["location"]
+
+    today_en = datetime.now().strftime("%B %d, %Y")
+    today_fi = f"{datetime.now().day}.{datetime.now().month}.{datetime.now().year}"
+    date_str = today_fi if is_finnish else today_en
+
+    cleaned_jd = (jd_text or "")[:4500].strip()
+    title_lower = (title or "").lower()
+    jd_lower = cleaned_jd.lower()
+
+    is_security = any(k in title_lower or k in jd_lower for k in ("security", "soc", "cyber", "threat", "siem", "incident", "pentest", "vulnerability"))
+    is_devops = any(k in title_lower or k in jd_lower for k in ("devops", "cloud", "platform", "sre", "kubernetes", "docker", "ci/cd", "terraform", "ansible"))
+    is_datacenter = any(k in title_lower or k in jd_lower for k in ("data center", "datacenter", "hardware", "cabling", "rack", "dl380", "bare metal", "server hardware"))
+
+    def build_deterministic_cover_letter():
+        if is_finnish:
+            if is_security:
+                tech_p = "Tekninen ydinosaamiseni keskittyy ennakoivaan uhkien havainnointiin, Zero Trust -perusteiseen pääsynhallintaan ja automatisoituun poikkeamien hallintaan. Minulla on käytännön kokemusta Microsoft Defender XDR-, Sentinel SIEM (KQL)- ja Wazuh-järjestelmien ylläpidosta ja hälytysten analysoinnista. Olen suorittanut TryHackMe SOC Level 1- ja PenTest+ -sertifioinnit sekä luonut automatisoituja vasteajoputkia PowerShellin ja Microsoft Graph API:n avulla yhdistäen tarkan teknisen tutkinnan ennaltaehkäisevään ajattelutapaan."
+            elif is_devops:
+                tech_p = "Operatiivisessa työssäni yhdistän tuotantotason Linux-palvelinympäristöjen (RHEL, Ubuntu) hallinnan, Docker-kontituksen sekä Azure-pilvi-infrastruktuurin. Automatisoin rutiinitehtäviä ja käyttöönottoprosesseja Ansiblella, Pythonilla ja Bashilla, mikä on vähentänyt manuaalista työtä ja virhemahdollisuuksia merkittävästi ja varmistanut 99.9 %:n palvelukäytettävyyden."
+            elif is_datacenter:
+                tech_p = "Laitteisto- ja konesaliympäristöissä vahvuuteni ovat fyysinen asennustarkkuus, bare-metal-palvelinten provisiointi (HPE ProLiant DL20/DL380 Gen9/Gen10), komponenttitason diagnostiikka ja strukturoitu kaapelointi ESD-standardeja noudattaen. Hallitsen iLO-etähallinnan, älykkäät PDU-virranjakelut sekä nopeat komponenttien vaihdot."
+            else:
+                tech_p = "Tekninen ydinosaamiseni kattaa laajat monialustaiset työasemaympäristöt ja identiteetinhallinnan. Olen vastannut yli 200 monikäyttöjärjestelmäisen päätelaitteen (Windows 10/11, macOS, Linux) elinkaaresta sekä hallinnoinut yli 300 käyttäjän Microsoft 365- ja Entra ID (Azure AD) -kokonaisuuksia Intune MDM -vaatimustenmukaisuuden mukaisesti. Hallitsen Active Directoryn (AD DS, GPO, RBAC), HPE ProLiant -palvelinlaitteistojen vianrajauksen sekä yritysverkkojen perusrakenteet (TCP/IP, VLAN, DNS, DHCP)."
+
+            hook_p = f"Yritysten toimintavarmuuden ja modernin IT-infrastruktuurin merkityksen korostuessa olin erittäin innostunut huomaamaan **{title}** -tehtävänne **{company}**lla. Valmistuttuani tietotekniikan insinööriksi Turun ammattikorkeakoulusta (TUAS, GPA 4.0 / 4.0) ja kerrytettyäni yli 8 vuoden monipuolisen käytännön kokemuksen yritysten järjestelmäylläpidosta, pilvi-infrasta sekä operatiivisesta tuesta, tarjoan tiimillenne välittömästi tuottavan ja ennaltaehkäisevään ylläpitoon sitoutuneen vahvistuksen."
+
+            ops_p = "Operatiivinen täsmällisyys ja järjestelmällisyys ohjaavat kaikkea tekemistäni. Toimiessani apulaistiiminvetäjänä (Associate Tech Lead) saavutin 94 %:n ensiratkaisuasteen (First-Time-Fix) korkeavolyymisissa tukijonoissa ITIL-prosessien ja CAB-muutoshallinnan puitteissa. Ennaltaehkäisevänä insinöörinä kehitän automaatiota toistuvien häiriöiden pysyvään poistamiseen, mikä on vähentänyt toistuvia tukipyyntöjä jopa 40 %. Lisäksi voitto vuoden 2026 DNCS Live-Fire -kyberhackathonissa osoittaa kykyni toimia rauhallisesti ja tehokkaasti vaativissakin teknisissä vikatilanteissa."
+
+            why_p = f"Minua houkuttelee **{company}**ssa erityisesti sitoutumisenne korkeaan teknologiseen laatuun, luotettaviin palveluihin sekä moderniin insinöörikulttuuriin. Viihdyn suomalaisessa matalahierarkkisessa työkulttuurissa, jossa arvostetaan vastuunottoa, selkeää dokumentaatiota ja jatkuvaa ammatillista kehittymistä. Tehtävä tarjoaa minulle loistavan mahdollisuuden tuoda osaamiseni osaksi {location}n tiimiänne."
+
+            closing_p = f"Asun pysyvästi Suomessa ja minulla on EU-työlupa, minkä ansiosta voin aloittaa välittömästi (0 päivän irtisanomisaika). Olen täysin valmis Supon perusmuotoiseen turvallisuusselvitykseen. Työskentelen sujuvasti englanniksi (C1) ja kehitän aktiivisesti käytännön suomen kielen taitoani arjen työyhteisöviestintää varten. Keskustelen mielelläni tarkemmin siitä, miten kokemukseni voi tukea {company}n tavoitteita."
+
+            md = f"""# {cand_name}
+{cand_location} | {cand_phone} | {cand_email} | [LinkedIn]({cand_linkedin})
+
+{date_str}
+
+**{company}** | {location}  
+**Aihe: Hakemus tehtävään: {title}**
+
+Hei {company} tiimi,
+
+{hook_p}
+
+{tech_p}
+
+{ops_p}
+
+{why_p}
+
+{closing_p}
+
+Ystävällisin terveisin,  
+**{cand_name}**
+"""
+        else:
+            if is_security:
+                tech_p = f"Throughout my background in enterprise systems and security operations, I focus on proactive threat containment, robust identity governance, and automated incident triage. My hands-on technical stack centers on Microsoft Defender XDR, Microsoft Sentinel (KQL), Wazuh SIEM, and Splunk for threat detection, incident triage, and root-cause analysis. I administer Zero Trust perimeters across Entra ID (Conditional Access, MFA, RBAC), map active threats against the MITRE ATT&CK framework, and author automated remediation playbooks using PowerShell, Python, and the Microsoft Graph API. Holding verifiable TryHackMe SOC Level 1 and PenTest+ certifications, I combine disciplined technical investigation with a prevention-first mindset."
+            elif is_devops:
+                tech_p = f"In business-critical environments where platform automation and 99.9% uptime are vital, my technical practice bridges Linux systems engineering with modern cloud infrastructure. I have extensive hands-on experience administering production Red Hat (RHEL) and Ubuntu Linux environments, orchestrating containerized workloads with Docker, and provisioning scalable cloud resources in Microsoft Azure. By authoring modular Infrastructure-as-Code (IaC) configurations and deployment automation in Ansible, Python, and Bash, I systematically eliminate configuration drift and reduce provisioning turnaround time by over 60%."
+            elif is_datacenter:
+                tech_p = f"Across eight years of physical and hardware operations, I specialize in bare-metal server infrastructure, component-level hardware diagnostics, and structured cabling under rigorous ESD protocols. I have provisioned, racked, and cabled HPE ProLiant (DL20/DL380 Gen9/Gen10) enterprise servers, managed out-of-band telemetry via iLO, and maintained intelligent PDUs and UPS distribution. I excel at rapid component replacements (CPUs, RAM, SAS RAID arrays, hot-swap backplanes) and methodical change control, ensuring high physical availability and zero unmonitored hardware faults."
+            else:
+                tech_p = f"My core technical foundation encompasses enterprise workplace ecosystems, hybrid identity, and multi-OS endpoint management. I have administered fleets of over 200 workstations (Windows 10/11, macOS, and Linux) alongside 300+ user Microsoft 365 and Entra ID (Azure AD) tenants with Intune MDM compliance policies. My experience spans Active Directory (AD DS, Group Policy, RBAC), enterprise peripheral integration, bare-metal server break-fix (HPE DL20/DL380), and network infrastructure troubleshooting across TCP/IP, VLANs, DNS, and DHCP."
+
+            hook_p = f"With modern organizations increasingly prioritizing operational resilience and cloud continuity, I was excited to discover the **{title}** opening at **{company}**. Combining a Bachelor of Engineering in Information Technology from Turku University of Applied Sciences (TUAS, 4.0 / 4.0 GPA) with over eight years of progressive hands-on experience in enterprise systems administration, cloud infrastructure, and operational reliability, I am eager to deliver immediate reliability and operational excellence to your team."
+
+            ops_p = "Operational rigor and proactive prevention are central to how I work. In my role as Associate Tech Lead, I maintained a 94% First-Time-Fix rate across 200+ multi-OS workstations and 300+ user tenants while upholding strict ITIL SLA commitments and CAB change management governance. Rather than repeatedly resolving the same operational friction, I develop modular automation scripts in Python, Bash, and PowerShell that have reduced routine administrative overhead by 40%. Furthermore, earning 1st Place in the 2026 DNCS Live-Fire Cybersecurity Hackathon demonstrated my capacity to troubleshoot intricate technical environments, isolate cascading faults, and deliver dependable solutions under pressure."
+
+            why_p = f"What draws me specifically to **{company}** is your reputation for high engineering standards, operational dependability, and forward-looking technical vision. I thrive in collaborative Nordic workplace cultures that champion technical ownership, clear documentation, and continuous professional growth. Contributing my background to support your technical operations and strategic roadmap in {location} offers the ideal environment where my dedication to preventative engineering and long-term service stability will create lasting value."
+
+            closing_p = f"Based permanently in Finland with full EU work authorization, I offer immediate 0-day notice availability and am fully prepared for standard security clearance (perusmuotoinen turvallisuusselvitys) and reference verifications. I communicate fluently in English (C1) and am actively advancing my practical Finnish for everyday workplace communication. I welcome the opportunity to discuss how my technical depth, operational discipline, and customer-first mindset align with {company}'s objectives."
+
+            md = f"""# {cand_name}
+{cand_location} | {cand_phone} | {cand_email} | [LinkedIn]({cand_linkedin})
+
+{date_str}
+
+**{company}** | {location}  
+**RE: Application for {title}**
+
+Dear {company} Hiring Team,
+
+{hook_p}
+
+{tech_p}
+
+{ops_p}
+
+{why_p}
+
+{closing_p}
+
+Sincerely,  
+**{cand_name}**
+"""
+        return {
+            "title": title,
+            "company": company,
+            "location": location,
+            "is_finnish": is_finnish,
+            "full_markdown": md,
+            "word_count": len(md.split()),
+            "generated_by": "deterministic_expanded_engine"
+        }
+
+    api_key = get_api_key()
+    if api_key and len(cleaned_jd) > 80:
+        lang_directive = "Author the body paragraphs in natural, idiomatic, professional Finnish (hakemuskirje)." if is_finnish else "Author the body paragraphs in clear, polished, authoritative business English."
+        salutation = f"Hei {company} tiimi," if is_finnish else f"Dear {company} Hiring Team,"
+        signoff = "Ystävällisin terveisin," if is_finnish else "Sincerely,"
+        re_label = f"Aihe: Hakemus tehtävään: {title}" if is_finnish else f"RE: Application for {title}"
+
+        prompt = f"""You are an executive career advisor and technical cover letter specialist for {cand_name}, an IT systems & infrastructure engineer in Finland.
+
+Generate a rich, comprehensive 4-pillar expanded cover letter body for:
+COMPANY: {company}
+ROLE: {title}
+LOCATION: {location}
+JOB DESCRIPTION & REQUIREMENTS:
+{cleaned_jd}
+
+---
+CANDIDATE BASE DATA:
+- Name: {cand_name}
+- Education: B.Eng. in Information Technology, Turku University of Applied Sciences (TUAS), GPA 4.0 / 4.0.
+- Experience: 8+ years hands-on enterprise systems administration, Linux (RHEL/Ubuntu), Windows Server, Active Directory, Azure, M365, Entra ID, Intune, bare-metal hardware (HPE ProLiant DL20/DL380), automation (Python, Bash, PowerShell).
+- Track Record: Associate Tech Lead at Mainframe (200+ endpoints, 94% First-Time-Fix rate, CAB change management). 1st Place in 2026 DNCS Cyber Hackathon.
+- Finnish Grounding: Full EU Work Authorization, resident in Finland, 0-day notice period, ready for Supo security clearance. English: C1 (fluent), Finnish: conversational/actively advancing.
+
+---
+INSTRUCTIONS:
+{lang_directive}
+Produce a STRICT JSON object containing:
+{{
+  "hook_paragraph": "1 strong opening hook (3-4 sentences) connecting candidate's TUAS 4.0 GPA and 8+ years enterprise background directly to {company}'s specific operational priorities. Avoid generic 'I am writing to apply'.",
+  "tech_pillar_paragraph": "1 substantive paragraph (4-5 sentences) showing deep hands-on proficiency in the core technical platforms and tools requested in the JD.",
+  "ops_pillar_paragraph": "1 impact-driven paragraph (4-5 sentences) highlighting real-world enterprise metrics: 94% FTF rate, 200+ multi-OS workstations, ITIL SLA discipline, Python/Bash/PowerShell automation, and 2026 hackathon win.",
+  "why_company_paragraph": "1 authentic paragraph (3-4 sentences) articulating why {company} and this position are the candidate's top choice.",
+  "closing_paragraph": "1 confident closing paragraph highlighting permanent EU work authorization, immediate 0-day notice, Supo clearance readiness, C1 English and practical Finnish."
+}}
+"""
+        data = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {
+                "responseMimeType": "application/json",
+                "temperature": 0.2
+            }
+        }
+        payload = json.dumps(data).encode("utf-8")
+        for model_name in MODELS:
+            url = f"https://generativelanguage.googleapis.com/v1beta/{model_name}:generateContent?key={api_key}"
+            req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+            try:
+                with urllib.request.urlopen(req, timeout=20) as response:
+                    res_json = json.loads(response.read().decode("utf-8"))
+                    text = res_json["candidates"][0]["content"]["parts"][0]["text"]
+                    parsed = json.loads(text)
+                    if parsed.get("hook_paragraph") and parsed.get("tech_pillar_paragraph"):
+                        md = f"""# {cand_name}
+{cand_location} | {cand_phone} | {cand_email} | [LinkedIn]({cand_linkedin})
+
+{date_str}
+
+**{company}** | {location}  
+**{re_label}**
+
+{salutation}
+
+{parsed["hook_paragraph"].strip()}
+
+{parsed["tech_pillar_paragraph"].strip()}
+
+{parsed.get("ops_pillar_paragraph", "").strip()}
+
+{parsed.get("why_company_paragraph", "").strip()}
+
+{parsed.get("closing_paragraph", "").strip()}
+
+{signoff}  
+**{cand_name}**
+"""
+                        return {
+                            "title": title,
+                            "company": company,
+                            "location": location,
+                            "is_finnish": is_finnish,
+                            "full_markdown": md,
+                            "word_count": len(md.split()),
+                            "generated_by": f"gemini ({model_name})"
+                        }
+            except Exception:
+                continue
+
+    return build_deterministic_cover_letter()
 
 def generate_top_choice_pitch(title: str, company: str, location: str = "Finland", jd_text: str = "") -> dict:
     """

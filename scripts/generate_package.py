@@ -360,9 +360,30 @@ Turku University of Applied Sciences (TUAS), Finland
         if ai_data.get("salary_guidance"):
             salary_str = ai_data["salary_guidance"]
 
-    cand_slug = cand["name"].replace(" ", "_")
-    if is_finnish:
-        cl_content = f"""# {cand["name"]}
+    # 4. Write Strategic 4-Pillar Expanded Cover Letter (350–450 words)
+    cl_file = folder_path / f"{cand_slug}_Cover_Letter_{folder_name}.md"
+    
+    try:
+        from scripts.ai_tailor import generate_expanded_cover_letter
+    except ImportError:
+        try:
+            from ai_tailor import generate_expanded_cover_letter
+        except ImportError:
+            generate_expanded_cover_letter = None
+
+    if generate_expanded_cover_letter:
+        cl_res = generate_expanded_cover_letter(
+            title=title,
+            company=company,
+            location=location,
+            jd_text=jd_body,
+            is_finnish=is_finnish
+        )
+        cl_content = cl_res["full_markdown"]
+    else:
+        cand_slug = cand["name"].replace(" ", "_")
+        if is_finnish:
+            cl_content = f"""# {cand["name"]}
 {cand["location"]} | {cand["phone"]} | {cand["email"]} | [LinkedIn]({cand["linkedin"]})
 
 {today_fi}
@@ -381,12 +402,9 @@ Viestin sujuvasti englanniksi ja pystyn palvelemaan käyttäjiä ystävällisest
 Ystävällisin terveisin,  
 **{cand["name"]}**
 """
-    else:
-        closing_en = "Holding full EU work authorization and resident status in Finland, I communicate fluently in English (C1) and am actively developing practical Finnish. I am prepared to start immediately and look forward to discussing how my background aligns with " + company + "'s goals."
-        if "work authorization" in cl_core_p2.lower() or "notice period" in cl_core_p2.lower():
-            closing_en = "I communicate fluently in English (C1), am actively developing practical Finnish, and look forward to discussing how my background aligns with " + company + "'s goals."
-
-        cl_content = f"""# {cand["name"]}
+        else:
+            closing_en = "Holding full EU work authorization and resident status in Finland, I communicate fluently in English (C1) and am actively developing practical Finnish. I am prepared to start immediately and look forward to discussing how my background aligns with " + company + "'s goals."
+            cl_content = f"""# {cand["name"]}
 {cand["location"]} | {cand["phone"]} | {cand["email"]} | [LinkedIn]({cand["linkedin"]})
 
 {today_en}
@@ -394,9 +412,9 @@ Ystävällisin terveisin,
 **{company}** | {location}  
 **RE: Application for {title}**
 
-Dear Hiring Team,
+Dear {company} Hiring Team,
 
-I am writing to apply for the **{title}** position at **{company}**. Combining a B.Eng. in Information Technology (4.0 GPA from TUAS) with over 8 years of proven experience in enterprise systems, infrastructure support, and operational automation, I am eager to deliver immediate reliability and value to your team.
+With modern organizations increasingly prioritizing operational resilience, I was excited to discover the **{title}** opening at **{company}**. Combining a B.Eng. in Information Technology (4.0 GPA from TUAS) with over 8 years of proven experience in enterprise systems, infrastructure support, and operational automation, I am eager to deliver immediate reliability and value to your team.
 
 {cl_core_p2}
 

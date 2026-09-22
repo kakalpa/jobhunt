@@ -301,14 +301,18 @@ def get_candidate_contact_info(workspace_dir=None) -> dict:
     if base_cv.exists():
         try:
             content = base_cv.read_text(encoding="utf-8", errors="ignore")
+            in_header = True
             for line in content.splitlines():
                 line_str = line.strip()
-                if line_str.startswith("# ") and info["name"] == "Candidate Name":
+                if line_str.startswith("## "):
+                    in_header = False
+                    break
+                if line_str.startswith("# ") and info["name"] in ("Candidate Name", ""):
                     raw_name = line_str[2:].split(":")[0].strip()
                     if raw_name:
                         info["name"] = raw_name
                 elif "**Phone:**" in line_str:
-                    m = re.search(r'\+?[0-9\s\-]+', line_str)
+                    m = re.search(r'\+?[0-9][0-9\s\-]+', line_str)
                     if m:
                         info["phone"] = m.group(0).strip()
                 elif "**Email:**" in line_str:

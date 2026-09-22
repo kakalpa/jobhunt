@@ -507,6 +507,10 @@
       <div id="copy-banner" class="mb-4 flex items-center justify-between bg-slate-800/70 border border-slate-700/60 rounded-lg p-2.5 text-xs">
         <span class="text-slate-300">Ready to submit? Copy tailored text instantly:</span>
         <div class="flex items-center gap-2">
+          <button id="btn-expand-cover-letter" onclick="expandCurrentCoverLetter()" class="hidden inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold text-xs transition active:scale-95 shadow-sm" title="Expand into comprehensive 4-pillar cover letter with metrics">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5 fill-slate-950 text-slate-950"></i>
+            <span>Expand Cover Letter (400+ words)</span>
+          </button>
           <button id="btn-toggle-markdown" onclick="toggleMarkdownView()" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-slate-700/80 hover:bg-slate-700 text-slate-200 text-xs font-medium transition active:scale-95 border border-slate-600/60" title="Toggle between Rendered and Raw Markdown view">
             <i data-lucide="code" id="icon-toggle-markdown" class="w-3.5 h-3.5 text-slate-300"></i>
             <span id="text-toggle-markdown">Raw Markdown</span>
@@ -2373,6 +2377,15 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
       document.getElementById('copy-banner').classList.remove('hidden');
       document.getElementById('drawer-tab-text').classList.remove('hidden');
 
+      const expandBtn = document.getElementById('btn-expand-cover-letter');
+      if (expandBtn) {
+        if (tab === 'cover_letter' && currentJob && currentJob.folder) {
+          expandBtn.classList.remove('hidden');
+        } else {
+          expandBtn.classList.add('hidden');
+        }
+      }
+
       if (!currentJob || !currentJob.folder) {
         document.getElementById('copy-banner').classList.add('hidden');
         document.getElementById('drawer-tab-text').innerHTML = `
@@ -2694,6 +2707,46 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
         showToast("Folder name copied to clipboard!");
       } catch (e) {
         showToast(`Folder: ${fullPath}`);
+      }
+    }
+
+    async function expandCurrentCoverLetter() {
+      if (!currentJob || !currentJob.folder) {
+        showToast("Please select a job with an application package first.");
+        return;
+      }
+      const expandBtn = document.getElementById('btn-expand-cover-letter');
+      const origHtml = expandBtn ? expandBtn.innerHTML : '';
+      if (expandBtn) {
+        expandBtn.disabled = true;
+        expandBtn.innerHTML = `<i data-lucide="refresh-cw" class="w-3.5 h-3.5 animate-spin"></i><span>Expanding...</span>`;
+        lucide.createIcons();
+      }
+
+      showToast("🚀 Expanding cover letter into 4-pillar narrative & recompiling PDF...");
+
+      try {
+        const res = await fetch(`/api/cover-letter/${currentJob.folder}/expand`, {
+          method: 'POST'
+        });
+        const data = await res.json();
+        if (data.error) {
+          showToast("Error: " + data.error);
+          return;
+        }
+
+        currentTabRawText = data.content;
+        renderTabMarkdown(data.content);
+        showToast(`✨ Cover letter expanded to ${data.word_count || 400}+ words! Vector PDF updated.`);
+        await loadJobs();
+      } catch (err) {
+        showToast("Failed to expand cover letter.");
+      } finally {
+        if (expandBtn) {
+          expandBtn.disabled = false;
+          expandBtn.innerHTML = origHtml;
+          lucide.createIcons();
+        }
       }
     }
 
