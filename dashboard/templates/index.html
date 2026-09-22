@@ -650,7 +650,8 @@
           <div class="flex items-center justify-between">
             <div class="font-bold text-white flex items-center gap-1.5">
               <i data-lucide="award" class="w-3.5 h-3.5 text-amber-400"></i>
-              <span>1. Why I Am the Top Choice (Recruiter & Easy Apply Pitch)</span>
+              <span>1. Why I Am the Top Choice (Recruiter Pitch)</span>
+              <span id="drawer-topchoice-cand-len" class="text-[10px] text-slate-400 font-normal ml-1">(0 / 400)</span>
             </div>
             <button onclick="copyTopChoiceText('candidate', 'drawer')" class="px-2.5 py-1 rounded bg-sky-600 hover:bg-sky-500 text-white font-medium text-[11px] flex items-center gap-1 transition active:scale-95">
               <i data-lucide="copy" class="w-3 h-3"></i>
@@ -1579,7 +1580,7 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
       <div class="flex items-center gap-1.5 border-b border-slate-800 pb-2 mb-4 shrink-0 overflow-x-auto text-xs">
         <button type="button" id="tc-tab-btn-candidate" onclick="switchTopChoiceModalTab('candidate')" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 bg-sky-600 text-white shadow-sm whitespace-nowrap">
           <i data-lucide="award" class="w-3.5 h-3.5 text-amber-300"></i>
-          <span>1. Why I'm the Top Choice</span>
+          <span>1. Why Top Choice (&lt;400 chars)</span>
         </button>
         <button type="button" id="tc-tab-btn-company" onclick="switchTopChoiceModalTab('company')" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 bg-slate-800 text-slate-300 hover:text-white whitespace-nowrap">
           <i data-lucide="heart" class="w-3.5 h-3.5 text-rose-400"></i>
@@ -1622,8 +1623,9 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
               <h4 class="text-xs font-bold text-white flex items-center gap-1.5">
                 <i data-lucide="award" class="w-4 h-4 text-amber-400"></i>
                 <span>Why I Am the Top Choice for This Role</span>
+                <span id="tc-modal-cand-len" class="text-[11px] text-slate-400 font-normal ml-1">(0 / 400)</span>
               </h4>
-              <p class="text-[11px] text-slate-400">Hook + 3 high-impact proof points with real enterprise metrics & 0-day notice.</p>
+              <p class="text-[11px] text-slate-400">High-impact elevator pitch strictly within 400 characters with key metrics & 0-day notice.</p>
             </div>
             <button onclick="copyTopChoiceText('candidate', 'modal')" class="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs flex items-center gap-1.5 transition active:scale-95 shadow">
               <i data-lucide="copy" class="w-3.5 h-3.5"></i>
@@ -1703,6 +1705,7 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
             <div class="flex items-center justify-between">
               <span class="font-bold text-white text-xs flex items-center gap-1.5">
                 <i data-lucide="award" class="w-3.5 h-3.5 text-amber-400"></i> 1. Why I'm the Top Choice
+                <span id="tc-all-cand-len" class="text-[10px] text-slate-400 font-normal ml-1"></span>
               </span>
               <button onclick="copyTopChoiceText('candidate', 'modal')" class="px-2 py-1 rounded bg-sky-600/80 hover:bg-sky-600 text-white font-medium text-[11px] flex items-center gap-1 transition">
                 <i data-lucide="copy" class="w-3 h-3"></i> Copy
@@ -2902,11 +2905,24 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
         modelBadge.textContent = data.generated_by ? data.generated_by : (data.cached ? 'Cached' : 'Generated');
       }
 
-      // 1. Candidate Pitch
+      // 1. Candidate Pitch (<400 chars)
+      const candText = data.why_top_choice_candidate || '';
       const candEl = document.getElementById('tc-content-candidate');
-      if (candEl) candEl.textContent = data.why_top_choice_candidate || 'No pitch available.';
+      if (candEl) candEl.textContent = candText || 'No pitch available.';
       const candAll = document.getElementById('tc-all-candidate');
-      if (candAll) candAll.textContent = data.why_top_choice_candidate || 'No pitch available.';
+      if (candAll) candAll.textContent = candText || 'No pitch available.';
+      const cLen = candText.length;
+      const cLenBadge = `(${cLen} / 400 chars)`;
+      const cLenEl = document.getElementById('tc-modal-cand-len');
+      if (cLenEl) {
+        cLenEl.textContent = cLenBadge;
+        cLenEl.className = cLen > 400 ? "text-[11px] text-rose-400 font-bold ml-1" : "text-[11px] text-emerald-400 font-medium ml-1";
+      }
+      const cLenAllEl = document.getElementById('tc-all-cand-len');
+      if (cLenAllEl) {
+        cLenAllEl.textContent = cLenBadge;
+        cLenAllEl.className = cLen > 400 ? "text-[10px] text-rose-400 font-bold" : "text-[10px] text-emerald-400 font-medium";
+      }
 
       // 2. Company Motivation
       const compEl = document.getElementById('tc-content-company');
@@ -3160,7 +3176,13 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
 
         currentDrawerPitchData = data;
 
-        if (candEl) candEl.textContent = data.why_top_choice_candidate || '';
+        const cText = data.why_top_choice_candidate || '';
+        if (candEl) candEl.textContent = cText;
+        const candLenEl = document.getElementById('drawer-topchoice-cand-len');
+        if (candLenEl) {
+          candLenEl.textContent = `(${cText.length} / 400)`;
+          candLenEl.className = cText.length > 400 ? "text-[10px] text-rose-400 font-bold ml-1" : "text-[10px] text-emerald-400 font-medium ml-1";
+        }
         if (compEl) compEl.textContent = data.why_top_choice_company || '';
         
         const qText = data.linkedin_quick_pitch || '';

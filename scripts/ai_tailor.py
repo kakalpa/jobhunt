@@ -557,14 +557,14 @@ def generate_top_choice_pitch(title: str, company: str, location: str = "Finland
         clean_comp_tag = re.sub(r'[^a-zA-Z0-9]', '', company)
 
         why_candidate = (
-            f"🎯 Why I Am the Top Choice for {company} — {title}:\n\n"
-            f"1. Proven Enterprise Infrastructure & Cloud Depth:\n"
-            f"Over 8 years of hands-on experience maintaining enterprise systems, server environments (Windows Server, Linux RHEL/Ubuntu), and hybrid cloud infrastructure (Azure, Entra ID, M365). My background directly covers {matched_tech[0]}.\n\n"
-            f"2. Academic Rigor & Proven Operational Excellence:\n"
-            f"Bachelor of Engineering in Information Technology from Turku University of Applied Sciences (TUAS) with a perfect 4.0 / 4.0 GPA. As Associate Tech Lead, I maintained a 94% First-Time-Fix rate across 200+ endpoints under strict ITIL SLA and CAB change governance, combined with a 1st place victory in the 2026 DNCS Cyber Hackathon.\n\n"
-            f"3. Turnkey, Frictionless Onboarding in Finland:\n"
-            f"Based permanently in Finland with EU work authorization, immediate 0-day notice availability, and full readiness for Supo standard security clearance (perusmuotoinen turvallisuusselvitys)."
+            f"Why I'm the top choice for {company}'s {title}: With a 4.0 GPA in ICT (TUAS) and 8+ yrs in enterprise infrastructure ({top_skills_preview}), I deliver high availability and automation. At Mainframe, I achieved a 94% First-Time-Fix rate across 200+ endpoints. Based in Finland with EU authorization and 0-day notice, I can make an immediate, turnkey impact."
         )
+        if len(why_candidate) > 395:
+            why_candidate = (
+                f"Top choice for {company}'s {title}: 4.0 GPA in ICT (TUAS) + 8+ yrs enterprise infra ({top_skills_preview}). Delivered a 94% First-Time-Fix rate across 200+ endpoints with Python/Bash automation. Turnkey hire in Finland: permanent EU authorization, Supo-ready, and 0-day notice."
+            )
+        if len(why_candidate) > 400:
+            why_candidate = why_candidate[:397].rsplit(" ", 1)[0] + "..."
 
         why_company = (
             f"💡 Why {company} is My #1 Top Choice:\n\n"
@@ -630,7 +630,7 @@ CANDIDATE FACTUAL PROFILE ({cand_name}):
 TASK:
 Generate a specialized, high-converting LinkedIn Pitch Package in strict JSON format with these exact keys:
 {{
-  "why_top_choice_candidate": "Detailed, punchy 3-part recruiter pitch (Hook + 3 bullet points with real metrics + immediate availability) explaining exactly why {cand_name} is the #1 candidate for {company}.",
+  "why_top_choice_candidate": "Punchy, high-impact recruiter pitch strictly under 400 characters (aim for 320-390 characters). Hook with {title} & {company}, TUAS 4.0 GPA, 8+ yrs enterprise infra ({cand_name}'s key matching tech), 94% first-time-fix rate, permanent EU work authorization, and 0-day notice.",
   "why_top_choice_company": "Compelling, authentic 2-paragraph motivation statement explaining why {company} and this role are {cand_name}'s top choice, referencing company context from the JD.",
   "linkedin_quick_pitch": "Concise, high-converting LinkedIn pitch strictly under 400 characters (aim for 320-390 characters). Punchy hook citing role title and company, TUAS 4.0 GPA, key tech match from JD, 0-day notice, and permanent EU work authorization.",
   "linkedin_post_draft": "Ready-to-publish professional LinkedIn post with emojis, key alignment bullets, and hashtags.",
@@ -654,6 +654,10 @@ Generate a specialized, high-converting LinkedIn Pitch Package in strict JSON fo
                     text = res_json["candidates"][0]["content"]["parts"][0]["text"]
                     parsed = json.loads(text)
                     if parsed.get("why_top_choice_candidate") and parsed.get("linkedin_quick_pitch"):
+                        c = str(parsed["why_top_choice_candidate"]).strip()
+                        if len(c) > 400:
+                            c = c[:397].rsplit(" ", 1)[0] + "..."
+                            parsed["why_top_choice_candidate"] = c
                         q = str(parsed["linkedin_quick_pitch"]).strip()
                         if len(q) > 400:
                             q = q[:397].rsplit(" ", 1)[0] + "..."
