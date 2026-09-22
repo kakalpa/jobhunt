@@ -123,10 +123,26 @@ def get_job_dedup_keys(job: dict) -> list:
         except Exception:
             keys.append(url.split("?")[0].rstrip("/").lower())
 
-    company = re.sub(r'[^a-zA-Z0-9]', '', str(job.get("company", "")).lower())
-    title = re.sub(r'[^a-zA-Z0-9]', '', str(job.get("title", "")).lower())
-    if company and title:
-        keys.append(f"{company}::{title}")
+    # Use canonical normalization from job_filters for cross-site deduplication
+    try:
+        from scripts.job_filters import normalize_company, normalize_title
+    except ImportError:
+        try:
+            from job_filters import normalize_company, normalize_title
+        except ImportError:
+            normalize_company = lambda c: re.sub(r'[^a-zA-Z0-9]', '', str(c).lower())
+            normalize_title = lambda t: re.sub(r'[^a-zA-Z0-9]', '', str(t).lower())
+
+    comp_norm = normalize_company(str(job.get("company", "")))
+    tit_norm = normalize_title(str(job.get("title", "")))
+    if comp_norm and tit_norm:
+        keys.append(f"{comp_norm}::{tit_norm}")
+
+    # Also keep raw alphanumeric key for backwards compatibility with existing telegram_sent_jobs.json
+    raw_company = re.sub(r'[^a-zA-Z0-9]', '', str(job.get("company", "")).lower())
+    raw_title = re.sub(r'[^a-zA-Z0-9]', '', str(job.get("title", "")).lower())
+    if raw_company and raw_title:
+        keys.append(f"{raw_company}::{raw_title}")
 
     return keys
 

@@ -184,6 +184,25 @@ def normalize_title(title: str) -> str:
     t = (title or "").lower().strip()
     t = re.sub(r"\([^)]*\)", "", t) # remove parentheticals like (m/f/d), (ERP), (German speaking)
     t = re.sub(r"[-–—/|].*$", "", t) # remove trailing qualifiers like "- Finland" or "/ Tampere"
+
+    # Common English spelling variants (British vs American)
+    t = re.sub(r"\bdefen[cs]e\b", "defense", t)
+    t = re.sub(r"\bcent(?:re|er)\b", "center", t)
+    t = re.sub(r"\banaly[sz]e[rs]?\b", "analyzer", t)
+    t = re.sub(r"\borgani[sz]ation\b", "organization", t)
+    t = re.sub(r"\bspeciali[sz]ed\b", "specialized", t)
+
+    # Common tech compounding and abbreviation variants
+    t = re.sub(r"\b(?:dev\s*ops|dv\s*ops)\b", "devops", t)
+    t = re.sub(r"\bsec\s*ops\b", "secops", t)
+    t = re.sub(r"\bdev\s*sec\s*ops\b", "devsecops", t)
+    t = re.sub(r"\bsys\s*ops\b", "sysops", t)
+    t = re.sub(r"\bcyber\s*security\b", "cybersecurity", t)
+    t = re.sub(r"\bfull\s*stack\b", "fullstack", t)
+    t = re.sub(r"\bfront\s*end\b", "frontend", t)
+    t = re.sub(r"\bback\s*end\b", "backend", t)
+    t = re.sub(r"\bcloud\s*ops\b", "cloudops", t)
+
     # Remove location suffixes
     t = re.sub(r"\b(finland|helsinki|espoo|tampere|turku|remote|hybrid|onsite|emea)\b", "", t)
     # Remove level prefixes to group identical functional roles

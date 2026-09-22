@@ -1391,13 +1391,13 @@ def update_settings_api():
     # 1. Gemini
     if "gemini_api_key" in payload:
         new_key = payload["gemini_api_key"].strip()
-        if new_key and not ("..." in new_key and "****" in new_key):
+        if new_key and "..." not in new_key and "****" not in new_key:
             updates["GEMINI_API_KEY"] = new_key
             
     # 2. Telegram
     if "telegram_bot_token" in payload:
         new_tok = payload["telegram_bot_token"].strip()
-        if new_tok and not ("..." in new_tok and "****" in new_tok):
+        if new_tok and "..." not in new_tok and "****" not in new_tok:
             updates["TELEGRAM_BOT_TOKEN"] = new_tok
     if "telegram_chat_id" in payload:
         updates["TELEGRAM_CHAT_ID"] = str(payload["telegram_chat_id"]).strip()

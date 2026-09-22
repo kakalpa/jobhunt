@@ -3315,11 +3315,13 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
         const geminiInput = document.getElementById('input-gemini-key');
         const geminiPill = document.getElementById('gemini-status-pill');
         if (data.gemini && data.gemini.has_key) {
-          geminiInput.value = data.gemini.masked_key;
+          geminiInput.value = "";
+          geminiInput.placeholder = data.gemini.masked_key + " (Leave blank to keep current)";
           geminiPill.className = "text-[10px] px-2 py-0.5 rounded-full font-semibold border bg-emerald-500/10 text-emerald-400 border-emerald-500/30";
           geminiPill.textContent = "Configured ✅";
         } else {
           geminiInput.value = "";
+          geminiInput.placeholder = "AIzaSy...";
           geminiPill.className = "text-[10px] px-2 py-0.5 rounded-full font-semibold border bg-amber-500/10 text-amber-300 border-amber-500/30";
           geminiPill.textContent = "Not Configured ⚠️";
         }
@@ -3332,9 +3334,11 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
         const tgPill = document.getElementById('telegram-status-pill');
 
         if (data.telegram && data.telegram.has_token) {
-          tgTokenInput.value = data.telegram.masked_token;
+          tgTokenInput.value = "";
+          tgTokenInput.placeholder = data.telegram.masked_token + " (Leave blank to keep current)";
         } else {
           tgTokenInput.value = "";
+          tgTokenInput.placeholder = "e.g. 123456789:ABCdefGHIjklMNO...";
         }
         tgChatInput.value = (data.telegram && data.telegram.chat_id) || "";
         const minScore = (data.telegram && data.telegram.min_score) || 80;
