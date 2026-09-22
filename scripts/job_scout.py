@@ -40,9 +40,15 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 try:
-    from scripts.job_filters import is_it_job, detect_language_requirement, deduplicate_job_records, get_candidate_contact_info
+    from scripts.job_filters import (
+        is_it_job, detect_language_requirement, deduplicate_job_records,
+        get_candidate_contact_info, normalize_company, normalize_title
+    )
 except ImportError:
-    from job_filters import is_it_job, detect_language_requirement, deduplicate_job_records, get_candidate_contact_info
+    from job_filters import (
+        is_it_job, detect_language_requirement, deduplicate_job_records,
+        get_candidate_contact_info, normalize_company, normalize_title
+    )
 
 # Core Candidate Keywords from Base_CV.md for automated scoring
 CANDIDATE_KEYWORDS = {
@@ -66,23 +72,138 @@ CANDIDATE_KEYWORDS = {
     ]
 }
 
-def get_already_applied_titles(workspace_dir: Path) -> set:
-    """Scan APPLICATIONS_TRACKER.md and workspace directories to avoid duplicate alerts."""
-    applied_names = set()
-    
-    # 1. Scan directory names
+def load_tracked_jobs_index(workspace_dir: Path) -> dict:
+    """
+    Builds a high-accuracy multi-layer index of all tracked/applied roles from:
+    1. pipeline_data.json (canonical URLs, job IDs, titles, companies, statuses)
+    2. Workspace directory names (CamelCase split & normalized)
+    3. APPLICATIONS_TRACKER.md (markdown tables and URLs)
+    """
+    tracked = {
+        "urls": set(),
+        "job_ids": set(),
+        "company_titles": set(),
+        "companies": set(),
+        "folders": [],
+        "tracker_text": ""
+    }
+
+    # 1. Load pipeline_data.json
+    pipeline_file = workspace_dir / "pipeline_data.json"
+    if pipeline_file.exists():
+        try:
+            with open(pipeline_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if isinstance(data, dict):
+                    for folder_key, info in data.items():
+                        if not isinstance(info, dict):
+                            continue
+                        url = (info.get("url") or "").strip().lower()
+                        if url:
+                            tracked["urls"].add(url)
+                            m_li = re.search(r'/view/(\d+)', url)
+                            if m_li:
+                                tracked["job_ids"].add(m_li.group(1))
+                            m_ind = re.search(r'[?&]jk=([a-f0-9]+)', url)
+                            if m_ind:
+                                tracked["job_ids"].add(m_ind.group(1))
+
+                        comp = info.get("company") or ""
+                        tit = info.get("title") or ""
+                        if not comp or not tit:
+                            parts = folder_key.split("_", 1)
+                            if not comp and parts:
+                                comp = re.sub(r'([a-z])([A-Z])', r'\1 \2', parts[0])
+                            if not tit and len(parts) > 1:
+                                tit = parts[1].replace("_", " ")
+
+                        comp_n = normalize_company(comp)
+                        tit_n = normalize_title(tit)
+                        if comp_n and tit_n:
+                            tracked["company_titles"].add((comp_n, tit_n))
+                        if comp_n:
+                            tracked["companies"].add(comp_n)
+        except Exception as e:
+            log_scout(f"⚠️ Notice reading pipeline_data.json: {e}")
+
+    # 2. Scan workspace directory names
     for item in workspace_dir.iterdir():
-        if item.is_dir() and not item.name.startswith(('.', 'scripts', 'dashboard', 'static', 'templates', 'venv')):
-            clean_name = item.name.lower().replace('_', ' ')
-            applied_names.add(clean_name)
-            
-    # 2. Scan tracker markdown
+        if item.is_dir() and not item.name.startswith(('.', 'scripts', 'dashboard', 'static', 'templates', 'venv', 'brain')):
+            name_spaced = re.sub(r'([a-z])([A-Z])', r'\1 \2', item.name).replace('_', ' ').lower()
+            name_alphanumeric = re.sub(r'[^a-z0-9]', '', item.name.lower())
+            tracked["folders"].append((name_spaced, name_alphanumeric))
+
+    # 3. Scan APPLICATIONS_TRACKER.md
     tracker_path = workspace_dir / "APPLICATIONS_TRACKER.md"
     if tracker_path.exists():
-        content = tracker_path.read_text(encoding="utf-8", errors="ignore").lower()
-        applied_names.add(content)
-        
-    return applied_names
+        try:
+            content = tracker_path.read_text(encoding="utf-8", errors="ignore").lower()
+            tracked["tracker_text"] = content
+            for u in re.findall(r'https?://[^\s\)\"\'>]+', content):
+                tracked["urls"].add(u.rstrip("/").lower())
+        except Exception:
+            pass
+
+    return tracked
+
+def get_already_applied_titles(workspace_dir: Path):
+    """Backwards-compatible wrapper."""
+    return load_tracked_jobs_index(workspace_dir)
+
+def is_job_tracked(job: dict, tracked: dict) -> bool:
+    """Accurately checks whether a discovered job is already tracked or applied."""
+    url = (job.get("job_url") or job.get("url") or "").strip().lower()
+
+    # 1. Exact or canonical URL match
+    if url:
+        if url in tracked["urls"] or url.rstrip("/") in tracked["urls"]:
+            return True
+        m_li = re.search(r'/view/(\d+)', url)
+        if m_li and m_li.group(1) in tracked["job_ids"]:
+            return True
+        m_ind = re.search(r'[?&]jk=([a-f0-9]+)', url)
+        if m_ind and m_ind.group(1) in tracked["job_ids"]:
+            return True
+
+    company = str(job.get("company", ""))
+    title = str(job.get("title", ""))
+    comp_n = normalize_company(company)
+    tit_n = normalize_title(title)
+
+    # 2. Canonical (Company, Title) pair match in pipeline
+    if (comp_n, tit_n) in tracked["company_titles"]:
+        return True
+
+    # 3. Same company with overlapping title in pipeline
+    if comp_n and comp_n in tracked["companies"]:
+        for c_t, t_t in tracked["company_titles"]:
+            if c_t == comp_n or (comp_n in c_t) or (c_t in comp_n):
+                if tit_n == t_t or tit_n in t_t or t_t in tit_n:
+                    return True
+                t_words = set(re.findall(r'[a-z]{3,}', tit_n))
+                tracked_words = set(re.findall(r'[a-z]{3,}', t_t))
+                if t_words and tracked_words and len(t_words & tracked_words) >= 2:
+                    return True
+
+    # 4. Check against workspace directory names
+    raw_comp_alpha = re.sub(r'[^a-z0-9]', '', company.lower())
+    for name_spaced, name_alpha in tracked["folders"]:
+        if (comp_n and comp_n in name_alpha) or (raw_comp_alpha and raw_comp_alpha in name_alpha):
+            key_tokens = [w for w in re.findall(r'[a-z]{3,}', title.lower()) if w not in {"the", "and", "for", "with", "junior", "senior", "finland"}]
+            matched_tokens = sum(1 for w in key_tokens if w in name_spaced or w in name_alpha)
+            if matched_tokens >= 2 or (len(key_tokens) == 1 and matched_tokens == 1):
+                return True
+
+    # 5. Check APPLICATIONS_TRACKER.md text
+    if tracked["tracker_text"]:
+        comp_lower = company.lower().strip()
+        if comp_lower in tracked["tracker_text"] and len(comp_lower) > 3:
+            key_tokens = [w for w in re.findall(r'[a-z]{3,}', title.lower()) if w not in {"the", "and", "for", "with", "junior", "senior", "finland"}]
+            matched_tokens = sum(1 for w in key_tokens if w in tracked["tracker_text"])
+            if matched_tokens >= 2:
+                return True
+
+    return False
 
 def calculate_match_score(title: str, description: str) -> int:
     """Calculates approximate keyword match percentage against candidate profile."""
@@ -199,7 +320,7 @@ def run_scout(queries: list, location: str, hours: int, limit: int, remote_only:
         log_scout("⚠️ Another scout discovery run is already in progress. Exiting cleanly.")
         return None
 
-    applied_data = get_already_applied_titles(workspace_dir)
+    tracked_index = load_tracked_jobs_index(workspace_dir)
     
     # Supported engines in JobSpy
     supported_sites = ["linkedin", "indeed", "google", "glassdoor"]
@@ -340,14 +461,8 @@ def run_scout(queries: list, location: str, hours: int, limit: int, remote_only:
         match_score = calculate_match_score(title, description)
         
         # Check if already tracked/applied
-        is_already_tracked = False
-        company_clean = company.lower().strip()
-        title_clean = title.lower().strip()
-        for applied in applied_data:
-            if isinstance(applied, str) and ((company_clean in applied and len(company_clean) > 3) or (title_clean in applied and len(title_clean) > 8)):
-                is_already_tracked = True
-                break
-                
+        is_already_tracked = is_job_tracked(r, tracked_index)
+        
         scored_records.append({
             "title": title,
             "company": company,

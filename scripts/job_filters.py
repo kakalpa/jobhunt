@@ -269,6 +269,7 @@ def deduplicate_job_records(records: List[Dict[str, Any]]) -> List[Dict[str, Any
             primary["all_urls"] = all_urls
             # Take highest match score
             primary["match_score"] = max(item.get("match_score", 0) for item in items)
+            primary["already_applied"] = any(item.get("already_applied", False) for item in items)
             deduped.append(primary)
             
     return deduped
