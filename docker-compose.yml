@@ -11,6 +11,8 @@ services:
     volumes:
       # Mount host directory into container workspace so all generated packages, PDFs, and data persist
       - .:/workspace
+      - ./scripts:/app/scripts
+      - ./dashboard:/app/dashboard
     environment:
       - AUTH_ENABLED=${AUTH_ENABLED:-false}
       - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
