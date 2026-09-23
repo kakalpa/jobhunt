@@ -329,6 +329,61 @@ def notify_scout_scan_summary(new_roles_count: int, high_match_count: int, total
     )
     return send_telegram_message(msg)
 
+API_ERROR_NOTIFIED_FILE = WORKSPACE_DIR / ".api_error_notified.json"
+
+def notify_api_key_error(service_name: str, error_details: str, cooldown_hours: float = 4.0) -> bool:
+    """
+    Sends a high-priority Telegram alert when an AI or cloud API key encounters errors (e.g. 401 Unauthorized).
+    Rate-limited by cooldown_hours for identical errors to avoid notification spam.
+    """
+    config = get_telegram_config()
+    if not config["enabled"]:
+        return False
+
+    now = datetime.now()
+    now_iso = now.isoformat()
+    
+    # Check rate limit cache
+    cache = {}
+    if API_ERROR_NOTIFIED_FILE.exists():
+        try:
+            cache = json.loads(API_ERROR_NOTIFIED_FILE.read_text(encoding="utf-8"))
+        except Exception:
+            cache = {}
+
+    last_sent_str = cache.get(service_name, {}).get("timestamp", "")
+    last_err = cache.get(service_name, {}).get("error", "")
+
+    if last_sent_str and last_err == str(error_details):
+        try:
+            last_dt = datetime.fromisoformat(last_sent_str)
+            hours_elapsed = (now - last_dt).total_seconds() / 3600.0
+            if hours_elapsed < cooldown_hours:
+                return False  # Suppressed by rate limit
+        except Exception:
+            pass
+
+    msg = (
+        "⚠️ <b>Job Hunt Command Center Alert</b>\n\n"
+        "🔴 <b>AI Service Authentication Error</b>\n"
+        f"<b>Service:</b> {service_name}\n"
+        f"<b>Error:</b> <code>{error_details}</code>\n"
+        "<b>Status:</b> Live AI tailoring is paused; application packages will automatically use calibrated offline archetype templates.\n\n"
+        "🔧 <b>Action:</b> Update your <code>GEMINI_API_KEY</code> in the dashboard Settings modal or <code>.env</code> file."
+    )
+
+    success = send_telegram_message(msg)
+    if success:
+        cache[service_name] = {
+            "timestamp": now_iso,
+            "error": str(error_details)
+        }
+        try:
+            API_ERROR_NOTIFIED_FILE.write_text(json.dumps(cache, indent=2), encoding="utf-8")
+        except Exception:
+            pass
+    return success
+
 if __name__ == "__main__":
     import sys
     print("Testing Telegram Notifier...")

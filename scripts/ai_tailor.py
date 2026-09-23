@@ -17,6 +17,7 @@ import sys
 import json
 import urllib.request
 import urllib.error
+from datetime import datetime
 from pathlib import Path
 
 WORKSPACE_DIR = Path(os.environ.get("WORKSPACE_DIR", Path(__file__).resolve().parent.parent)).resolve()
@@ -46,6 +47,75 @@ MODELS = [
     "models/gemini-3.6-flash",
     "models/gemini-2.5-flash"
 ]
+
+AI_STATUS_FILE = WORKSPACE_DIR / ".ai_api_status.json"
+
+def record_ai_api_status(status: str, error: str = "", model: str = ""):
+    """Persist the health and error state of the Gemini AI API integration."""
+    now_iso = datetime.now().isoformat()
+    data = {
+        "status": status,
+        "last_error": error,
+        "last_checked": now_iso,
+        "model": model
+    }
+    if status == "ok":
+        data["last_success"] = now_iso
+    else:
+        if AI_STATUS_FILE.exists():
+            try:
+                prev = json.loads(AI_STATUS_FILE.read_text(encoding="utf-8"))
+                if prev.get("last_success"):
+                    data["last_success"] = prev["last_success"]
+            except Exception:
+                pass
+    try:
+        AI_STATUS_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    except Exception:
+        pass
+
+def get_ai_api_status() -> dict:
+    """Retrieve current AI API health state."""
+    api_key = get_api_key()
+    if not api_key:
+        return {"status": "not_configured", "configured": False, "last_error": "No GEMINI_API_KEY configured."}
+    
+    if AI_STATUS_FILE.exists():
+        try:
+            data = json.loads(AI_STATUS_FILE.read_text(encoding="utf-8"))
+            data["configured"] = True
+            return data
+        except Exception:
+            pass
+    return {"status": "unverified", "configured": True, "last_error": ""}
+
+def check_gemini_api_key(test_key: str = None) -> dict:
+    """Validate API key directly against Google Generative Language models endpoint."""
+    key = (test_key or get_api_key()).strip()
+    if not key:
+        record_ai_api_status("not_configured", "Missing GEMINI_API_KEY")
+        return {"valid": False, "status": "not_configured", "error": "No GEMINI_API_KEY configured in environment or .env"}
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models?key={key}"
+    req = urllib.request.Request(url, headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=8) as response:
+            if response.status == 200:
+                record_ai_api_status("ok", "", "models-endpoint")
+                return {"valid": True, "status": "ok", "error": None, "message": "Gemini API key is active and authorized."}
+    except urllib.error.HTTPError as e:
+        err_msg = f"HTTP Error {e.code}: {e.reason}"
+        record_ai_api_status("error", err_msg)
+        try:
+            from scripts.telegram_notifier import notify_api_key_error
+            notify_api_key_error("Google Gemini AI", err_msg)
+        except Exception:
+            pass
+        return {"valid": False, "status": "error", "error": err_msg, "message": f"Gemini API rejected key: {err_msg}"}
+    except Exception as e:
+        err_msg = str(e)
+        record_ai_api_status("error", err_msg)
+        return {"valid": False, "status": "error", "error": err_msg, "message": f"Network error connecting to Gemini API: {err_msg}"}
 
 def tailor_application(title: str, company: str, location: str, jd_text: str) -> dict:
     """
@@ -198,6 +268,7 @@ Return a STRICT JSON object with these exact keys:
     }
     payload = json.dumps(data).encode("utf-8")
 
+    last_err_msg = ""
     for model_name in MODELS:
         url = f"https://generativelanguage.googleapis.com/v1beta/{model_name}:generateContent?key={api_key}"
         req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
@@ -208,10 +279,23 @@ Return a STRICT JSON object with these exact keys:
                 parsed = json.loads(text)
                 if parsed.get("cv_summary") and parsed.get("cover_letter_body"):
                     print(f"✨ [AI Tailor] Successfully tailored application using {model_name} with all 12 skills!")
+                    record_ai_api_status("ok", "", model_name)
                     return parsed
+        except urllib.error.HTTPError as e:
+            last_err_msg = f"HTTP Error {e.code}: {e.reason}"
+            print(f"⚠️ [AI Tailor] HTTP Error on {model_name}: {last_err_msg}")
         except Exception as e:
+            last_err_msg = str(e)
             print(f"⚠️ [AI Tailor] Notice on {model_name}: {e}")
             continue
+
+    if last_err_msg:
+        record_ai_api_status("error", last_err_msg)
+        try:
+            from scripts.telegram_notifier import notify_api_key_error
+            notify_api_key_error("Google Gemini AI", last_err_msg)
+        except Exception:
+            pass
 
     return None
 

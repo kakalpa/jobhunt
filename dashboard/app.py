@@ -1346,10 +1346,19 @@ def get_settings_api():
     
     default_queries = "Junior IT, Junior Security, Junior Systems Administrator, IT Support Specialist, Service Desk Analyst, Data Center Technician, Field Service Technician, SOC Analyst, IT Specialist, Cybersecurity, IT Trainee, System Administrator, Sec Ops, Dev ops, Junior Sec Ops, DV Ops"
     
+    try:
+        from scripts.ai_tailor import get_ai_api_status
+        ai_status = get_ai_api_status()
+    except Exception:
+        ai_status = {"status": "unknown", "last_error": ""}
+
     data = {
         "gemini": {
             "has_key": bool(gemini_key),
             "masked_key": mask_secret(gemini_key),
+            "status": ai_status.get("status", "unknown"),
+            "last_error": ai_status.get("last_error", ""),
+            "last_checked": ai_status.get("last_checked", "")
         },
         "telegram": {
             "enabled": bool(telegram_token and env.get("TELEGRAM_CHAT_ID")),
@@ -1463,12 +1472,41 @@ def update_settings_api():
                 subprocess.run(cmd, shell=True, timeout=3, capture_output=True)
             except Exception:
                 pass
+
+        if "GEMINI_API_KEY" in updates:
+            try:
+                from scripts.ai_tailor import check_gemini_api_key
+                check_gemini_api_key(updates["GEMINI_API_KEY"])
+            except Exception:
+                pass
         
     return jsonify({
         "success": True,
         "message": "Settings updated successfully!",
         "updated_keys": list(updates.keys())
     })
+
+@app.route("/api/ai/status", methods=["GET"])
+def ai_status_endpoint():
+    """Returns real-time or cached health status of Gemini API."""
+    try:
+        from scripts.ai_tailor import get_ai_api_status
+        return jsonify(get_ai_api_status())
+    except Exception as e:
+        return jsonify({"status": "error", "last_error": str(e)}), 500
+
+@app.route("/api/ai/test", methods=["POST"])
+def ai_test_endpoint():
+    """Test validation of configured or provided Gemini API key."""
+    payload = request.json or {}
+    test_key = payload.get("gemini_api_key", "").strip()
+    try:
+        from scripts.ai_tailor import check_gemini_api_key
+        actual_key = test_key if (test_key and "..." not in test_key and "****" not in test_key) else None
+        res = check_gemini_api_key(actual_key)
+        return jsonify(res)
+    except Exception as e:
+        return jsonify({"valid": False, "status": "error", "error": str(e), "message": str(e)}), 500
 
 @app.route("/api/folder_files/<folder>")
 def get_folder_files(folder):

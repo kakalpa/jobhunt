@@ -27,6 +27,8 @@ telegram_sent_jobs.json
 scout_latest_report.json
 JOB_SCOUT_FEED.md
 entry_level_scouted.csv
+.ai_api_status.json
+.api_error_notified.json
 
 # 4. Generated Artifacts & Documents
 *.pdf

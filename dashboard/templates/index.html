@@ -276,6 +276,27 @@
   <!-- Main Content Viewport -->
   <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 overflow-y-auto custom-scrollbar flex flex-col space-y-8">
 
+    <!-- Gemini AI API Status Banner -->
+    <div id="ai-status-banner" class="hidden p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-200 flex items-center justify-between gap-3 text-xs shadow-sm">
+      <div class="flex items-center gap-2.5">
+        <div class="w-7 h-7 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0">
+          <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400"></i>
+        </div>
+        <div>
+          <span class="font-bold text-amber-300">Gemini AI Key Notice:</span>
+          <span id="ai-status-banner-text" class="text-amber-200/90 ml-1">API error detected. Application packages are using calibrated offline archetype templates.</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <button onclick="openSettingsModal()" class="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 font-semibold transition active:scale-95 shadow-sm">
+          Update Key
+        </button>
+        <button onclick="dismissAiBanner()" class="p-1.5 rounded-lg hover:bg-amber-500/20 text-amber-400/80 hover:text-amber-200 transition" title="Dismiss banner for this session">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+
     <!-- ========================================== -->
     <!-- ZONE 1: TODAY'S ACTION QUEUE -->
     <!-- ========================================== -->
@@ -1440,6 +1461,14 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
                 </button>
               </div>
               <p class="text-[10px] text-slate-500">Leaving masked values (e.g. <code class="text-slate-400">AIza...****</code>) unchanged keeps your existing key secure.</p>
+              
+              <div class="flex items-center gap-2 pt-1.5">
+                <button type="button" id="btn-test-gemini" onclick="testGeminiKeyFromSettings()" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 shadow-sm">
+                  <i data-lucide="activity" class="w-3.5 h-3.5 text-indigo-400"></i>
+                  <span>Test API Key</span>
+                </button>
+                <span id="gemini-test-msg" class="text-xs"></span>
+              </div>
             </div>
           </div>
         </div>
@@ -1916,6 +1945,7 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
       loadJobs();
       checkScoutStatus();
       fetchTelegramStatus();
+      checkAiStatusOnLoad();
     });
 
     function toggleArchivedColumn(forceVal) {
@@ -4504,16 +4534,30 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
         // 1. Gemini
         const geminiInput = document.getElementById('input-gemini-key');
         const geminiPill = document.getElementById('gemini-status-pill');
+        const geminiMsg = document.getElementById('gemini-test-msg');
+        if (geminiMsg) { geminiMsg.textContent = ''; }
         if (data.gemini && data.gemini.has_key) {
           geminiInput.value = "";
           geminiInput.placeholder = data.gemini.masked_key + " (Leave blank to keep current)";
-          geminiPill.className = "text-[10px] px-2 py-0.5 rounded-full font-semibold border bg-emerald-500/10 text-emerald-400 border-emerald-500/30";
-          geminiPill.textContent = "Configured ✅";
+          if (data.gemini.status === 'error') {
+            geminiPill.className = "text-[10px] px-2 py-0.5 rounded-full font-semibold border bg-rose-500/10 text-rose-400 border-rose-500/30";
+            geminiPill.textContent = "API Error ⚠️";
+            geminiPill.title = data.gemini.last_error || "Key validation failed";
+          } else if (data.gemini.status === 'ok') {
+            geminiPill.className = "text-[10px] px-2 py-0.5 rounded-full font-semibold border bg-emerald-500/10 text-emerald-400 border-emerald-500/30";
+            geminiPill.textContent = "Verified Active ✅";
+            geminiPill.title = "Key tested and verified active";
+          } else {
+            geminiPill.className = "text-[10px] px-2 py-0.5 rounded-full font-semibold border bg-emerald-500/10 text-emerald-400 border-emerald-500/30";
+            geminiPill.textContent = "Configured";
+            geminiPill.title = "";
+          }
         } else {
           geminiInput.value = "";
           geminiInput.placeholder = "AIzaSy...";
           geminiPill.className = "text-[10px] px-2 py-0.5 rounded-full font-semibold border bg-amber-500/10 text-amber-300 border-amber-500/30";
           geminiPill.textContent = "Not Configured ⚠️";
+          geminiPill.title = "No Gemini API key set";
         }
 
         // 2. Telegram
@@ -4603,6 +4647,98 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
       }
     }
 
+    async function testGeminiKeyFromSettings() {
+      const btn = document.getElementById('btn-test-gemini');
+      const msg = document.getElementById('gemini-test-msg');
+      const pill = document.getElementById('gemini-status-pill');
+      const inputKey = document.getElementById('input-gemini-key').value.trim();
+      
+      const origHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>Testing...</span>';
+      lucide.createIcons();
+      if (msg) msg.textContent = "";
+
+      try {
+        const res = await fetch('/api/ai/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ gemini_api_key: inputKey })
+        });
+        const data = await res.json();
+        if (data.valid) {
+          if (msg) {
+            msg.className = "text-xs text-emerald-400 font-medium";
+            msg.textContent = `✅ ${data.message || 'Key is valid & operational!'}`;
+          }
+          if (pill) {
+            pill.className = "text-[10px] px-2 py-0.5 rounded-full font-semibold border bg-emerald-500/10 text-emerald-400 border-emerald-500/30";
+            pill.textContent = "Verified Active ✅";
+            pill.title = "Key verified active";
+          }
+          const banner = document.getElementById('ai-status-banner');
+          if (banner) banner.classList.add('hidden');
+        } else {
+          if (msg) {
+            msg.className = "text-xs text-rose-400 font-medium";
+            msg.textContent = `⚠️ ${data.message || data.error || 'Key validation failed'}`;
+          }
+          if (pill) {
+            pill.className = "text-[10px] px-2 py-0.5 rounded-full font-semibold border bg-rose-500/10 text-rose-400 border-rose-500/30";
+            pill.textContent = "API Error ⚠️";
+            pill.title = data.message || data.error || "Key validation failed";
+          }
+        }
+      } catch (err) {
+        if (msg) {
+          msg.className = "text-xs text-rose-400 font-medium";
+          msg.textContent = `⚠️ Connection error: ${err.message}`;
+        }
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+        lucide.createIcons();
+      }
+    }
+
+    async function checkAiStatusOnLoad() {
+      try {
+        const res = await fetch('/api/ai/status');
+        if (!res.ok) return;
+        const data = await res.json();
+        updateAiStatusBanner(data);
+      } catch (err) {
+        console.warn("AI status check failed:", err);
+      }
+    }
+
+    function updateAiStatusBanner(data) {
+      const banner = document.getElementById('ai-status-banner');
+      const bannerText = document.getElementById('ai-status-banner-text');
+      if (!banner) return;
+
+      if (sessionStorage.getItem('dismiss_ai_status_banner') === 'true') {
+        banner.classList.add('hidden');
+        return;
+      }
+
+      if (data && data.status === 'error') {
+        if (bannerText && data.last_error) {
+          bannerText.textContent = `API error detected (${data.last_error}). Application packages are using calibrated offline archetype templates.`;
+        }
+        banner.classList.remove('hidden');
+        lucide.createIcons();
+      } else {
+        banner.classList.add('hidden');
+      }
+    }
+
+    function dismissAiBanner() {
+      const banner = document.getElementById('ai-status-banner');
+      if (banner) banner.classList.add('hidden');
+      sessionStorage.setItem('dismiss_ai_status_banner', 'true');
+    }
+
     async function saveSettings(e) {
       if (e) e.preventDefault();
       const saveBtn = document.getElementById('btn-save-settings');
@@ -4647,6 +4783,8 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
           showToast("Settings saved successfully!");
           closeSettingsModal();
           fetchTelegramStatus();
+          sessionStorage.removeItem('dismiss_ai_status_banner');
+          checkAiStatusOnLoad();
         } else {
           showToast("Failed to save settings: " + (data.error || "Unknown error"));
         }
@@ -4662,6 +4800,7 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
     function refreshData() {
       loadJobs();
       fetchTelegramStatus();
+      checkAiStatusOnLoad();
       showToast("Dashboard refreshed!");
     }
   </script>
