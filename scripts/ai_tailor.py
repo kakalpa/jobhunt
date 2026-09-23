@@ -118,9 +118,12 @@ def call_gemini_json(prompt: str, api_key: str, timeout: int = 90, max_retries: 
             except urllib.error.HTTPError as e:
                 last_err_msg = f"HTTP Error {e.code}: {e.reason}"
                 print(f"⚠️ [Gemini Client] {model_name} attempt {attempt+1}/{max_retries}: {last_err_msg}")
-                if e.code in (503, 429):
-                    time.sleep(2.5 * (attempt + 1))
+                if e.code == 503:
+                    time.sleep(2.0 * (attempt + 1))
                     continue
+                elif e.code == 429:
+                    # Model quota limit reached; advance directly to next model in waterfall
+                    break
                 else:
                     break
             except Exception as e:
