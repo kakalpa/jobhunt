@@ -1147,6 +1147,7 @@ def trigger_workflow_generate():
     url = payload.get("url", "")
     location = payload.get("location", "Finland")
     description = payload.get("description", "")
+    folder = payload.get("folder")
     allow_fallback = bool(payload.get("allow_fallback", False))
     
     if not url and folder:
