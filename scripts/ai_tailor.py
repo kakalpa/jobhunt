@@ -49,8 +49,11 @@ def get_api_key() -> str:
     return ""
 
 MODELS = [
-    "models/gemini-flash-lite-latest",
-    "models/gemini-3.6-flash"
+    "models/gemini-3-flash-preview",
+    "models/gemini-3.5-flash",
+    "models/gemini-flash-latest",
+    "models/gemini-3.5-flash-lite",
+    "models/gemini-flash-lite-latest"
 ]
 
 AI_STATUS_FILE = WORKSPACE_DIR / ".ai_api_status.json"
@@ -78,6 +81,63 @@ def record_ai_api_status(status: str, error: str = "", model: str = ""):
         AI_STATUS_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
     except Exception:
         pass
+
+def call_gemini_json(prompt: str, api_key: str, timeout: int = 60, max_retries: int = 2) -> tuple:
+    """
+    Executes a structured JSON generation request against Gemini models with:
+    - Multi-model waterfall fallback across responsive models
+    - Transient HTTP 503 / 429 / socket timeout retries with exponential backoff
+    - Automatic JSON extraction and validation
+    Returns (parsed_dict, model_used, error_msg).
+    """
+    import time
+    data = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "responseMimeType": "application/json",
+            "temperature": 0.2
+        }
+    }
+    payload = json.dumps(data).encode("utf-8")
+    last_err_msg = ""
+
+    for model_name in MODELS:
+        for attempt in range(max_retries):
+            url = f"https://generativelanguage.googleapis.com/v1beta/{model_name}:generateContent?key={api_key}"
+            req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+            try:
+                with urllib.request.urlopen(req, timeout=timeout) as response:
+                    raw_bytes = response.read().decode("utf-8")
+                    res = json.loads(raw_bytes)
+                    candidates = res.get("candidates", [])
+                    if not candidates:
+                        raise ValueError("No candidates returned in Gemini API response")
+                    text = candidates[0]["content"]["parts"][0]["text"]
+                    parsed = json.loads(text)
+                    record_ai_api_status("ok", "", model_name)
+                    return parsed, model_name, ""
+            except urllib.error.HTTPError as e:
+                last_err_msg = f"HTTP Error {e.code}: {e.reason}"
+                print(f"⚠️ [Gemini Client] {model_name} attempt {attempt+1}/{max_retries}: {last_err_msg}")
+                if e.code in (503, 429):
+                    time.sleep(1.5 * (attempt + 1))
+                    continue
+                else:
+                    break
+            except Exception as e:
+                last_err_msg = str(e)
+                print(f"⚠️ [Gemini Client] {model_name} attempt {attempt+1}/{max_retries}: {last_err_msg}")
+                time.sleep(1.5 * (attempt + 1))
+                continue
+
+    record_ai_api_status("error", last_err_msg)
+    try:
+        from scripts.telegram_notifier import notify_api_key_error
+        notify_api_key_error("Google Gemini AI", last_err_msg)
+    except Exception:
+        pass
+
+    return None, "", last_err_msg
 
 def get_ai_api_status() -> dict:
     """Retrieve current AI API health state."""
@@ -269,47 +329,13 @@ Return a STRICT JSON object with these exact keys:
 }}
 """
 
-    data = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {
-            "responseMimeType": "application/json",
-            "temperature": 0.2
-        }
-    }
-    payload = json.dumps(data).encode("utf-8")
+    parsed, model_used, err_msg = call_gemini_json(prompt, api_key, timeout=60)
+    if parsed and parsed.get("cv_summary") and parsed.get("cover_letter_body"):
+        print(f"✨ [AI Tailor] Successfully tailored application using {model_used} with all 12 skills!")
+        return parsed
 
-    last_err_msg = ""
-    for model_name in MODELS:
-        url = f"https://generativelanguage.googleapis.com/v1beta/{model_name}:generateContent?key={api_key}"
-        req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
-        try:
-            with urllib.request.urlopen(req, timeout=45) as response:
-                result = json.loads(response.read().decode("utf-8"))
-                text = result["candidates"][0]["content"]["parts"][0]["text"]
-                parsed = json.loads(text)
-                if parsed.get("cv_summary") and parsed.get("cover_letter_body"):
-                    print(f"✨ [AI Tailor] Successfully tailored application using {model_name} with all 12 skills!")
-                    record_ai_api_status("ok", "", model_name)
-                    return parsed
-        except urllib.error.HTTPError as e:
-            last_err_msg = f"HTTP Error {e.code}: {e.reason}"
-            print(f"⚠️ [AI Tailor] HTTP Error on {model_name}: {last_err_msg}")
-        except Exception as e:
-            last_err_msg = str(e)
-            print(f"⚠️ [AI Tailor] Notice on {model_name}: {e}")
-            continue
-
-    if last_err_msg:
-        record_ai_api_status("error", last_err_msg)
-        try:
-            from scripts.telegram_notifier import notify_api_key_error
-            notify_api_key_error("Google Gemini AI", last_err_msg)
-        except Exception:
-            pass
-        if strict:
-            raise AITailoringError(f"Gemini API error ({last_err_msg})")
-    elif strict:
-        raise AITailoringError("Gemini API call completed without returning valid tailored sections.")
+    if strict:
+        raise AITailoringError(f"Gemini API error ({err_msg or 'Failed to generate tailored sections'})")
 
     return None
 
@@ -383,29 +409,10 @@ Generate a comprehensive, tailored Interview Preparation Guide in strict JSON fo
 }}
 """
 
-    data = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {
-            "responseMimeType": "application/json",
-            "temperature": 0.2
-        }
-    }
-    payload = json.dumps(data).encode("utf-8")
-
-    for model_name in MODELS:
-        url = f"https://generativelanguage.googleapis.com/v1beta/{model_name}:generateContent?key={api_key}"
-        req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
-        try:
-            with urllib.request.urlopen(req, timeout=45) as response:
-                result = json.loads(response.read().decode("utf-8"))
-                text = result["candidates"][0]["content"]["parts"][0]["text"]
-                parsed = json.loads(text)
-                if parsed.get("elevator_pitch") and parsed.get("star_scenario_1"):
-                    print(f"🎯 [AI Interview Prep] Successfully generated prep guide using {model_name}!")
-                    return parsed
-        except Exception as e:
-            print(f"⚠️ [AI Interview Prep] Notice on {model_name}: {e}")
-            continue
+    parsed, model_used, err_msg = call_gemini_json(prompt, api_key, timeout=60)
+    if parsed and parsed.get("elevator_pitch") and parsed.get("star_scenario_1"):
+        print(f"🎯 [AI Interview Prep] Successfully generated prep guide using {model_used}!")
+        return parsed
 
     return None
 
@@ -566,24 +573,9 @@ Produce a STRICT JSON object containing:
   "closing_paragraph": "1 confident closing paragraph highlighting permanent EU work authorization, immediate 0-day notice, Supo clearance readiness, C1 English and practical Finnish."
 }}
 """
-        data = {
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {
-                "responseMimeType": "application/json",
-                "temperature": 0.2
-            }
-        }
-        payload = json.dumps(data).encode("utf-8")
-        for model_name in MODELS:
-            url = f"https://generativelanguage.googleapis.com/v1beta/{model_name}:generateContent?key={api_key}"
-            req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
-            try:
-                with urllib.request.urlopen(req, timeout=45) as response:
-                    res_json = json.loads(response.read().decode("utf-8"))
-                    text = res_json["candidates"][0]["content"]["parts"][0]["text"]
-                    parsed = json.loads(text)
-                    if parsed.get("hook_paragraph") and parsed.get("tech_pillar_paragraph"):
-                        md = f"""# {cand_name}
+        parsed, model_used, err_msg = call_gemini_json(prompt, api_key, timeout=60)
+        if parsed and parsed.get("hook_paragraph") and parsed.get("tech_pillar_paragraph"):
+            md = f"""# {cand_name}
 {cand_location} | {cand_phone} | {cand_email} | [LinkedIn]({cand_linkedin})
 
 {date_str}
@@ -606,17 +598,15 @@ Produce a STRICT JSON object containing:
 {signoff}  
 **{cand_name}**
 """
-                        return {
-                            "title": title,
-                            "company": company,
-                            "location": location,
-                            "is_finnish": is_finnish,
-                            "full_markdown": md,
-                            "word_count": len(md.split()),
-                            "generated_by": f"gemini ({model_name})"
-                        }
-            except Exception:
-                continue
+            return {
+                "title": title,
+                "company": company,
+                "location": location,
+                "is_finnish": is_finnish,
+                "full_markdown": md,
+                "word_count": len(md.split()),
+                "generated_by": f"gemini ({model_used})"
+            }
 
     return build_deterministic_cover_letter()
 
@@ -755,38 +745,21 @@ Generate a specialized, high-converting LinkedIn Pitch Package in strict JSON fo
   "matched_skills": ["Top 4-5 technical skills extracted from JD that match the candidate"]
 }}
 """
-        data = {
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {
-                "responseMimeType": "application/json",
-                "temperature": 0.2
-            }
-        }
-        payload = json.dumps(data).encode("utf-8")
-        for model_name in MODELS:
-            url = f"https://generativelanguage.googleapis.com/v1beta/{model_name}:generateContent?key={api_key}"
-            req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
-            try:
-                with urllib.request.urlopen(req, timeout=45) as response:
-                    res_json = json.loads(response.read().decode("utf-8"))
-                    text = res_json["candidates"][0]["content"]["parts"][0]["text"]
-                    parsed = json.loads(text)
-                    if parsed.get("why_top_choice_candidate") and parsed.get("linkedin_quick_pitch"):
-                        c = str(parsed["why_top_choice_candidate"]).strip()
-                        if len(c) > 400:
-                            c = c[:397].rsplit(" ", 1)[0] + "..."
-                            parsed["why_top_choice_candidate"] = c
-                        q = str(parsed["linkedin_quick_pitch"]).strip()
-                        if len(q) > 400:
-                            q = q[:397].rsplit(" ", 1)[0] + "..."
-                            parsed["linkedin_quick_pitch"] = q
-                        parsed["title"] = title
-                        parsed["company"] = company
-                        parsed["location"] = location
-                        parsed["generated_by"] = f"gemini ({model_name})"
-                        return parsed
-            except Exception:
-                continue
+        parsed, model_used, err_msg = call_gemini_json(prompt, api_key, timeout=60)
+        if parsed and parsed.get("why_top_choice_candidate") and parsed.get("linkedin_quick_pitch"):
+            c = str(parsed["why_top_choice_candidate"]).strip()
+            if len(c) > 400:
+                c = c[:397].rsplit(" ", 1)[0] + "..."
+                parsed["why_top_choice_candidate"] = c
+            q = str(parsed["linkedin_quick_pitch"]).strip()
+            if len(q) > 400:
+                q = q[:397].rsplit(" ", 1)[0] + "..."
+                parsed["linkedin_quick_pitch"] = q
+            parsed["title"] = title
+            parsed["company"] = company
+            parsed["location"] = location
+            parsed["generated_by"] = f"gemini ({model_used})"
+            return parsed
 
     return build_deterministic_pitch()
 
