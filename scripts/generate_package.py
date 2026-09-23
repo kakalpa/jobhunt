@@ -87,6 +87,35 @@ def fetch_job_text_from_url(url: str) -> str:
         pass
     return ""
 
+def calibrate_candidate_location(job_location: str, cand_dict: dict) -> str:
+    """Dynamically adapt candidate location display to maximize recruiter fit and eliminate relocation friction."""
+    clean_loc = (job_location or "").strip()
+    loc_lower = clean_loc.lower()
+    
+    fi_cities = [
+        "kajaani", "oulu", "tampere", "jyväskylä", "jyvaskyla", "vaasa", "kuopio", 
+        "lahti", "pori", "joensuu", "rovaniemi", "lappeenranta", "kotka", "kouvola", 
+        "hämeenlinna", "hameenlinna", "mikkeli", "seinäjoki", "seinajoki", "salo", "kainuu"
+    ]
+    matched_city = None
+    for city in fi_cities:
+        if city in loc_lower:
+            matched_city = "Kajaani" if city in ("kajaani", "kainuu") else city.capitalize()
+            break
+            
+    if matched_city:
+        return f"{matched_city}, Finland (Immediate Relocation Ready | Turku/Helsinki Base)"
+    elif any(k in loc_lower for k in ["helsinki", "espoo", "vantaa", "uusimaa", "pääkaupunkiseutu", "capital"]):
+        return "Helsinki Metropolitan Area / Turku, Finland"
+    elif "turku" in loc_lower or "varsinais-suomi" in loc_lower:
+        return "Turku / Helsinki, Finland"
+    elif any(k in loc_lower for k in ["remote", "hybrid", "etätyö", "etä"]):
+        return "Finland (Remote / Hybrid / Onsite Relocation Ready)"
+    elif clean_loc and clean_loc.lower() not in ["finland", "suomi"]:
+        return f"{clean_loc} (Immediate Relocation Ready | Turku/Helsinki Base)"
+    else:
+        return cand_dict.get("location", "Helsinki / Turku, Finland")
+
 def generate_application_package(
     title: str,
     company: str,
@@ -224,46 +253,172 @@ def generate_application_package(
     except Exception as e:
         print(f"Notice: AI tailoring fallback used: {e}")
 
-    # Archetype-Calibrated Summary (Fallback)
-    if is_security:
+    # Role-Calibrated Archetype Baselines
+    if is_datacenter:
+        cv_summary = f"Detail-oriented and safety-conscious **{title}** with a Bachelor of Engineering in IT (4.0 GPA, TUAS) and 8+ years of hands-on experience in bare-metal server infrastructure, structured cabling, and enterprise hardware lifecycle management. Proven track record in rapid rack-and-stack deployments, server commissioning/decommissioning, component-level fault diagnosis on HPE ProLiant (DL20/DL380) platforms, and intelligent PDU power management under strict ESD protocols. Experienced in physical switch upgrades, transceiver/fiber validation, and sustaining 99.9% hardware uptime in SLA-governed 24/7 environments."
+        skills_block = """* **Data Center Infrastructure & Physical Layer:** Rack & Stack installations, greenfield server commissioning & decommissioning, structured cabling (Cat6A, Single-Mode & Multi-Mode Fiber), cable dressing/labeling, patch panel mapping, intelligent PDUs (rack power distribution), UPS load checks, hot/cold aisle containment, ESD safety protocols.
+* **Server Hardware & Diagnostics:** HPE ProLiant (DL20, DL360, DL380) bare-metal provisioning, component-level troubleshooting (CPU, ECC RAM, redundant PSUs, fans, backplanes), hardware RAID array configuration, out-of-band IPMI / iLO 5 / iDRAC management, BIOS/firmware flashing.
+* **Networking & Switch Operations:** Physical switch deployments and hardware upgrades, SFP+/QSFP optical transceivers, DAC cabling, fiber cleaning & visual fault inspection, VLAN tagging, console port configuration, loopback diagnostics.
+* **Operating Systems & Provisioning:** Linux (RHEL, Rocky, Ubuntu/Debian), Windows Server, PXE automated network boot, Docker, VMware ESXi, Proxmox VE.
+* **Operations & Governance:** ITIL SLA compliance, Change Advisory Board (CAB) procedure adherence, CMDB asset tagging/tracking, Jira Service Management, Wiki.js standard operating runbooks."""
+        mainframe_bullets = [
+            "Spearheaded bare-metal rack-and-stack operations across enterprise server infrastructure, executing physical assembly, rail-kit installation, and structured cabling for HPE ProLiant DL20/DL380 servers under strict anti-static (ESD) standards.",
+            "Maintained 99.9% physical and virtualization cluster availability by conducting scheduled hardware preventive maintenance, component replacements (drives, DIMMs, fans, power modules), and out-of-band iLO health diagnostics.",
+            "Executed network switch upgrades and transceiver replacements, coordinating physical swap-outs, cable re-dressing, optical link validation, and console verification with remote network engineering teams.",
+            "Maintained >95% CMDB hardware tracking accuracy across entire compute inventory through rigorous barcode asset tagging, port mapping documentation, and lifecycle decommissioning workflows.",
+            "Eliminated production regressions during scheduled maintenance windows with a 100% on-schedule execution record across international sites by adhering to strict Change Advisory Board (CAB) protocols and ITIL SLAs.",
+            "Automated server health and temperature/power metric checks by developing Python and Bash scripts, reducing manual hardware audit cycles by 40%."
+        ]
+        tuas_bullets = [
+            "Managed physical lab server and edge rack hardware, conducting hands-on fiber/copper cable diagnostics, interface loopback testing, and sensor/gateway physical troubleshooting with 99%+ hardware readiness.",
+            "Accelerated simulated multi-node network cluster provisioning by 60% by deploying Docker container environments and modular Bash/Python configuration scripts.",
+            "Awarded 1st Place Team & 2nd Place Individual in the 2026 DNCS Live-Fire Cybersecurity Hackathon, demonstrating rapid diagnostic isolation, network enumeration, and system hardening under time pressure."
+        ]
+        sumathi_bullets = [
+            "Maintained a 98% SLA first-contact hardware resolution rate across 250+ enterprise endpoints, managing hardware repairs, system imaging, and spare-parts inventory.",
+            "Supported server room physical infrastructure, managing patch rack reorganizations, UPS battery inspections, and routine environmental temperature monitoring."
+        ]
+        certifications = [
+            "Red Hat System Administration (RH124 & RH134, Red Hat Academy)",
+            "Azure Administrator (KAMK)",
+            "Google Cybersecurity Professional Certificate",
+            "SOC Level 1 Certificate (TryHackMe) — Hands-on SIEM monitoring, threat detection, Splunk & incident investigation",
+            "PenTest+ Certification (TryHackMe) — Practical vulnerability assessment, network enumeration & penetration testing",
+            "ISO/IEC 27005 Information Security Risk Management"
+        ]
+    elif is_security:
         cv_summary = f"Results-driven **{title}** with a Bachelor of Engineering in IT (4.0 GPA, TUAS) and 8+ years of hands-on experience in enterprise security engineering, threat detection, and automated incident response. Proven expertise in administering 300+ user Azure/M365 environments, configuring Defender XDR, Sentinel, Intune, and Entra ID Zero Trust policies. Skilled at authoring KQL/SPL detection rules, converting incidents into automated PowerShell/Graph API runbooks, and holding verifiable TryHackMe SOC Level 1 & PenTest+ certifications alongside winning 1st Place in the 2026 DNCS Live-Fire Hackathon."
         skills_block = """* **Security & Threat Detection:** Microsoft Defender XDR, Microsoft Sentinel, Wazuh SIEM, Splunk (TryHackMe), KQL (Kusto Query Language), SPL, MITRE ATT&CK, threat hunting, incident triage, RCA.
 * **Identity & Cloud Security:** Entra ID (Azure AD), Conditional Access, Zero Trust perimeters, Microsoft Intune, Microsoft Purview (DLP), Active Directory (AD DS, GPO, RBAC), PAM / BeyondTrust EPM.
 * **Automation & Scripting:** PowerShell, Microsoft Graph API, Python, Bash, REST APIs, JSON/YAML, automated playbook development.
-* **Compliance & Systems:** ISO/IEC 27005 Risk Management, SOC 2 & ISO 27001 mapping, CIS Benchmarks, ITIL v4, Linux (RHEL/Ubuntu), Windows Server (2016-2022)."""
-    elif is_datacenter:
-        cv_summary = f"Methodical and dependable **{title}** with a Bachelor of Engineering in IT (4.0 GPA, TUAS) and 8+ years of hands-on experience in bare-metal server infrastructure, structured cabling, and hardware maintenance. Proven expertise in rack-and-stack deployments, component-level fault diagnosis on HPE ProLiant (DL20/DL380) servers, intelligent PDU management, and fiber/copper cable validation under strict ESD protocols. Track record of sustaining 99.9% hardware availability and rapid break-fix SLA resolution."
-        skills_block = """* **Hardware & Server Infrastructure:** HPE ProLiant (DL20/DL380) bare-metal provisioning, component-level fault diagnosis, CPU/RAM/fan replacement, RAID array configuration, iLO out-of-band management.
-* **Data Center & Physical Layer:** Structured cabling (Cat6/Fiber patch bays), cable dress/labeling, intelligent PDUs, UPS power distribution, server rack installation, ESD control protocols.
-* **Operating Systems & Provisioning:** Linux (Ubuntu/Debian, RHEL), Windows Server (2016-2022), PXE network boot, Docker, VMware ESXi / Proxmox hypervisors.
-* **Networking & Tools:** TCP/IP, VLANs, switch port configuration, optics/transceivers, diagnostic loopbacks, Jira Service Management, Wiki.js CMDB runbooks."""
+* **Compliance & Systems:** ISO/IEC 27005 Risk Management, SOC 2 & ISO 27001 mapping, CIS Benchmarks, ITIL v4, Linux (RHEL/Ubuntu), Windows Server (2016-2022).
+* **ITSM & Governance:** Jira Service Management, Change Advisory Board (CAB) governance, CMDB asset accuracy, Wiki.js standard operating runbooks."""
+        mainframe_bullets = [
+            "Maintained 99.9% identity and cloud service availability across a 300+ user Azure/M365 tenant by implementing strict least-privilege RBAC, Conditional Access, and high-availability VMware/Linux server clusters.",
+            "Reduced Mean Time to Detect (MTTD) security anomalies by 35% and eliminated unauthorized access attempts by segmenting corporate network architectures, managing enterprise firewalls/ZTNA, and deploying a distributed Wazuh SIEM telemetry pipeline.",
+            "Authored modular Python, Bash, and PowerShell automation scripts converting recurring incident triage workflows into automated remediation playbooks, reducing manual workload by 40%.",
+            "Prevented production release regressions with 100% on-schedule change deployment across international sites by chairing weekly Change Advisory Board (CAB) reviews and managing Jira Service Management queues.",
+            "Sustained >95% CMDB asset accuracy and a 94% First-Time-Fix rate across a 200+ employee multi-OS fleet (Windows/Mac/Linux) by enforcing strict device provisioning and hardware security standards."
+        ]
+        tuas_bullets = [
+            "Won 1st Place Team & 2nd Place Individual in the 2026 DNCS Live-Fire Cybersecurity Hackathon, demonstrating rapid systems penetration, privilege escalation, and defensive remediation under real-time competitive pressure.",
+            "Identified critical OT network convergence risks and verified compliance with IEC 62443 defense-in-depth standards by engineering simulated industrial control testbeds integrating SCADA/HMI and OPC UA protocols.",
+            "Accelerated network simulation provisioning time by 60% for academic cohorts by developing custom Python/Bash tools and Docker container orchestrations."
+        ]
+        sumathi_bullets = [
+            "Maintained a 98% SLA resolution rate across 250+ enterprise users by directing high-volume support queues via ITSM platforms (Zammad, Freshdesk, SnipIT).",
+            "Reduced user onboarding provisioning time by 50% while preventing privilege creep by restructuring Active Directory OU/GPO hierarchies, enforcing role-based access control, and standardizing desktop deployment images."
+        ]
+        certifications = [
+            "SOC Level 1 Certificate (TryHackMe) — Hands-on SIEM monitoring, threat detection, Splunk & incident investigation",
+            "PenTest+ Certification (TryHackMe) — Practical vulnerability assessment, network enumeration & penetration testing",
+            "Google Cybersecurity Professional Certificate",
+            "ISO/IEC 27005 Information Security Risk Management",
+            "Azure Administrator (KAMK)",
+            "Red Hat System Administration (RH124 & RH134, Red Hat Academy)"
+        ]
     elif is_devops:
-        cv_summary = f"Automation-focused **{title}** with a Bachelor of Engineering in IT (4.0 GPA, TUAS) and 8+ years of enterprise experience in cloud infrastructure, Linux systems administration, and automated deployments. Proficient in Linux (RHEL, Ubuntu), Docker containerization, Terraform Infrastructure as Code, CI/CD pipeline automation, and modular scripting with Python and Bash. Proven ability to reduce deployment variability and eliminate manual operational overhead."
-        skills_block = """* **Cloud & Containers:** Linux (Ubuntu/Debian, RHEL), Docker, Kubernetes, Azure Administration, Google Cloud, Terraform Infrastructure as Code.
-* **Automation & Scripting:** Python, Bash, PowerShell, Microsoft Graph API, REST API integrations, GitHub Actions / CI/CD pipelines.
-* **Systems & Observability:** Wazuh SIEM, Grafana telemetry dashboards, Prometheus, Syslog aggregation, Nginx, Linux service daemons (systemd).
-* **Networking & Security:** Zero Trust network segmentation, WireGuard / OpenVPN, firewalls, TLS/SSL certificates, DNS, Active Directory / Entra ID."""
+        cv_summary = f"Automation-focused **{title}** with a Bachelor of Engineering in IT (4.0 GPA, TUAS) and 8+ years of enterprise experience in cloud infrastructure, Linux systems administration, and automated deployments. Proficient in Linux (RHEL, Ubuntu), Docker containerization, Terraform Infrastructure as Code, CI/CD pipeline automation, and modular scripting with Python and Bash. Proven ability to reduce deployment variability, sustain 99.9% uptime, and eliminate manual operational overhead."
+        skills_block = """* **Cloud & Containers:** Linux (Ubuntu/Debian, RHEL), Docker, Kubernetes, Azure Administration, Google Cloud Platform (GCP), Terraform Infrastructure as Code.
+* **Automation & Scripting:** Python, Bash, PowerShell, Microsoft Graph API, REST API integrations, GitHub Actions / CI/CD pipelines, Ansible.
+* **Systems & Observability:** Wazuh SIEM, Grafana telemetry dashboards, Prometheus, Syslog aggregation, Nginx, Linux service daemons (systemd), Proxmox VE / VMware.
+* **Networking & Security:** Zero Trust network segmentation, WireGuard / OpenVPN, enterprise firewalls, TLS/SSL certificates, DNS, Active Directory / Entra ID.
+* **Governance & ITSM:** ITIL SLA compliance, Change Advisory Board (CAB) leadership, CMDB tracking, Jira Service Management, Wiki.js documentation."""
+        mainframe_bullets = [
+            "Sustained 99.9% uptime across production Linux (RHEL, Ubuntu) and VMware server clusters, executing kernel updates, storage array expansions, and configuration hardening.",
+            "Reduced recurring manual administrative workload by ~40% by authoring modular Python, Bash, and PowerShell automation scripts for infrastructure provisioning and monitoring.",
+            "Orchestrated containerized workloads and streamlined CI/CD deployments, preventing production regressions with a 100% on-schedule release record across international sites.",
+            "Chaired weekly Change Advisory Board (CAB) reviews and managed Jira Service Management queues, ensuring strict ITIL governance and vendor SLA compliance.",
+            "Automated cloud identity and access provisioning across a 300+ user Azure/M365 tenant using Microsoft Graph API and PowerShell, enforcing least-privilege RBAC.",
+            "Sustained >95% CMDB asset accuracy across server clusters by automating hardware configuration audits and inventory tracking."
+        ]
+        tuas_bullets = [
+            "Accelerated network simulation provisioning turnaround by 60% for academic cohorts by engineering custom Python/Bash automation tools and Docker container orchestrations.",
+            "Built distributed observability testbeds integrating syslog streams with Grafana dashboards for automated telemetry alerting.",
+            "Won 1st Place Team & 2nd Place Individual in the 2026 DNCS Live-Fire Cybersecurity Hackathon, demonstrating rapid systems penetration, privilege escalation, and defensive remediation."
+        ]
+        sumathi_bullets = [
+            "Maintained a 98% SLA resolution rate across 250+ enterprise users by directing high-volume support queues via ITSM platforms (Zammad, Freshdesk, SnipIT).",
+            "Reduced user onboarding provisioning time by 50% while preventing privilege creep by restructuring Active Directory OU/GPO hierarchies and standardizing desktop deployment images."
+        ]
+        certifications = [
+            "Red Hat System Administration (RH124 & RH134, Red Hat Academy)",
+            "Azure Administrator (KAMK)",
+            "Google Cybersecurity Professional Certificate",
+            "SOC Level 1 Certificate (TryHackMe) — Hands-on SIEM monitoring, threat detection, Splunk & incident investigation",
+            "PenTest+ Certification (TryHackMe) — Practical vulnerability assessment, network enumeration & penetration testing",
+            "ISO/IEC 27005 Information Security Risk Management"
+        ]
     else:
         cv_summary = f"Dependable and results-driven **{title}** with a Bachelor of Engineering in IT (4.0 GPA, TUAS) and 8+ years of hands-on experience in enterprise systems administration, endpoint governance, and technical support. Proven track record of sustaining 99.9% service uptime, achieving a 94% First-Time-Fix rate across 200+ multi-OS workstations, and reducing manual administrative workloads by 40% through modular Python and PowerShell automation. Highly adept at ticket resolution (ITIL), hardware break-fix (HPE DL20/DL380), identity management (Entra ID, Active Directory), and secure network troubleshooting."
         skills_block = """* **Workplace & Systems Support:** Windows 10/11, Windows Server (2016–2022), macOS, Linux (Ubuntu/Debian, RHEL), Microsoft 365 Administration, Entra ID (Azure AD), Microsoft Intune (MDM/MAM), Active Directory (AD DS, GPO, RBAC).
 * **Hardware & Infrastructure:** HPE ProLiant (DL20/DL380) bare-metal provisioning, component diagnosis, structured cabling (Cat6/Fiber), intelligent PDUs, enterprise peripherals, ESD handling.
 * **Networking & Security:** TCP/IP, DNS, DHCP, VLANs, Firewalls, VPNs, Wazuh SIEM, Splunk (TryHackMe), Threat Detection, ISO/IEC 27005 risk frameworks, incident triage.
 * **Automation & Tools:** Python, Bash, PowerShell, Docker, Jira Service Management, Confluence, Wiki.js runbooks, Git."""
+        mainframe_bullets = [
+            "Sustained >95% CMDB asset accuracy and a 94% First-Time-Fix rate across a 200+ employee multi-OS fleet (Windows/Mac/Linux) by executing device provisioning, server rack installation, and hardware repair on HPE DL20/DL380 instances under ESD protocols.",
+            "Maintained 99.9% identity and cloud service availability across a 300+ user Azure/M365 tenant by enforcing strict least-privilege RBAC, Conditional Access, and high-availability VMware/Linux server clusters.",
+            "Reduced recurring support tickets and manual administrative workload by ~40% by authoring modular Python, Bash, and PowerShell automation scripts for user onboarding and system health monitoring.",
+            "Prevented production release regressions with 100% on-schedule change deployment across international sites by chairing weekly Change Advisory Board (CAB) reviews and managing Jira Service Management queues."
+        ]
+        tuas_bullets = [
+            "Accelerated network simulation provisioning time by 60% for academic cohorts by developing custom Python/Bash automation tools and Docker container orchestrations.",
+            "Ensured 99%+ lab hardware readiness by providing hands-on physical troubleshooting, sensor/camera inspection, and cable diagnostics for connected equipment and edge gateways.",
+            "Won 1st Place Team & 2nd Place Individual in the 2026 DNCS Live-Fire Cybersecurity Hackathon, demonstrating rapid systems penetration, privilege escalation, and defensive remediation."
+        ]
+        sumathi_bullets = [
+            "Maintained a 98% SLA resolution rate across 250+ enterprise users by directing high-volume support queues via ITSM platforms (Zammad, Freshdesk, SnipIT).",
+            "Reduced user onboarding provisioning time by 50% while preventing privilege creep by restructuring Active Directory OU/GPO hierarchies and standardizing desktop deployment images."
+        ]
+        certifications = [
+            "Google Cybersecurity Professional Certificate",
+            "Azure Administrator (KAMK)",
+            "Red Hat System Administration (RH124 & RH134, Red Hat Academy)",
+            "SOC Level 1 Certificate (TryHackMe) — Hands-on SIEM monitoring, threat detection, Splunk & incident investigation",
+            "PenTest+ Certification (TryHackMe) — Practical vulnerability assessment, network enumeration & penetration testing",
+            "ISO/IEC 27005 Information Security Risk Management"
+        ]
 
-    # Apply AI-tailored CV summary & Google X-Y-Z custom bullets if available
-    custom_bullets_str = ""
+    # Dynamically Calibrate Location to Eliminate Relocation Friction
+    cand_location = calibrate_candidate_location(location, cand)
+
+    # Deep AI Overrides if available
     if ai_data:
+        if ai_data.get("cv_location"):
+            cand_location = ai_data["cv_location"]
         if ai_data.get("cv_summary"):
             cv_summary = ai_data["cv_summary"]
-        if ai_data.get("cv_custom_bullets") and isinstance(ai_data["cv_custom_bullets"], list):
+        if ai_data.get("cv_skills_block"):
+            skills_block = ai_data["cv_skills_block"]
+        if ai_data.get("cv_mainframe_bullets") and isinstance(ai_data["cv_mainframe_bullets"], list):
+            valid_m = [b.strip() for b in ai_data["cv_mainframe_bullets"] if isinstance(b, str) and b.strip()]
+            if len(valid_m) >= 3:
+                mainframe_bullets = valid_m
+        elif ai_data.get("cv_custom_bullets") and isinstance(ai_data["cv_custom_bullets"], list):
             valid_bullets = [b.strip() for b in ai_data["cv_custom_bullets"] if isinstance(b, str) and b.strip()]
             if valid_bullets:
-                custom_bullets_str = "".join(f"* {b}\n" for b in valid_bullets)
+                mainframe_bullets = valid_bullets + mainframe_bullets[:3]
+
+        if ai_data.get("cv_tuas_bullets") and isinstance(ai_data["cv_tuas_bullets"], list):
+            valid_t = [b.strip() for b in ai_data["cv_tuas_bullets"] if isinstance(b, str) and b.strip()]
+            if len(valid_t) >= 2:
+                tuas_bullets = valid_t
+
+        if ai_data.get("cv_certifications") and isinstance(ai_data["cv_certifications"], list):
+            valid_c = [c.strip() for c in ai_data["cv_certifications"] if isinstance(c, str) and c.strip()]
+            if len(valid_c) >= 3:
+                certifications = valid_c
 
     cand_name_upper = cand["name"].upper()
 
+    mainframe_bullets_str = "\n".join(f"* {b.lstrip('* ')}" for b in mainframe_bullets)
+    tuas_bullets_str = "\n".join(f"* {b.lstrip('* ')}" for b in tuas_bullets)
+    sumathi_bullets_str = "\n".join(f"* {b.lstrip('* ')}" for b in sumathi_bullets)
+    certifications_str = "\n".join(f"* {c.lstrip('* ')}" for c in certifications)
+
     cv_content = f"""# {cand_name_upper}
-**Location:** {cand["location"]}  
+**Location:** {cand_location}  
+**Work Authorization:** Full EU Work Authorization / Finnish Resident (0-Day Notice)  
 **Phone:** {cand["phone"]} | **Email:** {cand["email"]}  
 **LinkedIn:** [{cand["linkedin"].replace("https://", "")}]({cand["linkedin"]}) | **GitHub:** [{cand["github"].replace("https://", "")}]({cand["github"]})  
 **Languages:** {cand["languages"]}  
@@ -284,21 +439,15 @@ def generate_application_package(
 
 **Mainframe (Pvt) Limited** | *May 2015 – Dec 2023*  
 *IT Operations & Systems Specialist / Associate Tech Lead*
-{custom_bullets_str}* Maintained 99.9% identity and cloud service availability across a 300+ user Azure/M365 tenant by enforcing strict least-privilege RBAC, Conditional Access, and high-availability VMware/Linux server clusters.
-* Sustained >95% CMDB asset accuracy and a 94% First-Time-Fix rate across a 200+ employee multi-OS fleet (Windows/Mac/Linux) by executing device provisioning, server rack installation, and hardware repair on HPE DL20/DL380 instances under ESD protocols.
-* Reduced recurring support tickets and manual administrative workload by ~40% by authoring modular Python, Bash, and PowerShell automation scripts for user onboarding and system health monitoring.
-* Prevented production release regressions with 100% on-schedule change deployment across international sites by chairing weekly Change Advisory Board (CAB) reviews and managing Jira Service Management queues.
+{mainframe_bullets_str}
 
 **Turku University of Applied Sciences (TUAS)** | *Jan 2026 – May 2026*  
 *Infrastructure Automation Developer / OT & Systems Researcher*
-* Accelerated network simulation provisioning time by 60% for academic cohorts by developing custom Python/Bash automation tools and Docker container orchestrations.
-* Ensured 99%+ lab hardware readiness by providing hands-on physical troubleshooting, sensor/camera inspection, and cable diagnostics for connected equipment and edge gateways.
-* Won 1st Place Team & 2nd Place Individual in the 2026 DNCS Live-Fire Cybersecurity Hackathon, demonstrating rapid systems penetration, privilege escalation, and defensive remediation.
+{tuas_bullets_str}
 
 **Sumathi Holdings** | *Aug 2014 – May 2018*  
 *System Administrator / IT Support Coordinator*
-* Maintained a 98% SLA resolution rate across 250+ enterprise users by directing high-volume support queues via ITSM platforms (Zammad, Freshdesk, SnipIT).
-* Reduced user onboarding provisioning time by 50% while preventing privilege creep by restructuring Active Directory OU/GPO hierarchies and standardizing desktop deployment images.
+{sumathi_bullets_str}
 
 ---
 
@@ -311,12 +460,7 @@ Turku University of Applied Sciences (TUAS), Finland
 ---
 
 ## CERTIFICATIONS
-* Google Cybersecurity Professional Certificate
-* SOC Level 1 Certificate (TryHackMe) — Hands-on SIEM monitoring, threat detection, Splunk & incident investigation
-* PenTest+ Certification (TryHackMe) — Practical vulnerability assessment, network enumeration & penetration testing
-* Azure Administrator (KAMK)
-* Red Hat System Administration (RH124 & RH134, Red Hat Academy)
-* ISO/IEC 27005 Information Security Risk Management
+{certifications_str}
 
 ---
 

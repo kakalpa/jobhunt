@@ -119,7 +119,27 @@ INCORPORATE THESE SPECIALIZED SKILL METHODOLOGIES:
 TASK:
 Return a STRICT JSON object with these exact keys:
 {{
-  "cv_summary": "2-3 sentence impactful professional summary highlighting direct overlap with {company}'s priorities.",
+  "cv_location": "Strategic location line. If {location} is outside Turku/Helsinki (e.g. Kajaani, Oulu, Tampere), output '{location}, Finland (Immediate Relocation Ready | Turku/Helsinki Base)'. If Helsinki/Turku, output 'Helsinki Metropolitan Area / Turku, Finland'.",
+  "cv_summary": "2-3 sentence impactful professional summary highlighting direct overlap with {company}'s priorities and {title} requirements.",
+  "cv_skills_block": "4-5 structured markdown lines formatted as '* **[Category]:** [Keywords...]' specifically prioritizing the exact technologies and responsibilities mentioned in the JD.",
+  "cv_mainframe_bullets": [
+    "Accomplished [X] as measured by [Y], by doing [Z] bullet 1 for Mainframe (Pvt) Limited targeting this job's core technical priorities...",
+    "Accomplished [X] as measured by [Y], by doing [Z] bullet 2 for Mainframe (Pvt) Limited...",
+    "Accomplished [X] as measured by [Y], by doing [Z] bullet 3 for Mainframe (Pvt) Limited...",
+    "Accomplished [X] as measured by [Y], by doing [Z] bullet 4 for Mainframe (Pvt) Limited..."
+  ],
+  "cv_tuas_bullets": [
+    "Accomplished [X] as measured by [Y], by doing [Z] bullet 1 for TUAS relevant to this position...",
+    "Accomplished [X] as measured by [Y], by doing [Z] bullet 2 for TUAS...",
+    "Won 1st Place Team & 2nd Place Individual in the 2026 DNCS Live-Fire Cybersecurity Hackathon..."
+  ],
+  "cv_certifications": [
+    "Certification 1 (ordered by highest relevance to {title})",
+    "Certification 2",
+    "Certification 3",
+    "Certification 4",
+    "Certification 5"
+  ],
   "cv_custom_bullets": [
     "Accomplished [X] as measured by [Y], by doing [Z] bullet 1 targeting {company}'s stack...",
     "Accomplished [X] as measured by [Y], by doing [Z] bullet 2 targeting {company}'s stack..."
