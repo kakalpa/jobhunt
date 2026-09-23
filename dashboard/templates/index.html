@@ -200,41 +200,31 @@
         </div>
       </div>
 
-      <!-- Quick Metrics Ribbon -->
+      <!-- Consolidated Action & Pipeline Indicator Strip -->
       <div class="flex items-center gap-2 text-xs flex-wrap">
-        <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60" title="Ready to Apply">
-          <span class="w-2 h-2 rounded-full bg-sky-400"></span>
-          <span class="text-slate-400">Ready:</span>
-          <span id="metric-ready" class="font-bold text-white">0</span>
-        </div>
-        <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60" title="Applied">
-          <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-          <span class="text-slate-400">Applied:</span>
-          <span id="metric-applied" class="font-bold text-white">0</span>
-        </div>
-        <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60" title="Interviewing">
-          <span class="w-2 h-2 rounded-full bg-amber-400"></span>
-          <span class="text-slate-400">Interview:</span>
-          <span id="metric-interview" class="font-bold text-white">0</span>
-        </div>
-        <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60" title="Scouted Leads">
+        <a href="#action-queue-section" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/15 border border-amber-500/30 text-amber-300 transition" title="View Today's Priority Action Queue">
+          <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+          <span class="text-xs font-semibold">⚡ Action Queue:</span>
+          <span id="metric-actions" class="font-bold text-amber-200">0</span>
+        </a>
+        <a href="#scouted-triage-section" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-800 border border-purple-500/30 text-purple-300 transition" title="View Scouted Triage Deck">
           <span class="w-2 h-2 rounded-full bg-purple-400"></span>
-          <span class="text-slate-400">Scouted:</span>
-          <span id="metric-scouted" class="font-bold text-white">0</span>
-        </div>
-        <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800/80 border border-emerald-500/30 text-emerald-300" title="English / International Postings">
-          <span class="text-[10px]">🌐 Int'l:</span>
-          <span id="metric-english" class="font-bold">0</span>
-        </div>
-        <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800/80 border border-amber-500/30 text-amber-300" title="Finnish Required Postings">
-          <span class="text-[10px]">🇫🇮 Suomi:</span>
-          <span id="metric-finnish" class="font-bold">0</span>
-        </div>
-        <div id="metric-archived-pill" onclick="toggleArchivedColumn()" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800/80 border border-rose-500/30 text-rose-300 cursor-pointer hover:bg-rose-500/10 transition" title="Click to show/hide Archived Column on Kanban">
-          <span class="w-2 h-2 rounded-full bg-rose-400"></span>
-          <span class="text-[10px]">📁 Archived:</span>
-          <span id="metric-archived" class="font-bold">0</span>
-        </div>
+          <span class="text-xs font-semibold">📥 Triage Leads:</span>
+          <span id="metric-leads" class="font-bold text-purple-200">0</span>
+        </a>
+        <a href="#pipeline-section" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 text-slate-200 transition" title="View Active Applications">
+          <span class="w-2 h-2 rounded-full bg-sky-400"></span>
+          <span class="text-xs font-semibold">📋 Pipeline:</span>
+          <span id="metric-pipeline" class="font-bold text-white">0</span>
+        </a>
+        <!-- Hidden legacy counters so existing helpers retain compatibility -->
+        <span id="metric-ready" class="hidden">0</span>
+        <span id="metric-applied" class="hidden">0</span>
+        <span id="metric-interview" class="hidden">0</span>
+        <span id="metric-scouted" class="hidden">0</span>
+        <span id="metric-archived" class="hidden">0</span>
+        <span id="metric-english" class="hidden">0</span>
+        <span id="metric-finnish" class="hidden">0</span>
       </div>
 
       <!-- Actions & Controls -->
@@ -283,169 +273,236 @@
     </div>
   </header>
 
-  <!-- Filter & View Toolbar -->
-  <section class="border-b border-slate-800/80 bg-slate-900/50 px-6 py-3">
-    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-      
-      <!-- Search Input -->
-      <div class="relative w-full sm:w-72">
-        <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
-        <input 
-          type="text" 
-          id="search-box" 
-          oninput="filterJobs()" 
-          placeholder="Filter by company, role, location..." 
-          class="w-full bg-slate-800/90 border border-slate-700/70 rounded-lg pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/50"
-        >
+  <!-- Main Content Viewport -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 overflow-y-auto custom-scrollbar flex flex-col space-y-8">
+
+    <!-- ========================================== -->
+    <!-- ZONE 1: TODAY'S ACTION QUEUE -->
+    <!-- ========================================== -->
+    <section id="action-queue-section" class="space-y-3">
+      <div class="flex items-center justify-between pb-1">
+        <div class="flex items-center gap-2.5">
+          <span class="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-sm shadow-amber-400/50 animate-pulse"></span>
+          <h2 class="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
+            <span>Today's Action Queue</span>
+            <span id="action-queue-badge" class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-bold">0</span>
+          </h2>
+        </div>
+        <p class="text-xs text-slate-400 hidden sm:block">Immediate interviews, follow-ups & ready submissions</p>
       </div>
 
-      <!-- Filters & View Mode -->
-      <div class="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end flex-wrap">
+      <!-- Action Cards Container -->
+      <div id="action-queue-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+
+      <!-- Action Queue Empty State -->
+      <div id="action-queue-empty" class="hidden p-5 rounded-xl bg-slate-900/60 border border-slate-800 text-center text-xs text-slate-400">
+        <div class="inline-flex p-2 rounded-full bg-emerald-500/10 text-emerald-400 mb-1.5">
+          <i data-lucide="check-circle" class="w-4 h-4"></i>
+        </div>
+        <p class="text-slate-300 font-semibold text-xs">All caught up for today!</p>
+        <p class="text-slate-500 text-[11px] mt-0.5">No pending interviews or overdue application follow-ups right now.</p>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- ZONE 2: SCOUTED TRIAGE DECK ("INBOX ZERO") -->
+    <!-- ========================================== -->
+    <section id="scouted-triage-section" class="space-y-3 bg-slate-900/40 border border-slate-800/80 rounded-2xl p-4 sm:p-5">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+        <div class="flex items-center gap-2.5">
+          <span class="w-2.5 h-2.5 rounded-full bg-purple-400 shadow-sm shadow-purple-400/50"></span>
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="text-sm font-bold uppercase tracking-wider text-white">Scouted Triage Queue</h2>
+              <span id="triage-count-badge" class="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-bold">0</span>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-0.5">Review crawler discoveries &bull; Fast-track to Ready or dismiss</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <button onclick="batchAcceptTopScouted(90)" title="Promote all 90%+ match jobs to Ready to Apply" class="px-3 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-semibold transition active:scale-95 flex items-center gap-1.5 shadow-sm">
+            <i data-lucide="check-check" class="w-3.5 h-3.5"></i>
+            <span>Accept All ≥90%</span>
+          </button>
+          <button onclick="toggleTriageExpansion()" id="btn-toggle-triage" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-medium transition flex items-center gap-1">
+            <span id="triage-toggle-text">Show All</span>
+            <i data-lucide="chevron-down" id="triage-toggle-icon" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Triage Cards Container -->
+      <div id="scouted-triage-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+
+      <!-- Triage Empty State -->
+      <div id="scouted-triage-empty" class="hidden p-6 rounded-xl bg-slate-900/30 border border-dashed border-slate-800 text-center text-xs text-slate-400">
+        <i data-lucide="inbox" class="w-6 h-6 mx-auto mb-2 text-slate-500"></i>
+        <p class="text-slate-300 font-semibold text-xs">Inbox Zero on Scouted Leads!</p>
+        <p class="text-slate-500 text-[11px] mt-0.5">All discovered jobs have been triaged. New leads will appear here automatically when the crawler runs.</p>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- ZONE 3: CONSOLIDATED PIPELINE OVERVIEW -->
+    <!-- ========================================== -->
+    <section id="pipeline-section" class="space-y-4">
+      
+      <!-- Pipeline Header & Controls -->
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-3 border-b border-slate-800">
         
-        <!-- Language Filter Dropdown -->
-        <div class="flex items-center gap-1.5 text-xs text-slate-400">
-          <span>Language:</span>
-          <select id="language-filter" onchange="filterJobs()" class="bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none">
+        <!-- Segmented Stage Tabs -->
+        <div class="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-1 lg:pb-0">
+          <button onclick="setPipelineTab('active')" id="tab-btn-active" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-sky-500/20 text-sky-300 border border-sky-500/40 transition flex items-center gap-1.5 shrink-0">
+            <span>Active Pipeline</span>
+            <span id="tab-count-active" class="px-1.5 py-0.2 rounded-full bg-sky-500/30 text-white text-[10px]">0</span>
+          </button>
+          <button onclick="setPipelineTab('ready')" id="tab-btn-ready" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white bg-slate-800/60 border border-slate-700/60 transition flex items-center gap-1.5 shrink-0">
+            <span>Ready to Apply</span>
+            <span id="tab-count-ready" class="px-1.5 py-0.2 rounded-full bg-slate-700 text-slate-300 text-[10px]">0</span>
+          </button>
+          <button onclick="setPipelineTab('applied')" id="tab-btn-applied" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white bg-slate-800/60 border border-slate-700/60 transition flex items-center gap-1.5 shrink-0">
+            <span>Applied</span>
+            <span id="tab-count-applied" class="px-1.5 py-0.2 rounded-full bg-slate-700 text-slate-300 text-[10px]">0</span>
+          </button>
+          <button onclick="setPipelineTab('interviewing')" id="tab-btn-interviewing" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white bg-slate-800/60 border border-slate-700/60 transition flex items-center gap-1.5 shrink-0">
+            <span>Interviewing</span>
+            <span id="tab-count-interviewing" class="px-1.5 py-0.2 rounded-full bg-slate-700 text-slate-300 text-[10px]">0</span>
+          </button>
+          <button onclick="setPipelineTab('archived')" id="tab-btn-archived" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white bg-slate-800/60 border border-slate-700/60 transition flex items-center gap-1.5 shrink-0">
+            <span>📁 Archived</span>
+            <span id="tab-count-archived" class="px-1.5 py-0.2 rounded-full bg-slate-700 text-slate-300 text-[10px]">0</span>
+          </button>
+        </div>
+
+        <!-- Search & Filters Toolbar -->
+        <div class="flex items-center gap-2.5 flex-wrap">
+          <!-- Search Box -->
+          <div class="relative w-full sm:w-56">
+            <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+            <input 
+              type="text" 
+              id="search-box" 
+              oninput="filterJobs()" 
+              placeholder="Filter title, company..." 
+              class="w-full bg-slate-800/90 border border-slate-700/70 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-sky-500"
+            >
+          </div>
+
+          <!-- Language Filter -->
+          <select id="language-filter" onchange="filterJobs()" class="bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none">
             <option value="all">All Languages</option>
-            <option value="English / International">🌐 English / Int'l Only</option>
-            <option value="Finnish Advantage">👍 Finnish Advantage</option>
-            <option value="Finnish Required">🇫🇮 Finnish Required</option>
+            <option value="English / International">🌐 English</option>
+            <option value="Finnish Advantage">👍 Suomi Adv.</option>
+            <option value="Finnish Required">🇫🇮 Suomi Req.</option>
           </select>
-        </div>
 
-        <!-- Status Filter Dropdown -->
-        <div class="flex items-center gap-1.5 text-xs text-slate-400">
-          <span>Status:</span>
-          <select id="status-filter" onchange="filterJobs()" class="bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none">
-            <option value="active">Active Pipeline</option>
-            <option value="all">All (incl. Archived)</option>
-            <option value="ready">Ready to Apply</option>
-            <option value="applied">Applied</option>
-            <option value="interviewing">Interviewing / Offer</option>
-            <option value="archived">📁 Archived / Rejected</option>
-          </select>
-        </div>
-
-        <!-- Score Filter -->
-        <div class="flex items-center gap-1.5 text-xs text-slate-400">
-          <span>Min Match:</span>
-          <select id="score-filter" onchange="filterJobs()" class="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-200 focus:outline-none">
+          <!-- Min Match Filter -->
+          <select id="score-filter" onchange="filterJobs()" class="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-200 focus:outline-none">
             <option value="0">All Scores</option>
             <option value="70">70%+</option>
-            <option value="80" selected>80%+ (High Match)</option>
-            <option value="90">90%+ (Top Match)</option>
+            <option value="80" selected>80%+ Match</option>
+            <option value="90">90%+ Top</option>
           </select>
-        </div>
 
-        <!-- View Mode Switcher -->
-        <div class="flex items-center bg-slate-800 p-0.5 rounded-lg border border-slate-700">
-          <button id="view-kanban-btn" onclick="setViewMode('kanban')" class="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition bg-sky-600 text-white">
-            <i data-lucide="kanban" class="w-3.5 h-3.5"></i>
-            <span>Kanban</span>
-          </button>
-          <button id="view-table-btn" onclick="setViewMode('table')" class="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition text-slate-400 hover:text-white">
-            <i data-lucide="table" class="w-3.5 h-3.5"></i>
-            <span>Table</span>
-          </button>
-        </div>
+          <!-- Hidden Status Filter for compatibility -->
+          <select id="status-filter" onchange="filterJobs()" class="hidden">
+            <option value="active">Active Pipeline</option>
+            <option value="all">All</option>
+            <option value="ready">Ready</option>
+            <option value="applied">Applied</option>
+            <option value="interviewing">Interviewing</option>
+            <option value="archived">Archived</option>
+          </select>
 
-      </div>
-
-    </div>
-  </section>
-
-  <!-- Main Content Viewport -->
-  <main class="flex-1 max-w-7xl w-full mx-auto p-6 overflow-hidden flex flex-col">
-    
-    <!-- KANBAN BOARD VIEW -->
-    <div id="kanban-view" class="grid grid-cols-1 md:grid-cols-4 gap-4 flex-1 items-start">
-      
-      <!-- 1. Ready to Apply Column -->
-      <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-3.5 flex flex-col max-h-[calc(100vh-210px)]">
-        <div class="flex items-center justify-between pb-2.5 mb-2 border-b border-slate-800">
-          <div class="flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full bg-sky-500 shadow-sm shadow-sky-500/50"></span>
-            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-200">Ready to Apply</h2>
-          </div>
-          <span id="col-count-ready" class="text-xs font-semibold px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20">0</span>
-        </div>
-        <div id="col-ready" class="space-y-3 overflow-y-auto custom-scrollbar flex-1 pr-1"></div>
-      </div>
-
-      <!-- 2. Applied / In Review Column -->
-      <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-3.5 flex flex-col max-h-[calc(100vh-210px)]">
-        <div class="flex items-center justify-between pb-2.5 mb-2 border-b border-slate-800">
-          <div class="flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50"></span>
-            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-200">Applied</h2>
-          </div>
-          <span id="col-count-applied" class="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">0</span>
-        </div>
-        <div id="col-applied" class="space-y-3 overflow-y-auto custom-scrollbar flex-1 pr-1"></div>
-      </div>
-
-      <!-- 3. Interviewing Column -->
-      <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-3.5 flex flex-col max-h-[calc(100vh-210px)]">
-        <div class="flex items-center justify-between pb-2.5 mb-2 border-b border-slate-800">
-          <div class="flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-sm shadow-amber-500/50"></span>
-            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-200">Interviewing</h2>
-          </div>
-          <span id="col-count-interviewing" class="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">0</span>
-        </div>
-        <div id="col-interviewing" class="space-y-3 overflow-y-auto custom-scrollbar flex-1 pr-1"></div>
-      </div>
-
-      <!-- 4. Discovered Feed Column -->
-      <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-3.5 flex flex-col max-h-[calc(100vh-210px)]">
-        <div class="flex items-center justify-between pb-2.5 mb-2 border-b border-slate-800">
-          <div class="flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full bg-purple-500 shadow-sm shadow-purple-500/50"></span>
-            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-200">Scouted Leads</h2>
-          </div>
-          <span id="col-count-scouted" class="text-xs font-semibold px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">0</span>
-        </div>
-        <div id="col-scouted" class="space-y-3 overflow-y-auto custom-scrollbar flex-1 pr-1"></div>
-      </div>
-
-      <!-- 5. Archived / Rejected Column (Toggleable) -->
-      <div id="col-archived-container" class="hidden bg-slate-950/70 border border-slate-800/80 rounded-xl p-3.5 flex flex-col max-h-[calc(100vh-210px)] opacity-90 transition-all">
-        <div class="flex items-center justify-between pb-2.5 mb-2 border-b border-slate-800">
-          <div class="flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-sm shadow-rose-500/50"></span>
-            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">Archived / Closed</h2>
-          </div>
-          <div class="flex items-center gap-1.5">
-            <span id="col-count-archived" class="text-xs font-semibold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20">0</span>
-            <button onclick="toggleArchivedColumn(false)" class="p-1 text-slate-500 hover:text-slate-300 transition" title="Hide Archived Column">
-              <i data-lucide="x" class="w-3.5 h-3.5"></i>
+          <!-- View Mode Switcher -->
+          <div class="flex items-center bg-slate-800 p-0.5 rounded-lg border border-slate-700">
+            <button id="view-table-btn" onclick="setViewMode('table')" class="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition bg-sky-600 text-white">
+              <i data-lucide="table" class="w-3.5 h-3.5"></i>
+              <span>Table</span>
+            </button>
+            <button id="view-kanban-btn" onclick="setViewMode('kanban')" class="flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition text-slate-400 hover:text-white">
+              <i data-lucide="kanban" class="w-3.5 h-3.5"></i>
+              <span>Kanban</span>
             </button>
           </div>
         </div>
-        <div id="col-archived" class="space-y-3 overflow-y-auto custom-scrollbar flex-1 pr-1"></div>
+
       </div>
 
-    </div>
+      <!-- TABLE VIEW (Default in Cockpit) -->
+      <div id="table-view" class="overflow-x-auto custom-scrollbar bg-slate-900/60 border border-slate-800 rounded-xl">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-800/80 text-slate-300 uppercase tracking-wider text-[11px] sticky top-0 backdrop-blur z-10 border-b border-slate-700">
+            <tr>
+              <th class="py-3 px-4">Match</th>
+              <th class="py-3 px-4">Role & Company</th>
+              <th class="py-3 px-4">Language</th>
+              <th class="py-3 px-4">Platform</th>
+              <th class="py-3 px-4">Location</th>
+              <th class="py-3 px-4">Status</th>
+              <th class="py-3 px-4">Applied Date</th>
+              <th class="py-3 px-4">Files</th>
+              <th class="py-3 px-4 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="table-body" class="divide-y divide-slate-800/70"></tbody>
+        </table>
+      </div>
 
-    <!-- TABLE VIEW -->
-    <div id="table-view" class="hidden flex-1 overflow-y-auto custom-scrollbar bg-slate-900/60 border border-slate-800 rounded-xl">
-      <table class="w-full text-left text-xs">
-        <thead class="bg-slate-800/80 text-slate-300 uppercase tracking-wider text-[11px] sticky top-0 backdrop-blur z-10 border-b border-slate-700">
-          <tr>
-            <th class="py-3 px-4">Match</th>
-            <th class="py-3 px-4">Role & Company</th>
-            <th class="py-3 px-4">Language</th>
-            <th class="py-3 px-4">Platform</th>
-            <th class="py-3 px-4">Location</th>
-            <th class="py-3 px-4">Status</th>
-            <th class="py-3 px-4">Applied Date</th>
-            <th class="py-3 px-4">Files</th>
-            <th class="py-3 px-4 text-right">Actions</th>
-          </tr>
-        </thead>
-        <tbody id="table-body" class="divide-y divide-slate-800/70"></tbody>
-      </table>
-    </div>
+      <!-- KANBAN VIEW (Toggleable) -->
+      <div id="kanban-view" class="hidden grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-4 items-start">
+        
+        <!-- 1. Ready to Apply Column -->
+        <div id="col-ready-container" class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-3.5 flex flex-col">
+          <div class="flex items-center justify-between pb-2.5 mb-2 border-b border-slate-800">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-sky-500 shadow-sm shadow-sky-500/50"></span>
+              <h2 class="text-xs font-bold uppercase tracking-wider text-slate-200">Ready to Apply</h2>
+            </div>
+            <span id="col-count-ready" class="text-xs font-semibold px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20">0</span>
+          </div>
+          <div id="col-ready" class="space-y-3 max-h-[600px] overflow-y-auto custom-scrollbar pr-1"></div>
+        </div>
+
+        <!-- 2. Applied Column -->
+        <div id="col-applied-container" class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-3.5 flex flex-col">
+          <div class="flex items-center justify-between pb-2.5 mb-2 border-b border-slate-800">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50"></span>
+              <h2 class="text-xs font-bold uppercase tracking-wider text-slate-200">Applied</h2>
+            </div>
+            <span id="col-count-applied" class="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">0</span>
+          </div>
+          <div id="col-applied" class="space-y-3 max-h-[600px] overflow-y-auto custom-scrollbar pr-1"></div>
+        </div>
+
+        <!-- 3. Interviewing Column -->
+        <div id="col-interviewing-container" class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-3.5 flex flex-col">
+          <div class="flex items-center justify-between pb-2.5 mb-2 border-b border-slate-800">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-sm shadow-amber-500/50"></span>
+              <h2 class="text-xs font-bold uppercase tracking-wider text-slate-200">Interviewing</h2>
+            </div>
+            <span id="col-count-interviewing" class="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">0</span>
+          </div>
+          <div id="col-interviewing" class="space-y-3 max-h-[600px] overflow-y-auto custom-scrollbar pr-1"></div>
+        </div>
+
+        <!-- 4. Archived Column (shown when active or toggled) -->
+        <div id="col-archived-container" class="hidden bg-slate-950/70 border border-slate-800/80 rounded-xl p-3.5 flex flex-col">
+          <div class="flex items-center justify-between pb-2.5 mb-2 border-b border-slate-800">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-sm shadow-rose-500/50"></span>
+              <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">Archived / Closed</h2>
+            </div>
+            <span id="col-count-archived" class="text-xs font-semibold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20">0</span>
+          </div>
+          <div id="col-archived" class="space-y-3 max-h-[600px] overflow-y-auto custom-scrollbar pr-1"></div>
+        </div>
+
+      </div>
+
+    </section>
 
   </main>
 
@@ -1850,6 +1907,8 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
     let currentJob = null;
     let currentTab = 'cover_letter';
     let currentTabRawText = '';
+    let currentPipelineTab = 'active';
+    let triageExpanded = false;
 
     document.addEventListener('DOMContentLoaded', () => {
       lucide.createIcons();
@@ -1862,7 +1921,6 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
     function toggleArchivedColumn(forceVal) {
       const container = document.getElementById('col-archived-container');
       const kanban = document.getElementById('kanban-view');
-      const pill = document.getElementById('metric-archived-pill');
       if (!container) return;
       
       const isCurrentlyHidden = container.classList.contains('hidden');
@@ -1871,23 +1929,15 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
       if (show) {
         container.classList.remove('hidden');
         if (kanban) {
-          kanban.classList.remove('md:grid-cols-4');
-          kanban.classList.add('md:grid-cols-3', 'xl:grid-cols-5');
-        }
-        if (pill) {
-          pill.classList.add('bg-rose-500/20', 'border-rose-500/60');
-          pill.classList.remove('bg-slate-800/80', 'border-rose-500/30');
+          kanban.classList.remove('md:grid-cols-3', 'xl:grid-cols-4');
+          kanban.classList.add('md:grid-cols-2', 'xl:grid-cols-4');
         }
         localStorage.setItem('jobhunt_show_archived', 'true');
       } else {
         container.classList.add('hidden');
         if (kanban) {
-          kanban.classList.remove('md:grid-cols-3', 'xl:grid-cols-5');
-          kanban.classList.add('md:grid-cols-4');
-        }
-        if (pill) {
-          pill.classList.remove('bg-rose-500/20', 'border-rose-500/60');
-          pill.classList.add('bg-slate-800/80', 'border-rose-500/30');
+          kanban.classList.remove('md:grid-cols-2');
+          kanban.classList.add('md:grid-cols-3', 'xl:grid-cols-4');
         }
         localStorage.setItem('jobhunt_show_archived', 'false');
       }
@@ -1909,32 +1959,279 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
         const data = await res.json();
         allJobs = data.jobs;
         
-        // Update top metrics
-        document.getElementById('metric-ready').textContent = data.counts.ready;
-        document.getElementById('metric-applied').textContent = data.counts.applied;
-        document.getElementById('metric-interview').textContent = data.counts.interviewing;
-        document.getElementById('metric-scouted').textContent = data.counts.scouted;
-        if (document.getElementById('metric-archived')) {
-          document.getElementById('metric-archived').textContent = data.counts.archived || 0;
+        // Calculate action items (interviews & follow-ups)
+        const actionItems = allJobs.filter(j => 
+          (j.status === 'interviewing' || (j.interview_date && j.interview_date.trim() !== '')) || j.follow_up_due
+        );
+        const activePipelineCount = allJobs.filter(j => 
+          ['ready', 'applied', 'interviewing', 'offer'].includes(j.status) && !['rejected', 'archived', 'archive'].includes(j.status)
+        ).length;
+        const scoutedCount = allJobs.filter(j => 
+          (j.type === 'scouted' || j.status === 'scouted') && !['ready', 'applied', 'interviewing', 'offer', 'rejected', 'archived', 'archive'].includes(j.status)
+        ).length;
+
+        // Update top indicator metrics
+        if (document.getElementById('metric-actions')) {
+          document.getElementById('metric-actions').textContent = actionItems.length;
         }
-        if (document.getElementById('metric-english')) {
-          document.getElementById('metric-english').textContent = data.counts.english || 0;
+        if (document.getElementById('metric-pipeline')) {
+          document.getElementById('metric-pipeline').textContent = activePipelineCount;
         }
-        if (document.getElementById('metric-finnish')) {
-          document.getElementById('metric-finnish').textContent = data.counts.finnish_req || 0;
+        if (document.getElementById('metric-leads')) {
+          document.getElementById('metric-leads').textContent = scoutedCount;
         }
-        
+
+        // Tab counts
+        if (document.getElementById('tab-count-active')) document.getElementById('tab-count-active').textContent = activePipelineCount;
+        if (document.getElementById('tab-count-ready')) document.getElementById('tab-count-ready').textContent = data.counts.ready || 0;
+        if (document.getElementById('tab-count-applied')) document.getElementById('tab-count-applied').textContent = data.counts.applied || 0;
+        if (document.getElementById('tab-count-interviewing')) document.getElementById('tab-count-interviewing').textContent = data.counts.interviewing || 0;
+        if (document.getElementById('tab-count-archived')) document.getElementById('tab-count-archived').textContent = data.counts.archived || 0;
+
+        // Legacy hidden counts
+        ['metric-ready', 'metric-applied', 'metric-interview', 'metric-scouted', 'metric-archived'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = data.counts[id.replace('metric-', '')] || 0;
+        });
+
+        // Render Action Queue & Scouted Triage Deck
+        renderActionQueue(allJobs);
+        renderScoutedTriage(allJobs);
+
+        // Render Pipeline Table & Kanban
         filterJobs();
       } catch (err) {
         console.error("Failed to load jobs", err);
       }
     }
 
+    // ====================================================
+    // ZONE 1: ACTION QUEUE RENDERING
+    // ====================================================
+    function renderActionQueue(jobs) {
+      const container = document.getElementById('action-queue-container');
+      const emptyState = document.getElementById('action-queue-empty');
+      const badge = document.getElementById('action-queue-badge');
+      if (!container) return;
+
+      const actionJobs = jobs.filter(j => 
+        (j.status === 'interviewing' || (j.interview_date && j.interview_date.trim() !== '')) || j.follow_up_due
+      );
+
+      if (badge) badge.textContent = actionJobs.length;
+
+      if (actionJobs.length === 0) {
+        container.innerHTML = '';
+        container.classList.add('hidden');
+        if (emptyState) emptyState.classList.remove('hidden');
+        return;
+      }
+
+      container.classList.remove('hidden');
+      if (emptyState) emptyState.classList.add('hidden');
+      container.innerHTML = '';
+
+      actionJobs.forEach(job => {
+        const isInterview = job.status === 'interviewing' || (job.interview_date && job.interview_date.trim() !== '');
+        const card = document.createElement('div');
+        
+        if (isInterview) {
+          card.className = "bg-gradient-to-br from-amber-500/10 via-slate-900 to-slate-900 border border-amber-500/40 rounded-xl p-4 shadow-lg shadow-amber-500/5 hover:border-amber-500/60 transition cursor-pointer flex flex-col justify-between";
+          card.onclick = () => openDrawerById(job.id, 'prep');
+          card.innerHTML = `
+            <div>
+              <div class="flex items-center justify-between gap-2 mb-2">
+                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1.5 animate-pulse">
+                  <i data-lucide="video" class="w-3 h-3 text-amber-400"></i>
+                  <span>🎯 INTERVIEW SCHEDULED</span>
+                </span>
+                <span class="text-xs font-bold text-sky-400">${job.match_score}% Match</span>
+              </div>
+              <h3 class="text-sm font-bold text-white mb-0.5 leading-snug">${job.title}</h3>
+              <p class="text-xs text-slate-300 font-medium">${job.company} &bull; <span class="text-slate-400">${job.location}</span></p>
+              ${job.interview_date ? `
+                <div class="mt-2.5 px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-200 text-[11px] font-semibold flex items-center gap-1.5">
+                  <i data-lucide="calendar" class="w-3.5 h-3.5 text-amber-400"></i>
+                  <span>${job.interview_date}</span>
+                </div>
+              ` : ''}
+            </div>
+            <div class="pt-3 border-t border-slate-800/80 mt-3 flex items-center justify-between gap-2">
+              <button onclick="event.stopPropagation(); openDrawerById('${job.id}', 'prep')" class="w-full py-2 px-3 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-95 shadow-md shadow-amber-500/20">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5 fill-slate-950 text-slate-950"></i>
+                <span>Launch STAR Prep Guide</span>
+              </button>
+            </div>
+          `;
+        } else {
+          // Follow-up due
+          card.className = "bg-slate-900/90 border border-amber-500/30 rounded-xl p-4 shadow-md hover:border-amber-500/50 transition cursor-pointer flex flex-col justify-between";
+          card.onclick = () => openDrawerById(job.id, 'outreach');
+          card.innerHTML = `
+            <div>
+              <div class="flex items-center justify-between gap-2 mb-2">
+                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center gap-1.5">
+                  <i data-lucide="clock" class="w-3 h-3 text-amber-400"></i>
+                  <span>⏳ FOLLOW-UP DUE (${job.days_since_applied}d)</span>
+                </span>
+                <span class="text-xs font-bold text-sky-400">${job.match_score}% Match</span>
+              </div>
+              <h3 class="text-sm font-bold text-white mb-0.5 leading-snug">${job.title}</h3>
+              <p class="text-xs text-slate-300 font-medium">${job.company} &bull; <span class="text-slate-400">${job.location}</span></p>
+              <p class="text-[11px] text-slate-400 mt-2">Applied on: <span class="text-slate-300 font-medium">${job.applied_date || 'Earlier'}</span></p>
+            </div>
+            <div class="pt-3 border-t border-slate-800 mt-3 flex items-center justify-between gap-2">
+              <button onclick="event.stopPropagation(); openDrawerById('${job.id}', 'outreach')" class="w-full py-2 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-95">
+                <i data-lucide="mail" class="w-3.5 h-3.5 text-amber-400"></i>
+                <span>Draft Follow-Up Email</span>
+              </button>
+            </div>
+          `;
+        }
+        container.appendChild(card);
+      });
+      lucide.createIcons();
+    }
+
+    // ====================================================
+    // ZONE 2: SCOUTED TRIAGE DECK RENDERING
+    // ====================================================
+    function renderScoutedTriage(jobs) {
+      const container = document.getElementById('scouted-triage-container');
+      const emptyState = document.getElementById('scouted-triage-empty');
+      const badge = document.getElementById('triage-count-badge');
+      if (!container) return;
+
+      const scoutedJobs = jobs.filter(j => 
+        (j.type === 'scouted' || j.status === 'scouted') && 
+        !['ready', 'applied', 'interviewing', 'offer', 'rejected', 'archived', 'archive'].includes(j.status)
+      );
+
+      if (badge) badge.textContent = scoutedJobs.length;
+
+      if (scoutedJobs.length === 0) {
+        container.innerHTML = '';
+        container.classList.add('hidden');
+        if (emptyState) emptyState.classList.remove('hidden');
+        return;
+      }
+
+      container.classList.remove('hidden');
+      if (emptyState) emptyState.classList.add('hidden');
+      container.innerHTML = '';
+
+      const displayJobs = triageExpanded ? scoutedJobs : scoutedJobs.slice(0, 6);
+
+      displayJobs.forEach(job => {
+        const card = document.createElement('div');
+        card.id = `triage-card-${job.id}`;
+        card.className = "bg-slate-900/80 hover:bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl p-3.5 shadow-sm transition flex flex-col justify-between cursor-pointer group";
+        card.onclick = () => openDrawer(job);
+
+        const langBadge = job.language_badge || (job.language_tag === 'Finnish Required' ? '🇫🇮 Suomi Req' : (job.language_tag === 'Finnish Advantage' ? '👍 Suomi Adv' : '🌐 English'));
+        const langClass = job.language_class || (job.language_tag === 'Finnish Required' ? 'border-amber-500/30 bg-amber-500/10 text-amber-300' : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300');
+        const platformStr = job.platform_display || job.platform || 'Direct';
+
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between gap-1.5 mb-1.5">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border border-sky-500/30 bg-sky-500/10 text-sky-400">
+                ${job.match_score}% Match
+              </span>
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold border ${langClass}">
+                ${langBadge}
+              </span>
+            </div>
+            <h3 class="text-xs font-bold text-white group-hover:text-sky-400 transition leading-snug mb-1">
+              ${job.title}
+            </h3>
+            <p class="text-[11px] font-medium text-slate-300 mb-2">${job.company} &bull; <span class="text-slate-400">${job.location}</span></p>
+            <span class="text-[10px] text-slate-400 inline-flex items-center gap-1 bg-slate-950/60 px-1.5 py-0.5 rounded border border-slate-800">
+              <i data-lucide="layers" class="w-2.5 h-2.5 text-sky-400"></i> ${platformStr}
+            </span>
+          </div>
+
+          <div class="pt-2.5 border-t border-slate-800/80 mt-2.5 flex items-center gap-1.5">
+            <button onclick="event.stopPropagation(); triageJob('${job.id}', 'ready')" class="flex-1 py-1.5 px-2 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-semibold text-xs transition active:scale-95 flex items-center justify-center gap-1 shadow-sm">
+              <i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i>
+              <span>Accept to Ready</span>
+            </button>
+            <button onclick="event.stopPropagation(); triageJob('${job.id}', 'rejected')" class="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-900/30 text-slate-400 hover:text-rose-200 border border-slate-700 hover:border-rose-500/40 text-xs transition" title="Dismiss / Archive">
+              <i data-lucide="x" class="w-3.5 h-3.5"></i>
+            </button>
+            <button onclick="event.stopPropagation(); openDrawerById('${job.id}')" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs transition" title="View Details">
+              <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+      lucide.createIcons();
+    }
+
+    async function triageJob(jobId, newStatus) {
+      const card = document.getElementById(`triage-card-${jobId}`);
+      if (card) {
+        card.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
+        setTimeout(() => card.remove(), 200);
+      }
+      await updateJobStatus(jobId, newStatus);
+      showToast(newStatus === 'ready' ? '✅ Accepted to Ready to Apply!' : '📁 Job dismissed & archived.');
+    }
+
+    async function batchAcceptTopScouted(minScore = 90) {
+      const topScouted = allJobs.filter(j => 
+        (j.type === 'scouted' || j.status === 'scouted') && 
+        !['ready', 'applied', 'interviewing', 'offer', 'rejected', 'archived', 'archive'].includes(j.status) &&
+        (j.match_score || 0) >= minScore
+      );
+      if (topScouted.length === 0) {
+        showToast(`No scouted leads found with ≥${minScore}% match.`);
+        return;
+      }
+      showToast(`⚡ Batch accepting ${topScouted.length} top-match jobs...`);
+      for (const j of topScouted) {
+        await updateJobStatus(j.id, 'ready');
+      }
+      showToast(`✅ Successfully accepted ${topScouted.length} jobs to Ready!`);
+      await loadJobs();
+    }
+
+    function toggleTriageExpansion() {
+      triageExpanded = !triageExpanded;
+      const textEl = document.getElementById('triage-toggle-text');
+      if (textEl) textEl.textContent = triageExpanded ? 'Show Less' : 'Show All';
+      renderScoutedTriage(allJobs);
+    }
+
+    // ====================================================
+    // ZONE 3: PIPELINE TABS & FILTERING
+    // ====================================================
+    function setPipelineTab(tab) {
+      currentPipelineTab = tab;
+      const tabs = ['active', 'ready', 'applied', 'interviewing', 'archived'];
+      tabs.forEach(t => {
+        const btn = document.getElementById(`tab-btn-${t}`);
+        if (!btn) return;
+        if (t === tab) {
+          btn.className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-sky-500/20 text-sky-300 border border-sky-500/40 transition flex items-center gap-1.5 shrink-0";
+        } else {
+          btn.className = "px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white bg-slate-800/60 border border-slate-700/60 transition flex items-center gap-1.5 shrink-0";
+        }
+      });
+
+      if (tab === 'archived') {
+        toggleArchivedColumn(true);
+      }
+
+      filterJobs();
+    }
+
     function filterJobs() {
       const q = (document.getElementById('search-box').value || '').toLowerCase();
       const minScore = parseInt(document.getElementById('score-filter').value || '0', 10);
       const langFilter = document.getElementById('language-filter').value;
-      const statusFilter = document.getElementById('status-filter') ? document.getElementById('status-filter').value : 'active';
+      const tab = currentPipelineTab;
       
       const filtered = allJobs.filter(j => {
         const matchesQuery = !q || (
@@ -1946,30 +2243,27 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
         const matchesLang = (langFilter === 'all') || (j.language_tag === langFilter);
 
         const isArchived = ['rejected', 'archived', 'archive'].includes(j.status);
-        let matchesStatus = true;
-        if (statusFilter === 'archived') {
-          matchesStatus = isArchived;
-        } else if (statusFilter === 'ready') {
-          matchesStatus = !isArchived && (j.status === 'ready' || (!j.status && j.type !== 'scouted'));
-        } else if (statusFilter === 'applied') {
-          matchesStatus = j.status === 'applied';
-        } else if (statusFilter === 'interviewing') {
-          matchesStatus = j.status === 'interviewing' || j.status === 'offer';
-        } else if (statusFilter === 'all') {
-          matchesStatus = true;
-        } else if (statusFilter === 'active') {
-          matchesStatus = true;
+        const isOffer = j.status === 'offer';
+        const isScouted = (j.type === 'scouted' || j.status === 'scouted') && !['ready', 'applied', 'interviewing', 'offer'].includes(j.status) && !isArchived;
+
+        let matchesTab = true;
+        if (tab === 'active') {
+          matchesTab = !isArchived && !isScouted;
+        } else if (tab === 'ready') {
+          matchesTab = !isArchived && !isScouted && (j.status === 'ready' || (!j.status && j.type !== 'scouted'));
+        } else if (tab === 'applied') {
+          matchesTab = j.status === 'applied';
+        } else if (tab === 'interviewing') {
+          matchesTab = j.status === 'interviewing' || isOffer;
+        } else if (tab === 'archived') {
+          matchesTab = isArchived;
         }
 
-        return matchesQuery && matchesScore && matchesLang && matchesStatus;
+        return matchesQuery && matchesScore && matchesLang && matchesTab;
       });
 
-      if (statusFilter === 'archived') {
-        toggleArchivedColumn(true);
-      }
-
       renderKanban(filtered);
-      renderTable(filtered, statusFilter);
+      renderTable(filtered, tab);
     }
 
     function renderKanban(jobs) {
@@ -1977,7 +2271,6 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
         ready: document.getElementById('col-ready'),
         applied: document.getElementById('col-applied'),
         interviewing: document.getElementById('col-interviewing'),
-        scouted: document.getElementById('col-scouted'),
         archived: document.getElementById('col-archived')
       };
 
@@ -1986,7 +2279,7 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
         if (cols[k]) cols[k].innerHTML = '';
       });
       
-      let counts = { ready: 0, applied: 0, interviewing: 0, scouted: 0, archived: 0 };
+      let counts = { ready: 0, applied: 0, interviewing: 0, archived: 0 };
 
       jobs.forEach(job => {
         const isArchived = ['rejected', 'archived', 'archive'].includes(job.status);
@@ -1999,8 +2292,6 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
           colKey = 'interviewing';
         } else if (job.status === 'applied') {
           colKey = 'applied';
-        } else if (job.status === 'scouted' || job.type === 'scouted') {
-          colKey = 'scouted';
         } else {
           colKey = 'ready';
         }
@@ -2010,7 +2301,7 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
         
         const card = document.createElement('div');
         card.className = isArchived
-          ? "bg-slate-900/90 hover:bg-slate-900 border border-rose-500/20 hover:border-rose-500/40 rounded-xl p-3.5 shadow-md transition cursor-pointer group opacity-85 hover:opacity-100"
+          ? "bg-slate-900/90 hover:bg-slate-900 border border-rose-500/20 hover:border-rose-500/40 rounded-xl p-3.5 shadow-sm transition cursor-pointer group opacity-85 hover:opacity-100"
           : "bg-slate-800/90 hover:bg-slate-800 border border-slate-700/70 hover:border-slate-600 rounded-xl p-3.5 shadow-md transition cursor-pointer group";
         card.onclick = () => openDrawer(job);
 
@@ -2040,28 +2331,10 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
               </span>
               ${atsBadgeHtml}
             </div>
-            <span class="text-[10px] text-slate-400 truncate max-w-[120px]">
+            <span class="text-[10px] text-slate-400 truncate max-w-[110px]">
               ${job.location}
             </span>
           </div>
-
-          ${job.follow_up_due ? `
-            <div class="mb-2">
-              <button onclick="event.stopPropagation(); openDrawerById('${job.id}', 'outreach')" class="w-full px-2.5 py-1 rounded-lg text-[10px] font-bold border border-amber-500/50 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 animate-pulse flex items-center justify-center gap-1.5 transition active:scale-95 shadow-sm" title="Applied ${job.days_since_applied} days ago - Click to open Follow-Up Drafter">
-                <i data-lucide="clock" class="w-3 h-3 text-amber-400"></i>
-                <span>⏳ Follow-up Due (${job.days_since_applied}d) &bull; Draft</span>
-              </button>
-            </div>
-          ` : ''}
-
-          ${(job.status === 'interviewing' || job.interview_date) ? `
-            <div class="mb-2">
-              <button onclick="event.stopPropagation(); openDrawerById('${job.id}', 'prep')" class="w-full px-2.5 py-1.5 rounded-lg text-[10px] font-bold border border-amber-500/60 bg-gradient-to-r from-amber-500/25 to-orange-500/25 hover:from-amber-500/35 hover:to-orange-500/35 text-amber-200 flex items-center justify-center gap-1.5 transition active:scale-95 shadow-md shadow-amber-500/10" title="Interviewing - Click to open Prep & STAR Guide">
-                <i data-lucide="video" class="w-3.5 h-3.5 text-amber-400 animate-pulse"></i>
-                <span>🎯 Interview Today &bull; Prep & STAR Guide</span>
-              </button>
-            </div>
-          ` : ''}
 
           <div class="flex items-center gap-1.5 flex-wrap mb-2">
             <span class="px-2 py-0.5 rounded text-[10px] font-semibold border ${langClass}">
@@ -2077,41 +2350,6 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
           </h3>
           <p class="text-[11px] font-medium text-slate-300 mb-3">${job.company}</p>
 
-          <div class="flex items-center justify-between gap-1.5 mb-3 text-[10px]">
-            <div class="flex items-center gap-1.5 flex-wrap">
-              ${job.has_cv_pdf ? `<span class="px-1.5 py-0.5 rounded bg-slate-900/80 text-sky-400 border border-slate-700 flex items-center gap-1"><i data-lucide="file-text" class="w-3 h-3"></i> CV</span>` : ''}
-              ${job.has_cl_pdf ? `<span class="px-1.5 py-0.5 rounded bg-slate-900/80 text-emerald-400 border border-slate-700 flex items-center gap-1"><i data-lucide="mail" class="w-3 h-3"></i> Letter</span>` : ''}
-              ${job.has_qa ? `<span class="px-1.5 py-0.5 rounded bg-slate-900/80 text-amber-400 border border-slate-700 flex items-center gap-1"><i data-lucide="help-circle" class="w-3 h-3"></i> Q&A</span>` : ''}
-            </div>
-            ${job.folder ? `
-              <div class="flex items-center gap-1">
-                <button onclick="event.stopPropagation(); openTopChoiceModalForJob('${job.id}')" title="Why Top Choice? LinkedIn & Recruiter Pitch" class="px-1.5 py-0.5 rounded bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 hover:text-sky-200 border border-sky-500/30 text-[10px] font-semibold flex items-center gap-1 transition active:scale-95 shadow-sm">
-                  <i data-lucide="sparkles" class="w-2.5 h-2.5 text-amber-300"></i>
-                  <span>Pitch</span>
-                </button>
-                <button onclick="event.stopPropagation(); triggerWorkflow('${job.id}', true)" title="Regenerate all documents with Gemini AI" class="px-1.5 py-0.5 rounded bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 hover:text-indigo-200 border border-indigo-500/30 text-[10px] font-semibold flex items-center gap-1 transition active:scale-95 shadow-sm">
-                  <i data-lucide="refresh-cw" class="w-2.5 h-2.5"></i>
-                  <span>Regen</span>
-                </button>
-                <button onclick="event.stopPropagation(); triggerOpenFolder('${job.folder}')" title="Open Folder in File Manager" class="px-2 py-0.5 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 hover:text-amber-200 border border-amber-500/30 text-[10px] font-semibold flex items-center gap-1 transition active:scale-95 shadow-sm">
-                  <i data-lucide="folder" class="w-3 h-3"></i>
-                  <span>Folder</span>
-                </button>
-              </div>
-            ` : `
-              <div class="flex items-center gap-1">
-                <button onclick="event.stopPropagation(); openTopChoiceModalForJob('${job.id}')" title="Why Top Choice? LinkedIn Pitch" class="px-1.5 py-0.5 rounded bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 hover:text-sky-200 border border-sky-500/30 text-[10px] font-semibold flex items-center gap-1 transition active:scale-95 shadow-sm">
-                  <i data-lucide="sparkles" class="w-2.5 h-2.5 text-amber-300"></i>
-                  <span>Pitch</span>
-                </button>
-                <button onclick="event.stopPropagation(); triggerWorkflow('${job.id}')" title="Generate Complete Application Package" class="px-2 py-0.5 rounded bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold text-[10px] flex items-center gap-1 transition active:scale-95 shadow-md shadow-amber-500/20">
-                  <i data-lucide="zap" class="w-3 h-3 fill-slate-950 text-slate-950"></i>
-                  <span>Workflow</span>
-                </button>
-              </div>
-            `}
-          </div>
-
           <div class="pt-2.5 border-t border-slate-700/60 flex items-center justify-between gap-2 text-[11px]">
             ${job.url ? `
               <a href="${job.url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" class="px-2.5 py-1 rounded bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 hover:text-sky-300 border border-sky-500/30 text-[10px] font-semibold inline-flex items-center gap-1 transition shadow-sm">
@@ -2126,10 +2364,7 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
                   <span>Restore</span>
                 </button>
               ` : `
-                <span class="text-slate-400 text-[10px]">
-                  ${job.applied_date ? `Applied: ${job.applied_date}` : (job.type === 'scouted' ? 'Scouted' : 'Ready')}
-                </span>
-                <button onclick="event.stopPropagation(); quickToggleApplied('${job.id}', '${job.status}')" class="px-2 py-0.5 rounded text-[10px] font-medium ${job.status === 'applied' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-700 hover:bg-slate-600 text-slate-200'} transition">
+                <button onclick="event.stopPropagation(); quickToggleApplied('${job.id}', '${job.status}')" class="px-2 py-0.5 rounded text-[10px] font-medium ${job.status === 'applied' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'} transition">
                   ${job.status === 'applied' ? '✓ Applied' : 'Mark Applied'}
                 </button>
               `}
@@ -2140,13 +2375,10 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
       });
 
       // Update column badges
-      document.getElementById('col-count-ready').textContent = counts.ready;
-      document.getElementById('col-count-applied').textContent = counts.applied;
-      document.getElementById('col-count-interviewing').textContent = counts.interviewing;
-      document.getElementById('col-count-scouted').textContent = counts.scouted;
-      if (document.getElementById('col-count-archived')) {
-        document.getElementById('col-count-archived').textContent = counts.archived;
-      }
+      if (document.getElementById('col-count-ready')) document.getElementById('col-count-ready').textContent = counts.ready;
+      if (document.getElementById('col-count-applied')) document.getElementById('col-count-applied').textContent = counts.applied;
+      if (document.getElementById('col-count-interviewing')) document.getElementById('col-count-interviewing').textContent = counts.interviewing;
+      if (document.getElementById('col-count-archived')) document.getElementById('col-count-archived').textContent = counts.archived;
 
       lucide.createIcons();
     }
@@ -2254,8 +2486,8 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
                   <span>Files</span>
                 </button>
               ` : `
-                <button onclick="event.stopPropagation(); triggerWorkflow('${job.id}')" title="Generate Complete Application Package" class="px-2.5 py-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold rounded text-xs inline-flex items-center gap-1 transition active:scale-95 shadow-md shadow-amber-500/20">
-                  <i data-lucide="zap" class="w-3.5 h-3.5 fill-slate-950 text-slate-950"></i>
+                <button onclick="event.stopPropagation(); triggerWorkflow('${job.id}')" title="Generate Complete Application Package" class="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold rounded text-xs inline-flex items-center gap-1 transition active:scale-95 shadow-sm">
+                  <i data-lucide="zap" class="w-3.5 h-3.5 fill-slate-900 text-slate-900"></i>
                   <span>Workflow</span>
                 </button>
               `}
@@ -2398,7 +2630,7 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
       if (linkContainer) {
         if (job.url) {
           linkContainer.innerHTML = `
-            <a href="${job.url}" target="_blank" rel="noopener noreferrer" class="px-3.5 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs inline-flex items-center gap-1.5 transition active:scale-95 shadow-md shadow-sky-500/20">
+            <a href="${job.url}" target="_blank" rel="noopener noreferrer" class="px-3.5 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs inline-flex items-center gap-1.5 transition active:scale-95 shadow-sm">
               <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
               <span>Apply / Open Posting (${job.platform_display || 'Web'})</span>
             </a>
@@ -2685,7 +2917,7 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
         </div>
 
         <div class="pt-3 flex items-center gap-3 flex-wrap">
-          <button id="btn-generate-prep" onclick="generateInterviewPrep('${currentJob?.folder || currentJob?.id}')" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-purple-500/20 transition active:scale-95">
+          <button id="btn-generate-prep" onclick="generateInterviewPrep('${currentJob?.folder || currentJob?.id}')" class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-indigo-600/30 transition active:scale-95">
             <i data-lucide="sparkles" class="w-4 h-4"></i>
             <span>Generate Interview Prep (1-Click)</span>
           </button>
