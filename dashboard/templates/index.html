@@ -230,6 +230,11 @@
           <span class="text-[10px]">🇫🇮 Suomi:</span>
           <span id="metric-finnish" class="font-bold">0</span>
         </div>
+        <div id="metric-archived-pill" onclick="toggleArchivedColumn()" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800/80 border border-rose-500/30 text-rose-300 cursor-pointer hover:bg-rose-500/10 transition" title="Click to show/hide Archived Column on Kanban">
+          <span class="w-2 h-2 rounded-full bg-rose-400"></span>
+          <span class="text-[10px]">📁 Archived:</span>
+          <span id="metric-archived" class="font-bold">0</span>
+        </div>
       </div>
 
       <!-- Actions & Controls -->
@@ -305,6 +310,19 @@
             <option value="English / International">🌐 English / Int'l Only</option>
             <option value="Finnish Advantage">👍 Finnish Advantage</option>
             <option value="Finnish Required">🇫🇮 Finnish Required</option>
+          </select>
+        </div>
+
+        <!-- Status Filter Dropdown -->
+        <div class="flex items-center gap-1.5 text-xs text-slate-400">
+          <span>Status:</span>
+          <select id="status-filter" onchange="filterJobs()" class="bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none">
+            <option value="active">Active Pipeline</option>
+            <option value="all">All (incl. Archived)</option>
+            <option value="ready">Ready to Apply</option>
+            <option value="applied">Applied</option>
+            <option value="interviewing">Interviewing / Offer</option>
+            <option value="archived">📁 Archived / Rejected</option>
           </select>
         </div>
 
@@ -388,6 +406,23 @@
           <span id="col-count-scouted" class="text-xs font-semibold px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">0</span>
         </div>
         <div id="col-scouted" class="space-y-3 overflow-y-auto custom-scrollbar flex-1 pr-1"></div>
+      </div>
+
+      <!-- 5. Archived / Rejected Column (Toggleable) -->
+      <div id="col-archived-container" class="hidden bg-slate-950/70 border border-slate-800/80 rounded-xl p-3.5 flex flex-col max-h-[calc(100vh-210px)] opacity-90 transition-all">
+        <div class="flex items-center justify-between pb-2.5 mb-2 border-b border-slate-800">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-sm shadow-rose-500/50"></span>
+            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">Archived / Closed</h2>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span id="col-count-archived" class="text-xs font-semibold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20">0</span>
+            <button onclick="toggleArchivedColumn(false)" class="p-1 text-slate-500 hover:text-slate-300 transition" title="Hide Archived Column">
+              <i data-lucide="x" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </div>
+        <div id="col-archived" class="space-y-3 overflow-y-auto custom-scrollbar flex-1 pr-1"></div>
       </div>
 
     </div>
@@ -1818,10 +1853,55 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
 
     document.addEventListener('DOMContentLoaded', () => {
       lucide.createIcons();
+      applyArchivedColumnVisibility();
       loadJobs();
       checkScoutStatus();
       fetchTelegramStatus();
     });
+
+    function toggleArchivedColumn(forceVal) {
+      const container = document.getElementById('col-archived-container');
+      const kanban = document.getElementById('kanban-view');
+      const pill = document.getElementById('metric-archived-pill');
+      if (!container) return;
+      
+      const isCurrentlyHidden = container.classList.contains('hidden');
+      const show = (typeof forceVal === 'boolean') ? forceVal : isCurrentlyHidden;
+
+      if (show) {
+        container.classList.remove('hidden');
+        if (kanban) {
+          kanban.classList.remove('md:grid-cols-4');
+          kanban.classList.add('md:grid-cols-3', 'xl:grid-cols-5');
+        }
+        if (pill) {
+          pill.classList.add('bg-rose-500/20', 'border-rose-500/60');
+          pill.classList.remove('bg-slate-800/80', 'border-rose-500/30');
+        }
+        localStorage.setItem('jobhunt_show_archived', 'true');
+      } else {
+        container.classList.add('hidden');
+        if (kanban) {
+          kanban.classList.remove('md:grid-cols-3', 'xl:grid-cols-5');
+          kanban.classList.add('md:grid-cols-4');
+        }
+        if (pill) {
+          pill.classList.remove('bg-rose-500/20', 'border-rose-500/60');
+          pill.classList.add('bg-slate-800/80', 'border-rose-500/30');
+        }
+        localStorage.setItem('jobhunt_show_archived', 'false');
+      }
+      lucide.createIcons();
+    }
+
+    function applyArchivedColumnVisibility() {
+      const saved = localStorage.getItem('jobhunt_show_archived');
+      if (saved === 'true') {
+        toggleArchivedColumn(true);
+      } else {
+        toggleArchivedColumn(false);
+      }
+    }
 
     async function loadJobs() {
       try {
@@ -1834,6 +1914,9 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
         document.getElementById('metric-applied').textContent = data.counts.applied;
         document.getElementById('metric-interview').textContent = data.counts.interviewing;
         document.getElementById('metric-scouted').textContent = data.counts.scouted;
+        if (document.getElementById('metric-archived')) {
+          document.getElementById('metric-archived').textContent = data.counts.archived || 0;
+        }
         if (document.getElementById('metric-english')) {
           document.getElementById('metric-english').textContent = data.counts.english || 0;
         }
@@ -1851,6 +1934,7 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
       const q = (document.getElementById('search-box').value || '').toLowerCase();
       const minScore = parseInt(document.getElementById('score-filter').value || '0', 10);
       const langFilter = document.getElementById('language-filter').value;
+      const statusFilter = document.getElementById('status-filter') ? document.getElementById('status-filter').value : 'active';
       
       const filtered = allJobs.filter(j => {
         const matchesQuery = !q || (
@@ -1860,11 +1944,32 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
         );
         const matchesScore = (j.match_score || 0) >= minScore;
         const matchesLang = (langFilter === 'all') || (j.language_tag === langFilter);
-        return matchesQuery && matchesScore && matchesLang;
+
+        const isArchived = ['rejected', 'archived', 'archive'].includes(j.status);
+        let matchesStatus = true;
+        if (statusFilter === 'archived') {
+          matchesStatus = isArchived;
+        } else if (statusFilter === 'ready') {
+          matchesStatus = !isArchived && (j.status === 'ready' || (!j.status && j.type !== 'scouted'));
+        } else if (statusFilter === 'applied') {
+          matchesStatus = j.status === 'applied';
+        } else if (statusFilter === 'interviewing') {
+          matchesStatus = j.status === 'interviewing' || j.status === 'offer';
+        } else if (statusFilter === 'all') {
+          matchesStatus = true;
+        } else if (statusFilter === 'active') {
+          matchesStatus = true;
+        }
+
+        return matchesQuery && matchesScore && matchesLang && matchesStatus;
       });
 
+      if (statusFilter === 'archived') {
+        toggleArchivedColumn(true);
+      }
+
       renderKanban(filtered);
-      renderTable(filtered);
+      renderTable(filtered, statusFilter);
     }
 
     function renderKanban(jobs) {
@@ -1872,20 +1977,41 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
         ready: document.getElementById('col-ready'),
         applied: document.getElementById('col-applied'),
         interviewing: document.getElementById('col-interviewing'),
-        scouted: document.getElementById('col-scouted')
+        scouted: document.getElementById('col-scouted'),
+        archived: document.getElementById('col-archived')
       };
 
       // Reset columns
-      Object.keys(cols).forEach(k => cols[k].innerHTML = '');
+      Object.keys(cols).forEach(k => {
+        if (cols[k]) cols[k].innerHTML = '';
+      });
       
-      let counts = { ready: 0, applied: 0, interviewing: 0, scouted: 0 };
+      let counts = { ready: 0, applied: 0, interviewing: 0, scouted: 0, archived: 0 };
 
       jobs.forEach(job => {
-        const colKey = job.status in cols ? job.status : (job.type === 'scouted' ? 'scouted' : 'ready');
+        const isArchived = ['rejected', 'archived', 'archive'].includes(job.status);
+        const isOffer = job.status === 'offer';
+
+        let colKey = 'ready';
+        if (isArchived) {
+          colKey = 'archived';
+        } else if (isOffer || job.status === 'interviewing') {
+          colKey = 'interviewing';
+        } else if (job.status === 'applied') {
+          colKey = 'applied';
+        } else if (job.status === 'scouted' || job.type === 'scouted') {
+          colKey = 'scouted';
+        } else {
+          colKey = 'ready';
+        }
+
         counts[colKey] = (counts[colKey] || 0) + 1;
+        if (!cols[colKey]) return;
         
         const card = document.createElement('div');
-        card.className = "bg-slate-800/90 hover:bg-slate-800 border border-slate-700/70 hover:border-slate-600 rounded-xl p-3.5 shadow-md transition cursor-pointer group";
+        card.className = isArchived
+          ? "bg-slate-900/90 hover:bg-slate-900 border border-rose-500/20 hover:border-rose-500/40 rounded-xl p-3.5 shadow-md transition cursor-pointer group opacity-85 hover:opacity-100"
+          : "bg-slate-800/90 hover:bg-slate-800 border border-slate-700/70 hover:border-slate-600 rounded-xl p-3.5 shadow-md transition cursor-pointer group";
         card.onclick = () => openDrawer(job);
 
         // Match badge style
@@ -1994,12 +2120,19 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
               </a>
             ` : `<span class="text-slate-500 text-[10px]">No Link</span>`}
             <div class="flex items-center gap-1.5">
-              <span class="text-slate-400 text-[10px]">
-                ${job.applied_date ? `Applied: ${job.applied_date}` : (job.type === 'scouted' ? 'Scouted' : 'Ready')}
-              </span>
-              <button onclick="event.stopPropagation(); quickToggleApplied('${job.id}', '${job.status}')" class="px-2 py-0.5 rounded text-[10px] font-medium ${job.status === 'applied' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-700 hover:bg-slate-600 text-slate-200'} transition">
-                ${job.status === 'applied' ? '✓ Applied' : 'Mark Applied'}
-              </button>
+              ${isArchived ? `
+                <button onclick="event.stopPropagation(); updateJobStatus('${job.id}', 'ready')" class="px-2 py-0.5 rounded text-[10px] font-medium bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/30 transition flex items-center gap-1 shadow-sm" title="Restore back to Ready to Apply">
+                  <i data-lucide="rotate-ccw" class="w-2.5 h-2.5"></i>
+                  <span>Restore</span>
+                </button>
+              ` : `
+                <span class="text-slate-400 text-[10px]">
+                  ${job.applied_date ? `Applied: ${job.applied_date}` : (job.type === 'scouted' ? 'Scouted' : 'Ready')}
+                </span>
+                <button onclick="event.stopPropagation(); quickToggleApplied('${job.id}', '${job.status}')" class="px-2 py-0.5 rounded text-[10px] font-medium ${job.status === 'applied' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-700 hover:bg-slate-600 text-slate-200'} transition">
+                  ${job.status === 'applied' ? '✓ Applied' : 'Mark Applied'}
+                </button>
+              `}
             </div>
           </div>
         `;
@@ -2011,27 +2144,41 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
       document.getElementById('col-count-applied').textContent = counts.applied;
       document.getElementById('col-count-interviewing').textContent = counts.interviewing;
       document.getElementById('col-count-scouted').textContent = counts.scouted;
+      if (document.getElementById('col-count-archived')) {
+        document.getElementById('col-count-archived').textContent = counts.archived;
+      }
 
       lucide.createIcons();
     }
 
-    function renderTable(jobs) {
+    function renderTable(jobs, statusFilter = 'active') {
       const tbody = document.getElementById('table-body');
       tbody.innerHTML = '';
 
-      jobs.forEach(job => {
+      // If active pipeline is selected, filter out archived jobs from table view
+      const tableJobs = statusFilter === 'active' 
+        ? jobs.filter(j => !['rejected', 'archived', 'archive'].includes(j.status))
+        : jobs;
+
+      tableJobs.forEach(job => {
+        const isArchived = ['rejected', 'archived', 'archive'].includes(job.status);
         const tr = document.createElement('tr');
-        tr.className = "hover:bg-slate-800/50 cursor-pointer transition";
+        tr.className = isArchived 
+          ? "hover:bg-slate-800/50 cursor-pointer transition opacity-70 hover:opacity-100 bg-rose-950/10"
+          : "hover:bg-slate-800/50 cursor-pointer transition";
         tr.onclick = () => openDrawer(job);
 
         let statusClass = "bg-slate-800 text-slate-300";
         if (job.status === 'ready') statusClass = "bg-sky-500/10 text-sky-400 border border-sky-500/30";
         if (job.status === 'applied') statusClass = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30";
         if (job.status === 'interviewing') statusClass = "bg-amber-500/10 text-amber-400 border border-amber-500/30";
+        if (job.status === 'offer') statusClass = "bg-purple-500/10 text-purple-400 border border-purple-500/30";
+        if (isArchived) statusClass = "bg-rose-500/10 text-rose-400 border border-rose-500/30";
 
         const langBadge = job.language_badge || (job.language_tag === 'Finnish Required' ? '🇫🇮 Finnish Required' : (job.language_tag === 'Finnish Advantage' ? '👍 Finnish Advantage' : '🌐 English / Int\'l'));
         const langClass = job.language_class || (job.language_tag === 'Finnish Required' ? 'border-amber-500/30 bg-amber-500/10 text-amber-300' : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300');
         const platformStr = job.platform_display || job.platform || 'Direct';
+        const statusLabel = isArchived ? 'Archived' : (job.status === 'offer' ? 'Offer' : (job.status || 'Ready'));
 
         tr.innerHTML = `
           <td class="py-3 px-4">
@@ -2063,7 +2210,7 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
           </td>
           <td class="py-3 px-4 text-slate-300">${job.location}</td>
           <td class="py-3 px-4">
-            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${statusClass}">${job.status}</span>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${statusClass}">${statusLabel}</span>
             ${job.follow_up_due ? `
               <div class="mt-1">
                 <button onclick="event.stopPropagation(); openDrawerById('${job.id}', 'outreach')" class="px-2 py-0.5 rounded-full text-[10px] font-bold border border-amber-500/50 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 animate-pulse inline-flex items-center gap-1 transition shadow-sm" title="Applied ${job.days_since_applied} days ago - Click to open Follow-Up Drafter">
@@ -2087,6 +2234,12 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
           </td>
           <td class="py-3 px-4 text-right">
             <div class="flex items-center justify-end gap-1.5">
+              ${isArchived ? `
+                <button onclick="event.stopPropagation(); updateJobStatus('${job.id}', 'ready')" title="Restore to Ready to Apply" class="px-2.5 py-1 bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 hover:text-sky-200 rounded border border-sky-500/30 text-xs inline-flex items-center gap-1 transition active:scale-95 shadow-sm">
+                  <i data-lucide="rotate-ccw" class="w-3 h-3"></i>
+                  <span>Restore</span>
+                </button>
+              ` : ''}
               ${job.folder ? `
                 <button onclick="event.stopPropagation(); triggerWorkflow('${job.id}', true)" title="Regenerate documents with Gemini AI" class="px-2 py-1 bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 hover:text-indigo-200 rounded border border-indigo-500/30 text-xs inline-flex items-center gap-1 transition active:scale-95 shadow-sm">
                   <i data-lucide="refresh-cw" class="w-3 h-3"></i>
@@ -2168,10 +2321,35 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
       if (currentJob && (currentJob.id === id || currentJob.folder === id)) {
         currentJob.status = newStatus;
         const statusSelect = document.getElementById('drawer-status-select');
-        if (statusSelect) statusSelect.value = newStatus;
+        if (statusSelect) {
+          statusSelect.value = ['rejected', 'archived', 'archive'].includes(newStatus) ? 'rejected' : newStatus;
+        }
+        updateDrawerStatusBadge(newStatus);
         if (currentTab === 'prep') {
           await switchDrawerTab('prep');
         }
+      }
+    }
+
+    function updateDrawerStatusBadge(status, type) {
+      const statusBadge = document.getElementById('drawer-status-badge');
+      if (!statusBadge) return;
+      const isArchived = ['rejected', 'archived', 'archive'].includes(status);
+      if (isArchived) {
+        statusBadge.textContent = 'Archived';
+        statusBadge.className = 'px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-rose-500/10 text-rose-300 border border-rose-500/30';
+      } else if (status === 'applied') {
+        statusBadge.textContent = 'Applied';
+        statusBadge.className = 'px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-emerald-500/10 text-emerald-300 border border-emerald-500/30';
+      } else if (status === 'interviewing') {
+        statusBadge.textContent = 'Interviewing';
+        statusBadge.className = 'px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-amber-500/10 text-amber-300 border border-amber-500/30';
+      } else if (status === 'offer') {
+        statusBadge.textContent = 'Offer';
+        statusBadge.className = 'px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-purple-500/10 text-purple-300 border border-purple-500/30';
+      } else {
+        statusBadge.textContent = type === 'scouted' ? 'Scouted' : 'Ready';
+        statusBadge.className = 'px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-sky-500/10 text-sky-300 border border-sky-500/30';
       }
     }
 
@@ -2204,8 +2382,9 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
 
       const statusSelect = document.getElementById('drawer-status-select');
       if (statusSelect && job.status) {
-        statusSelect.value = job.status;
+        statusSelect.value = ['rejected', 'archived', 'archive'].includes(job.status) ? 'rejected' : job.status;
       }
+      updateDrawerStatusBadge(job.status, job.type);
       
       // Language Badge in Drawer
       const langEl = document.getElementById('drawer-language-badge');

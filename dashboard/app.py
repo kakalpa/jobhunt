@@ -911,7 +911,8 @@ def get_jobs():
         "applied": sum(1 for j in all_jobs if j["status"] == "applied"),
         "interviewing": sum(1 for j in all_jobs if j["status"] == "interviewing"),
         "offer": sum(1 for j in all_jobs if j["status"] == "offer"),
-        "rejected": sum(1 for j in all_jobs if j["status"] == "rejected"),
+        "rejected": sum(1 for j in all_jobs if j["status"] in ("rejected", "archived", "archive")),
+        "archived": sum(1 for j in all_jobs if j["status"] in ("rejected", "archived", "archive")),
         "english": sum(1 for j in all_jobs if j.get("language_tag") == "English / International"),
         "finnish_req": sum(1 for j in all_jobs if j.get("language_tag") == "Finnish Required"),
         "finnish_adv": sum(1 for j in all_jobs if j.get("language_tag") == "Finnish Advantage")
