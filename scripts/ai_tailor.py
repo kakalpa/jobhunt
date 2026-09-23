@@ -50,8 +50,7 @@ def get_api_key() -> str:
 
 MODELS = [
     "models/gemini-flash-lite-latest",
-    "models/gemini-3.6-flash",
-    "models/gemini-2.5-flash"
+    "models/gemini-3.6-flash"
 ]
 
 AI_STATUS_FILE = WORKSPACE_DIR / ".ai_api_status.json"
@@ -284,7 +283,7 @@ Return a STRICT JSON object with these exact keys:
         url = f"https://generativelanguage.googleapis.com/v1beta/{model_name}:generateContent?key={api_key}"
         req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
         try:
-            with urllib.request.urlopen(req, timeout=20) as response:
+            with urllib.request.urlopen(req, timeout=45) as response:
                 result = json.loads(response.read().decode("utf-8"))
                 text = result["candidates"][0]["content"]["parts"][0]["text"]
                 parsed = json.loads(text)
@@ -397,7 +396,7 @@ Generate a comprehensive, tailored Interview Preparation Guide in strict JSON fo
         url = f"https://generativelanguage.googleapis.com/v1beta/{model_name}:generateContent?key={api_key}"
         req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
         try:
-            with urllib.request.urlopen(req, timeout=20) as response:
+            with urllib.request.urlopen(req, timeout=45) as response:
                 result = json.loads(response.read().decode("utf-8"))
                 text = result["candidates"][0]["content"]["parts"][0]["text"]
                 parsed = json.loads(text)
@@ -579,7 +578,7 @@ Produce a STRICT JSON object containing:
             url = f"https://generativelanguage.googleapis.com/v1beta/{model_name}:generateContent?key={api_key}"
             req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
             try:
-                with urllib.request.urlopen(req, timeout=20) as response:
+                with urllib.request.urlopen(req, timeout=45) as response:
                     res_json = json.loads(response.read().decode("utf-8"))
                     text = res_json["candidates"][0]["content"]["parts"][0]["text"]
                     parsed = json.loads(text)
@@ -768,7 +767,7 @@ Generate a specialized, high-converting LinkedIn Pitch Package in strict JSON fo
             url = f"https://generativelanguage.googleapis.com/v1beta/{model_name}:generateContent?key={api_key}"
             req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
             try:
-                with urllib.request.urlopen(req, timeout=15) as response:
+                with urllib.request.urlopen(req, timeout=45) as response:
                     res_json = json.loads(response.read().decode("utf-8"))
                     text = res_json["candidates"][0]["content"]["parts"][0]["text"]
                     parsed = json.loads(text)
