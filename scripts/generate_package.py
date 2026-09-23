@@ -839,6 +839,8 @@ def generate_interview_prep(
             except Exception:
                 pass
 
+    cand = get_candidate_contact_info(WORKSPACE_DIR)
+
     # Role archetype detection for tailored fallback stories & salary benchmarks
     title_lower = title.lower()
     is_security = any(k in title_lower for k in ["security", "soc", "grc", "cyber", "pentest"])
