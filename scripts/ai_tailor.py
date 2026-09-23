@@ -51,9 +51,8 @@ def get_api_key() -> str:
 MODELS = [
     "models/gemini-3-flash-preview",
     "models/gemini-3.5-flash",
-    "models/gemini-flash-latest",
-    "models/gemini-3.5-flash-lite",
-    "models/gemini-flash-lite-latest"
+    "models/gemini-3.6-flash",
+    "models/gemini-flash-latest"
 ]
 
 AI_STATUS_FILE = WORKSPACE_DIR / ".ai_api_status.json"
@@ -82,7 +81,7 @@ def record_ai_api_status(status: str, error: str = "", model: str = ""):
     except Exception:
         pass
 
-def call_gemini_json(prompt: str, api_key: str, timeout: int = 60, max_retries: int = 2) -> tuple:
+def call_gemini_json(prompt: str, api_key: str, timeout: int = 90, max_retries: int = 2) -> tuple:
     """
     Executes a structured JSON generation request against Gemini models with:
     - Multi-model waterfall fallback across responsive models
@@ -120,14 +119,14 @@ def call_gemini_json(prompt: str, api_key: str, timeout: int = 60, max_retries: 
                 last_err_msg = f"HTTP Error {e.code}: {e.reason}"
                 print(f"⚠️ [Gemini Client] {model_name} attempt {attempt+1}/{max_retries}: {last_err_msg}")
                 if e.code in (503, 429):
-                    time.sleep(1.5 * (attempt + 1))
+                    time.sleep(2.5 * (attempt + 1))
                     continue
                 else:
                     break
             except Exception as e:
                 last_err_msg = str(e)
                 print(f"⚠️ [Gemini Client] {model_name} attempt {attempt+1}/{max_retries}: {last_err_msg}")
-                time.sleep(1.5 * (attempt + 1))
+                time.sleep(2.5 * (attempt + 1))
                 continue
 
     record_ai_api_status("error", last_err_msg)
@@ -329,7 +328,7 @@ Return a STRICT JSON object with these exact keys:
 }}
 """
 
-    parsed, model_used, err_msg = call_gemini_json(prompt, api_key, timeout=60)
+    parsed, model_used, err_msg = call_gemini_json(prompt, api_key, timeout=90)
     if parsed and parsed.get("cv_summary") and parsed.get("cover_letter_body"):
         print(f"✨ [AI Tailor] Successfully tailored application using {model_used} with all 12 skills!")
         return parsed
@@ -409,7 +408,7 @@ Generate a comprehensive, tailored Interview Preparation Guide in strict JSON fo
 }}
 """
 
-    parsed, model_used, err_msg = call_gemini_json(prompt, api_key, timeout=60)
+    parsed, model_used, err_msg = call_gemini_json(prompt, api_key, timeout=90)
     if parsed and parsed.get("elevator_pitch") and parsed.get("star_scenario_1"):
         print(f"🎯 [AI Interview Prep] Successfully generated prep guide using {model_used}!")
         return parsed
@@ -573,7 +572,7 @@ Produce a STRICT JSON object containing:
   "closing_paragraph": "1 confident closing paragraph highlighting permanent EU work authorization, immediate 0-day notice, Supo clearance readiness, C1 English and practical Finnish."
 }}
 """
-        parsed, model_used, err_msg = call_gemini_json(prompt, api_key, timeout=60)
+        parsed, model_used, err_msg = call_gemini_json(prompt, api_key, timeout=90)
         if parsed and parsed.get("hook_paragraph") and parsed.get("tech_pillar_paragraph"):
             md = f"""# {cand_name}
 {cand_location} | {cand_phone} | {cand_email} | [LinkedIn]({cand_linkedin})
@@ -745,7 +744,7 @@ Generate a specialized, high-converting LinkedIn Pitch Package in strict JSON fo
   "matched_skills": ["Top 4-5 technical skills extracted from JD that match the candidate"]
 }}
 """
-        parsed, model_used, err_msg = call_gemini_json(prompt, api_key, timeout=60)
+        parsed, model_used, err_msg = call_gemini_json(prompt, api_key, timeout=90)
         if parsed and parsed.get("why_top_choice_candidate") and parsed.get("linkedin_quick_pitch"):
             c = str(parsed["why_top_choice_candidate"]).strip()
             if len(c) > 400:
