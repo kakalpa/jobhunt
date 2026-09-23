@@ -39,7 +39,7 @@ try:
         check_rate_limit, record_failed_attempt, reset_rate_limit,
         generate_csrf_token, validate_csrf_token, generate_totp_secret,
         get_totp_uri, verify_totp, consume_recovery_code,
-        generate_qr_svg, generate_recovery_codes
+        generate_qr_svg, generate_recovery_codes, reset_mfa_config
     )
 except ImportError:
     try:
@@ -48,11 +48,12 @@ except ImportError:
             check_rate_limit, record_failed_attempt, reset_rate_limit,
             generate_csrf_token, validate_csrf_token, generate_totp_secret,
             get_totp_uri, verify_totp, consume_recovery_code,
-            generate_qr_svg, generate_recovery_codes
+            generate_qr_svg, generate_recovery_codes, reset_mfa_config
         )
     except ImportError:
         load_auth_config = lambda: {"auth_enabled": False, "username": "admin", "password_hash": "", "mfa_enabled": False}
         save_auth_config = lambda c: None
+        reset_mfa_config = lambda: {}
         verify_credentials = lambda u, p, c: True
         check_rate_limit = lambda ip: (True, 0)
         record_failed_attempt = lambda ip: 5
@@ -61,7 +62,7 @@ except ImportError:
         validate_csrf_token = lambda t, s, k: True
         generate_totp_secret = lambda: ""
         get_totp_uri = lambda u, s: ""
-        verify_totp = lambda s, t: True
+        verify_totp = lambda s, t, w=2: True
         consume_recovery_code = lambda c, cfg: False
         generate_qr_svg = lambda u: None
         generate_recovery_codes = lambda n=8: []
@@ -800,7 +801,7 @@ def verify_mfa_post():
             csrf_token=get_or_create_csrf_token()
         ), 429
 
-    totp_token = request.form.get("totp_token", "").strip()
+    totp_token = request.form.get("totp_token", "").strip().replace(" ", "")
     recovery_code = request.form.get("recovery_code", "").strip()
     next_url = session.get("next_url") or "/"
 
@@ -823,7 +824,7 @@ def verify_mfa_post():
             ), 401
 
     secret = AUTH_CONFIG.get("totp_secret", "")
-    if verify_totp(secret, totp_token):
+    if verify_totp(secret, totp_token, window=2):
         reset_rate_limit(client_ip)
         session.permanent = True
         session["authenticated"] = True
@@ -848,11 +849,25 @@ def setup_mfa_post():
     if not session.get("pending_user") or not session.get("pending_authenticated"):
         return redirect("/login")
 
-    setup_secret = session.get("setup_totp_secret")
-    recovery_codes = session.get("setup_recovery_codes", [])
-    totp_token = request.form.get("totp_token", "").strip()
+    setup_secret = (
+        session.get("setup_totp_secret") or 
+        request.form.get("totp_secret", "")
+    ).strip().replace(" ", "").upper()
 
-    if not setup_secret or not verify_totp(setup_secret, totp_token):
+    recovery_codes = session.get("setup_recovery_codes")
+    if not recovery_codes:
+        raw_rec = request.form.get("recovery_codes_json", "")
+        if raw_rec:
+            try:
+                recovery_codes = json.loads(raw_rec)
+            except Exception:
+                recovery_codes = generate_recovery_codes(8)
+        else:
+            recovery_codes = generate_recovery_codes(8)
+
+    totp_token = request.form.get("totp_token", "").strip().replace(" ", "")
+
+    if not setup_secret or not verify_totp(setup_secret, totp_token, window=2):
         totp_uri = get_totp_uri(session["pending_user"], setup_secret or "")
         qr_svg = generate_qr_svg(totp_uri)
         return render_template(
@@ -1398,7 +1413,9 @@ def get_settings_api():
         "security": {
             "auth_enabled": AUTH_CONFIG.get("auth_enabled", False),
             "mfa_enabled": AUTH_CONFIG.get("mfa_enabled", False),
+            "mfa_configured": bool(AUTH_CONFIG.get("totp_secret")),
             "admin_username": AUTH_CONFIG.get("username", "admin"),
+            "recovery_codes_count": len(AUTH_CONFIG.get("recovery_codes", [])),
         }
     }
     return jsonify(data)
@@ -1523,6 +1540,33 @@ def ai_test_endpoint():
         return jsonify(res)
     except Exception as e:
         return jsonify({"valid": False, "status": "error", "error": str(e), "message": str(e)}), 500
+
+@app.route("/api/security/test-totp", methods=["POST"])
+def security_test_totp():
+    """Test verification of a 6-digit TOTP code against active secret."""
+    global AUTH_CONFIG
+    AUTH_CONFIG = load_auth_config()
+    secret = AUTH_CONFIG.get("totp_secret", "")
+    if not secret:
+        return jsonify({"valid": False, "message": "2FA is not yet configured or no secret exists."}), 400
+    payload = request.json or {}
+    token = str(payload.get("token", "")).strip().replace(" ", "")
+    if not token or len(token) != 6 or not token.isdigit():
+        return jsonify({"valid": False, "message": "Please enter a valid 6-digit verification code."}), 400
+    if verify_totp(secret, token, window=2):
+        return jsonify({"valid": True, "message": "Code verified successfully! Authenticator app is in sync."})
+    return jsonify({"valid": False, "message": "Invalid code. Please check that your device clock is accurate."}), 400
+
+@app.route("/api/security/reset-mfa", methods=["POST"])
+def security_reset_mfa():
+    """Reset MFA configuration to allow scanning a new QR code on next login."""
+    global AUTH_CONFIG
+    reset_mfa_config()
+    AUTH_CONFIG = load_auth_config()
+    return jsonify({
+        "success": True, 
+        "message": "Two-Factor Authentication secret has been reset. You will be prompted to scan a new QR code on next login."
+    })
 
 @app.route("/api/folder_files/<folder>")
 def get_folder_files(folder):

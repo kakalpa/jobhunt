@@ -57,10 +57,10 @@ def get_totp_token(secret_b32: str, offset_intervals: int = 0, interval: int = 3
     code = (struct.unpack(">I", digest[offset:offset + 4])[0] & 0x7FFFFFFF) % 1000000
     return f"{code:06d}"
 
-def verify_totp(secret_b32: str, token: str, window: int = 1, interval: int = 30) -> bool:
+def verify_totp(secret_b32: str, token: str, window: int = 2, interval: int = 30) -> bool:
     """
     Verifies a 6-digit TOTP token against secret with +/- window interval tolerance
-    to accommodate client-server clock drift.
+    to accommodate client-server clock drift. Default window=2 provides +/- 60s tolerance.
     """
     if not secret_b32 or not token:
         return False
@@ -179,10 +179,65 @@ def validate_csrf_token(token: str, session_id: str, secret_key: str, max_age_se
 # 4. Credential & Auth Configuration Storage
 # ==============================================================================
 
+def _get_env_path() -> Path:
+    env_path = WORKSPACE_DIR / ".env"
+    if not env_path.exists():
+        alt_path = APP_DIR / ".env"
+        if alt_path.exists():
+            return alt_path
+    return env_path
+
+def _sync_env_file(updates: dict) -> None:
+    """Safely synchronizes security and MFA key-value pairs into .env."""
+    env_path = _get_env_path()
+    lines = []
+    if env_path.exists():
+        try:
+            lines = env_path.read_text(encoding="utf-8").splitlines()
+        except Exception:
+            lines = []
+
+    seen = set()
+    new_lines = []
+    for line in lines:
+        stripped = line.strip()
+        if stripped and not stripped.startswith("#") and "=" in stripped:
+            k, _ = stripped.split("=", 1)
+            k = k.strip()
+            if k in updates:
+                seen.add(k)
+                val = updates[k]
+                if isinstance(val, bool):
+                    val_str = "true" if val else "false"
+                else:
+                    val_str = str(val).strip()
+                if any(c in val_str for c in [" ", "#", "=", "\t", ","]) or (val_str and not val_str.isalnum()):
+                    val_str = f'"{val_str}"'
+                new_lines.append(f"{k}={val_str}")
+                continue
+        new_lines.append(line)
+
+    for k, val in updates.items():
+        if k not in seen:
+            if isinstance(val, bool):
+                val_str = "true" if val else "false"
+            else:
+                val_str = str(val).strip()
+            if any(c in val_str for c in [" ", "#", "=", "\t", ","]) or (val_str and not val_str.isalnum()):
+                val_str = f'"{val_str}"'
+            new_lines.append(f"{k}={val_str}")
+
+    try:
+        env_path.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
+        for k, v in updates.items():
+            os.environ[k] = str(v)
+    except Exception as e:
+        print(f"Notice: Could not write .env: {e}")
+
 def load_auth_config() -> dict:
     """
     Loads authentication state from auth_config.json or environment variables.
-    Environment variables take precedence.
+    Supports dual persistence and robust fallback.
     """
     config = {
         "auth_enabled": False,
@@ -200,6 +255,21 @@ def load_auth_config() -> dict:
             config.update(stored)
         except Exception as e:
             print(f"Warning: Could not parse {AUTH_CONFIG_FILE}: {e}")
+
+    # Also parse .env directly if present to ensure no desync
+    env_path = _get_env_path()
+    if env_path.exists():
+        try:
+            for line in env_path.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, v = line.split("=", 1)
+                    k = k.strip()
+                    v = v.strip().strip('"').strip("'")
+                    if k not in os.environ and v:
+                        os.environ[k] = v
+        except Exception:
+            pass
 
     # Override / supplement with environment variables
     env_auth = os.environ.get("AUTH_ENABLED", "")
@@ -224,6 +294,13 @@ def load_auth_config() -> dict:
     if env_mfa:
         config["mfa_enabled"] = env_mfa.lower() in ("true", "1", "yes", "on")
 
+    # Read TOTP Secret from environment if present and not in file (or takes precedence)
+    env_totp = os.environ.get("TOTP_SECRET") or os.environ.get("MFA_SECRET") or ""
+    if env_totp:
+        config["totp_secret"] = env_totp.strip().upper()
+        if not config.get("mfa_enabled") and "MFA_ENABLED" not in os.environ:
+            config["mfa_enabled"] = True
+
     env_secret = os.environ.get("SECRET_KEY", "")
     if env_secret:
         config["secret_key"] = env_secret.strip()
@@ -239,12 +316,40 @@ def load_auth_config() -> dict:
     return config
 
 def save_auth_config(config: dict) -> None:
-    """Saves auth configuration locally (never committed to git)."""
+    """Saves auth configuration to auth_config.json and synchronizes to .env."""
     try:
+        AUTH_CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
         AUTH_CONFIG_FILE.write_text(json.dumps(config, indent=2), encoding="utf-8")
-        os.chmod(AUTH_CONFIG_FILE, 0o600)  # Restricted read/write
+        try:
+            os.chmod(AUTH_CONFIG_FILE, 0o600)  # Restricted read/write
+        except Exception:
+            pass
     except Exception as e:
         print(f"Notice: Failed to save auth config: {e}")
+
+    try:
+        env_updates = {}
+        if "totp_secret" in config:
+            env_updates["TOTP_SECRET"] = config.get("totp_secret", "")
+        if "mfa_enabled" in config:
+            env_updates["MFA_ENABLED"] = "true" if config["mfa_enabled"] else "false"
+        if env_updates:
+            _sync_env_file(env_updates)
+    except Exception as e:
+        print(f"Notice: Failed to sync auth config to .env: {e}")
+
+def reset_mfa_config() -> dict:
+    """Resets and clears MFA configuration and secret across stores."""
+    config = load_auth_config()
+    config["totp_secret"] = ""
+    config["recovery_codes"] = []
+    # If MFA_ENABLED was explicitly set to true, leave it true so next login guides setup
+    save_auth_config(config)
+    try:
+        _sync_env_file({"TOTP_SECRET": ""})
+    except Exception:
+        pass
+    return config
 
 def verify_credentials(username: str, password: str, config: dict) -> bool:
     """Checks username and password against hashed store."""

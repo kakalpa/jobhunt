@@ -142,6 +142,7 @@
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <input type="hidden" name="next" value="{{ next_url or "/" }}">
         <input type="hidden" name="totp_secret" value="{{ totp_secret }}">
+        <input type="hidden" name="recovery_codes_json" value='{{ (recovery_codes or []) | tojson }}'>
 
         <div class="text-center">
           <div class="inline-flex p-2.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 mb-1.5">

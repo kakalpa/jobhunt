@@ -1481,6 +1481,10 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
           <i data-lucide="hard-drive" class="w-3.5 h-3.5 text-amber-400"></i>
           <span>Retention & Disk</span>
         </button>
+        <button type="button" id="st-tab-security" onclick="switchSettingsTab('security')" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 bg-slate-800 text-slate-300 hover:text-white">
+          <i data-lucide="shield-check" class="w-3.5 h-3.5 text-rose-400"></i>
+          <span>Security & 2FA</span>
+        </button>
       </div>
 
       <!-- Scrollable Form Body -->
@@ -1716,6 +1720,65 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
                 <input type="checkbox" id="input-ret-notify" checked class="rounded border-slate-700 text-amber-500 bg-slate-900 focus:ring-0">
                 <span class="text-slate-300">Send summary alert to Telegram when cleanup reclaims storage space</span>
               </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 5: SECURITY & 2FA -->
+        <div id="st-pane-security" class="space-y-4 hidden">
+          <div class="p-4 rounded-xl bg-slate-800/50 border border-slate-700/60 space-y-4">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <i data-lucide="shield-check" class="w-4 h-4 text-rose-400"></i>
+                <h4 class="text-xs font-bold text-white uppercase tracking-wider">Access Security & Multi-Factor Auth</h4>
+              </div>
+              <span id="security-mfa-pill" class="text-[10px] px-2 py-0.5 rounded-full font-semibold border bg-slate-800 text-slate-400 border-slate-700">Checking...</span>
+            </div>
+            <p class="text-xs text-slate-400">Manage cryptographic password security, RFC 6238 TOTP two-factor authentication, and emergency recovery codes.</p>
+
+            <!-- Status Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div class="p-3 rounded-lg bg-slate-950/80 border border-slate-700/70 space-y-1">
+                <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Administrator</span>
+                <div id="sec-username-display" class="text-sm font-bold text-white font-mono">admin</div>
+                <div class="text-[10px] text-slate-500">Master operator credentials</div>
+              </div>
+              <div class="p-3 rounded-lg bg-slate-950/80 border border-slate-700/70 space-y-1">
+                <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Emergency Recovery Codes</span>
+                <div id="sec-recovery-count-display" class="text-sm font-bold text-amber-400 font-mono">- remaining</div>
+                <div class="text-[10px] text-slate-500">Single-use backup unlock tokens</div>
+              </div>
+            </div>
+
+            <!-- Test Authenticator Code -->
+            <div class="p-3 rounded-lg bg-slate-950/80 border border-slate-700/70 space-y-2">
+              <div class="flex items-center justify-between">
+                <label class="text-[11px] font-semibold text-slate-300">Test Authenticator Sync</label>
+                <span class="text-[10px] text-slate-400">RFC 6238 TOTP</span>
+              </div>
+              <p class="text-[11px] text-slate-400">Enter the 6-digit code currently showing in your authenticator app (Google Authenticator, Aegis, 1Password) to verify it is synchronized with the server.</p>
+              <div class="flex items-center gap-2">
+                <input type="text" id="input-sec-totp-test" maxlength="6" placeholder="000000" class="w-32 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-center text-white placeholder-slate-600 font-mono tracking-widest focus:outline-none focus:border-rose-500">
+                <button type="button" id="btn-test-totp" onclick="testSecurityTotp()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 flex items-center gap-1.5 transition">
+                  <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-rose-400"></i>
+                  <span>Verify Code</span>
+                </button>
+              </div>
+              <div id="sec-totp-test-msg" class="text-xs hidden"></div>
+            </div>
+
+            <!-- Re-enroll / Reset MFA -->
+            <div class="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 space-y-2">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-1.5 text-rose-300 font-bold text-xs">
+                  <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-rose-400"></i>
+                  <span>Reset & Re-Enroll 2FA</span>
+                </div>
+                <button type="button" onclick="resetSecurityMfa()" class="px-2.5 py-1 rounded bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition shadow-sm">
+                  Reset 2FA Secret
+                </button>
+              </div>
+              <p class="text-[10px] text-rose-300/80">If you got a new phone or need to re-scan the QR code, click this button to reset your secret. You will be prompted with a fresh QR code on your next login.</p>
             </div>
           </div>
         </div>
@@ -4662,10 +4725,11 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
     }
 
     function switchSettingsTab(tabName) {
-      const tabs = ['ai', 'telegram', 'scout', 'retention'];
+      const tabs = ['ai', 'telegram', 'scout', 'retention', 'security'];
       tabs.forEach(t => {
         const btn = document.getElementById(`st-tab-${t}`);
         const pane = document.getElementById(`st-pane-${t}`);
+        if (!btn || !pane) return;
         if (t === tabName) {
           btn.className = "px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 bg-indigo-600 text-white shadow-sm";
           pane.classList.remove('hidden');
@@ -4778,8 +4842,92 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
           document.getElementById('input-ret-notify').checked = !!data.retention.notify_telegram;
         }
 
+        // 5. Security & MFA
+        if (data.security) {
+          const secUser = document.getElementById('sec-username-display');
+          if (secUser) secUser.textContent = data.security.admin_username || 'admin';
+          const secRec = document.getElementById('sec-recovery-count-display');
+          if (secRec) secRec.textContent = (data.security.recovery_codes_count || 0) + ' remaining';
+
+          const secPill = document.getElementById('security-mfa-pill');
+          if (secPill) {
+            if (data.security.mfa_enabled && data.security.mfa_configured) {
+              secPill.className = "text-[10px] px-2 py-0.5 rounded-full font-semibold border bg-emerald-500/10 text-emerald-400 border-emerald-500/30";
+              secPill.textContent = "Enrolled & Active ✅";
+            } else if (data.security.mfa_enabled) {
+              secPill.className = "text-[10px] px-2 py-0.5 rounded-full font-semibold border bg-amber-500/10 text-amber-300 border-amber-500/30";
+              secPill.textContent = "Setup Required ⚠️";
+            } else {
+              secPill.className = "text-[10px] px-2 py-0.5 rounded-full font-semibold border bg-slate-800 text-slate-400 border-slate-700";
+              secPill.textContent = "Disabled";
+            }
+          }
+        }
+
       } catch (err) {
         showToast("Error loading settings: " + err.message);
+      }
+    }
+
+    async function testSecurityTotp() {
+      const btn = document.getElementById('btn-test-totp');
+      const input = document.getElementById('input-sec-totp-test');
+      const msg = document.getElementById('sec-totp-test-msg');
+      const token = input.value.trim().replace(/\s+/g, '');
+      if (!token || token.length !== 6 || !/^\d+$/.test(token)) {
+        msg.classList.remove('hidden');
+        msg.className = "text-xs text-rose-400 font-medium";
+        msg.textContent = "⚠️ Please enter a 6-digit code from your authenticator app.";
+        return;
+      }
+
+      const origHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>Verifying...</span>';
+      lucide.createIcons();
+
+      try {
+        const res = await fetch('/api/security/test-totp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: token })
+        });
+        const data = await res.json();
+        msg.classList.remove('hidden');
+        if (data.valid) {
+          msg.className = "text-xs text-emerald-400 font-medium";
+          msg.textContent = `✅ ${data.message}`;
+          showToast("2FA code verified successfully!");
+        } else {
+          msg.className = "text-xs text-rose-400 font-medium";
+          msg.textContent = `⚠️ ${data.message || 'Invalid code. Check clock synchronization.'}`;
+        }
+      } catch (err) {
+        msg.classList.remove('hidden');
+        msg.className = "text-xs text-rose-400 font-medium";
+        msg.textContent = `⚠️ Connection error: ${err.message}`;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+        lucide.createIcons();
+      }
+    }
+
+    async function resetSecurityMfa() {
+      if (!confirm("Are you sure you want to reset your Two-Factor Authentication secret?\n\nYou will be asked to scan a fresh QR code on your next login.")) {
+        return;
+      }
+      try {
+        const res = await fetch('/api/security/reset-mfa', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          showToast(data.message);
+          loadSettingsData();
+        } else {
+          alert("Error: " + (data.message || "Failed to reset MFA"));
+        }
+      } catch (e) {
+        alert("Error resetting MFA: " + e.message);
       }
     }
 
