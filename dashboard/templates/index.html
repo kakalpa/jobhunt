@@ -690,6 +690,23 @@
           </button>
         </div>
 
+        <!-- Discovered Point of Contact Card -->
+        <div id="outreach-contact-card" class="bg-gradient-to-r from-slate-900/90 to-purple-950/40 p-3.5 rounded-xl border border-purple-500/30 space-y-2.5 shadow-md">
+          <div class="flex items-center justify-between">
+            <div class="font-bold text-white flex items-center gap-2">
+              <i data-lucide="user-check" class="w-4 h-4 text-purple-400"></i>
+              <span>Discovered Point of Contact & Hiring Leads</span>
+            </div>
+            <a id="outreach-linkedin-search-btn" href="#" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded bg-sky-600/30 hover:bg-sky-600/50 border border-sky-500/40 text-sky-200 font-semibold text-[11px] inline-flex items-center gap-1.5 transition">
+              <i data-lucide="external-link" class="w-3 h-3 text-sky-400"></i>
+              <span>Recruiters on LinkedIn</span>
+            </a>
+          </div>
+          <div id="outreach-contact-details" class="text-xs text-slate-300">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
         <!-- Draft 1: LinkedIn Connection Note -->
         <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
           <div class="flex items-center justify-between">
@@ -2304,9 +2321,16 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
               ${job.title}
             </h3>
             <p class="text-[11px] font-medium text-slate-300 mb-2">${job.company} &bull; <span class="text-slate-400">${job.location}</span></p>
-            <span class="text-[10px] text-slate-400 inline-flex items-center gap-1 bg-slate-950/60 px-1.5 py-0.5 rounded border border-slate-800">
-              <i data-lucide="layers" class="w-2.5 h-2.5 text-sky-400"></i> ${platformStr}
-            </span>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="text-[10px] text-slate-400 inline-flex items-center gap-1 bg-slate-950/60 px-1.5 py-0.5 rounded border border-slate-800">
+                <i data-lucide="layers" class="w-2.5 h-2.5 text-sky-400"></i> ${platformStr}
+              </span>
+              ${job.contacts && job.contacts.has_contacts ? `
+                <span class="text-[10px] text-purple-300 inline-flex items-center gap-1 bg-purple-950/50 px-1.5 py-0.5 rounded border border-purple-500/30" title="Direct recruiter or contact person discovered">
+                  <i data-lucide="user-check" class="w-2.5 h-2.5 text-purple-400"></i> Contact
+                </span>
+              ` : ''}
+            </div>
           </div>
 
           <div class="pt-2.5 border-t border-slate-800/80 mt-2.5 flex items-center gap-1.5">
@@ -2501,6 +2525,11 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
             <span class="text-[10px] text-slate-400 flex items-center gap-1 bg-slate-900/60 px-1.5 py-0.5 rounded border border-slate-800">
               <i data-lucide="layers" class="w-2.5 h-2.5 inline text-sky-400"></i> ${platformStr}
             </span>
+            ${job.contacts && job.contacts.has_contacts ? `
+              <span class="text-[10px] text-purple-300 inline-flex items-center gap-1 bg-purple-950/50 px-1.5 py-0.5 rounded border border-purple-500/30" title="Direct recruiter or contact person discovered">
+                <i data-lucide="user-check" class="w-2.5 h-2.5 text-purple-400"></i> Contact
+              </span>
+            ` : ''}
           </div>
 
           <h3 class="text-xs font-bold text-white group-hover:text-sky-400 transition leading-snug mb-1">
@@ -2588,7 +2617,14 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
             ` : `
               <div class="font-semibold text-white">${job.title}</div>
             `}
-            <div class="text-slate-400 text-[11px]">${job.company}</div>
+            <div class="text-slate-400 text-[11px] flex items-center gap-1.5 mt-0.5">
+              <span>${job.company}</span>
+              ${job.contacts && job.contacts.has_contacts ? `
+                <span class="text-[9px] text-purple-300 font-semibold px-1 rounded bg-purple-950/60 border border-purple-500/30 inline-flex items-center gap-0.5" title="Direct contact discovered">
+                  <i data-lucide="user-check" class="w-2.5 h-2.5 text-purple-400"></i> Contact
+                </span>
+              ` : ''}
+            </div>
           </td>
           <td class="py-3 px-4">
             <span class="px-2 py-0.5 rounded text-[10px] font-semibold border ${langClass}">
@@ -3344,17 +3380,121 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
       window.location.href = `/api/bundle/${folder}`;
     }
 
+    function renderContactDetails(contacts, company, title) {
+      const detailsEl = document.getElementById('outreach-contact-details');
+      const searchBtn = document.getElementById('outreach-linkedin-search-btn');
+      if (!detailsEl) return;
+
+      const compName = (company && company !== 'Company') ? company : '';
+      const liSearch = (contacts && contacts.linkedin_search_url) ? contacts.linkedin_search_url : (
+        compName ? `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(compName + ' recruiter')}` : 'https://www.linkedin.com/search/results/people/'
+      );
+      if (searchBtn) {
+        searchBtn.href = liSearch;
+        searchBtn.title = `Search recruiters for ${compName || 'company'} on LinkedIn`;
+      }
+
+      if (!contacts || !contacts.has_contacts) {
+        detailsEl.innerHTML = `
+          <div class="flex items-start gap-2.5 p-3 rounded-lg bg-slate-950/70 border border-slate-800">
+            <i data-lucide="info" class="w-4 h-4 text-slate-400 mt-0.5 shrink-0"></i>
+            <div>
+              <p class="text-slate-300 font-medium leading-relaxed">No direct individual contact was named in the job description.</p>
+              <p class="text-slate-400 text-[11px] mt-1">
+                You can reach out directly via LinkedIn to <b>${escapeHtml(compName || 'company')}</b> recruitment and engineering leads even if the external posting link expires.
+              </p>
+            </div>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      let html = `<div class="space-y-2.5">`;
+      
+      // Top row: Person Name & Title
+      if (contacts.primary_name || contacts.primary_title) {
+        html += `
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 inline-flex items-center gap-1">
+              <i data-lucide="user-check" class="w-3 h-3"></i> Hiring Lead
+            </span>
+            <span class="text-sm font-bold text-white">${escapeHtml(contacts.primary_name || '')}</span>
+            ${contacts.primary_title ? `<span class="text-slate-400 text-xs font-normal">(${escapeHtml(contacts.primary_title)})</span>` : ''}
+          </div>
+        `;
+      }
+
+      // Contact Channels Row (Email & Phone)
+      html += `<div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">`;
+      if (contacts.primary_email) {
+        const mailto = contacts.mailto_url || `mailto:${contacts.primary_email}`;
+        html += `
+          <div class="p-2.5 rounded-lg bg-slate-950 border border-slate-800/90 flex items-center justify-between gap-2 shadow-inner">
+            <div class="truncate">
+              <span class="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Direct Email</span>
+              <a href="${mailto}" class="text-xs font-mono font-semibold text-amber-300 hover:underline truncate block" title="${escapeHtml(contacts.primary_email)}">${escapeHtml(contacts.primary_email)}</a>
+            </div>
+            <button onclick="navigator.clipboard.writeText('${escapeHtml(contacts.primary_email)}'); showToast('Copied email to clipboard!');" class="p-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition shrink-0" title="Copy Email">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        `;
+      }
+
+      if (contacts.primary_phone) {
+        const telHref = `tel:${contacts.primary_phone.replace(/\s+/g, '')}`;
+        html += `
+          <div class="p-2.5 rounded-lg bg-slate-950 border border-slate-800/90 flex items-center justify-between gap-2 shadow-inner">
+            <div class="truncate">
+              <span class="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Phone / WhatsApp</span>
+              <a href="${telHref}" class="text-xs font-mono font-semibold text-emerald-300 hover:underline truncate block">${escapeHtml(contacts.primary_phone)}</a>
+            </div>
+            <button onclick="navigator.clipboard.writeText('${escapeHtml(contacts.primary_phone)}'); showToast('Copied phone number!');" class="p-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition shrink-0" title="Copy Phone Number">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        `;
+      }
+      html += `</div>`;
+
+      // Calling hours if available
+      if (contacts.calling_hours) {
+        html += `
+          <div class="px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs flex items-center gap-2">
+            <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
+            <span><b>Calling Hours / Soittoaika:</b> ${escapeHtml(contacts.calling_hours)}</span>
+          </div>
+        `;
+      }
+
+      // Quote snippet from posting if available
+      if (contacts.contact_snippets && contacts.contact_snippets.length > 0) {
+        html += `
+          <div class="px-3 py-2 rounded-lg bg-slate-950/70 border border-slate-800/80 text-slate-300 text-[11px] italic">
+            &ldquo;${escapeHtml(contacts.contact_snippets[0])}&rdquo;
+          </div>
+        `;
+      }
+
+      html += `</div>`;
+      detailsEl.innerHTML = html;
+      lucide.createIcons();
+    }
+
     async function loadOutreachTab(job) {
       if (!job) return;
       const linkedinEl = document.getElementById('outreach-linkedin-text');
       const inmailEl = document.getElementById('outreach-inmail-text');
       const followupEl = document.getElementById('outreach-followup-text');
 
+      renderContactDetails(job.contacts, job.company, job.title);
+
       if (!job.folder) {
-        const placeholder = "Generate an application package for this job to view tailored outreach messages.";
-        if (linkedinEl) linkedinEl.textContent = placeholder;
-        if (inmailEl) inmailEl.textContent = placeholder;
-        if (followupEl) followupEl.textContent = placeholder;
+        const contactLead = (job.contacts && job.contacts.primary_name) ? job.contacts.primary_name : `${job.company || 'Hiring'} Team`;
+        if (linkedinEl) linkedinEl.textContent = `Hi! I'm an IT systems & infrastructure engineer based in Finland (TUAS B.Eng., 4.0 GPA). I saw the ${job.title || 'IT'} opening at ${job.company || 'your team'} and wanted to reach out. With 8+ yrs in systems administration, 0-day notice, and permanent EU authorization, I'd love to connect!`;
+        if (inmailEl) inmailEl.textContent = `Dear ${contactLead},\n\nI recently saw the ${job.title || 'IT'} opportunity at ${job.company || 'your company'} and wanted to reach out directly.\n\nWith 8+ years of enterprise systems administration, security operations (Defender XDR, Sentinel, Wazuh SIEM), and hands-on certifications, my background aligns directly with the depth your team needs.\n\nI am based in Finland with full EU work authorization and 0 days notice period. I would welcome the opportunity to discuss how my automation and prevention-first approach can support ${job.company || 'your team'}.\n\nBest regards,\nKalpa Prabashwera\n+358 41 7269702 | kalpakuruwita@gmail.com`;
+        if (followupEl) followupEl.textContent = `Hi ${contactLead},\n\nI hope your week is going well! I am following up on my application for the ${job.title || 'IT'} position. I remain very enthusiastic about contributing with my background in enterprise systems and security operations.\n\nBest regards,\nKalpa Prabashwera\nkalpakuruwita@gmail.com | +358 41 7269702`;
         return;
       }
 
@@ -3369,6 +3509,9 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
           const errText = "Error: " + data.error;
           if (linkedinEl) linkedinEl.textContent = errText;
           return;
+        }
+        if (data.contacts) {
+          renderContactDetails(data.contacts, job.company, job.title);
         }
         if (linkedinEl) linkedinEl.textContent = data.linkedin_connect || data.linkedin_connection_note || '';
         if (inmailEl) inmailEl.textContent = data.hiring_inmail || data.recruiter_inmail || '';

@@ -44,11 +44,13 @@ try:
         is_it_job, detect_language_requirement, deduplicate_job_records,
         get_candidate_contact_info, normalize_company, normalize_title
     )
+    from scripts.contact_extractor import extract_job_contacts, format_contacts_markdown
 except ImportError:
     from job_filters import (
         is_it_job, detect_language_requirement, deduplicate_job_records,
         get_candidate_contact_info, normalize_company, normalize_title
     )
+    from contact_extractor import extract_job_contacts, format_contacts_markdown
 
 # Core Candidate Keywords from Base_CV.md for automated scoring
 CANDIDATE_KEYWORDS = {
@@ -459,6 +461,7 @@ def run_scout(queries: list, location: str, hours: int, limit: int, remote_only:
         
         lang_info = detect_language_requirement(title, description)
         match_score = calculate_match_score(title, description)
+        contacts = extract_job_contacts(description, title, company)
         
         # Check if already tracked/applied
         is_already_tracked = is_job_tracked(r, tracked_index)
@@ -476,7 +479,8 @@ def run_scout(queries: list, location: str, hours: int, limit: int, remote_only:
             "language_tag": lang_info["tag"],
             "language_badge": lang_info["badge"],
             "description": description,
-            "description_snippet": description[:300].replace('\n', ' ') + "..." if description else "N/A"
+            "description_snippet": description[:300].replace('\n', ' ') + "..." if description else "N/A",
+            "contacts": contacts
         })
         
     # 4. Cross-Site Deduplication Engine
@@ -521,6 +525,23 @@ def run_scout(queries: list, location: str, hours: int, limit: int, remote_only:
             f.write(f"- **Estimated Match:** {job['match_score']}% | **Platform:** {platform_str} | **Location:** {job['location']}\n")
             f.write(f"- **Language Requirement:** {job['language_badge']}\n")
             f.write(f"- **Direct Link:** {job['url']}\n")
+            contacts_info = job.get("contacts", {})
+            if contacts_info.get("has_contacts"):
+                c_details = []
+                if contacts_info.get("primary_name"):
+                    c_name = contacts_info['primary_name']
+                    if contacts_info.get("primary_title"):
+                        c_name += f" ({contacts_info['primary_title']})"
+                    c_details.append(f"**Contact:** {c_name}")
+                if contacts_info.get("primary_email"):
+                    c_details.append(f"**Email:** {contacts_info['primary_email']}")
+                if contacts_info.get("primary_phone"):
+                    c_details.append(f"**Phone:** `{contacts_info['primary_phone']}`")
+                if contacts_info.get("calling_hours"):
+                    c_details.append(f"**Calling Hours:** *{contacts_info['calling_hours']}*")
+                f.write(f"- **Discovered Contacts:** {' | '.join(c_details)}\n")
+            if contacts_info.get("linkedin_search_url"):
+                f.write(f"- **Recruiter Search:** [Search Recruiters on LinkedIn]({contacts_info['linkedin_search_url']})\n")
             f.write(f"- **Summary:** {job['description_snippet']}\n")
             f.write(f"- **Instant Workflow Command:** Tell Antigravity:\n")
             f.write(f"  > `do the workflow for this: {job['url']}`\n\n")
@@ -547,7 +568,8 @@ def run_scout(queries: list, location: str, hours: int, limit: int, remote_only:
                 "language_tag": j.get("language_tag", ""),
                 "already_applied": j["already_applied"],
                 "url": j["url"],
-                "description_snippet": j.get("description_snippet", "")
+                "description_snippet": j.get("description_snippet", ""),
+                "contacts": j.get("contacts", {})
             }
             for j in deduped_records
         ]

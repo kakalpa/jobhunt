@@ -75,6 +75,10 @@ from scripts.job_filters import (
     deduplicate_job_records,
     get_candidate_contact_info
 )
+try:
+    from scripts.contact_extractor import extract_job_contacts, format_contacts_markdown
+except ImportError:
+    from contact_extractor import extract_job_contacts, format_contacts_markdown
 from scripts.generate_package import generate_application_package, generate_interview_prep
 
 try:
@@ -497,6 +501,21 @@ def scan_prepared_applications() -> list:
             except Exception:
                 pass
 
+        # Discover or load contact details
+        contacts = db_record.get("contacts")
+        if not contacts:
+            drafts_file = item / f"Outreach_Drafts_{folder_id}.json"
+            if drafts_file.exists():
+                try:
+                    d_data = json.loads(drafts_file.read_text(encoding="utf-8"))
+                    contacts = d_data.get("contacts")
+                except Exception:
+                    pass
+        if not contacts and jd_text:
+            contacts = extract_job_contacts(jd_text, role_info["title"], role_info["company"])
+        if not contacts:
+            contacts = extract_job_contacts("", role_info["title"], role_info["company"])
+
         applications.append({
             "id": folder_id,
             "folder": folder_id,
@@ -520,6 +539,7 @@ def scan_prepared_applications() -> list:
             "portal": portal,
             "notes": notes,
             "interview_date": interview_date,
+            "contacts": contacts,
             "has_cv_pdf": bool(cv_pdf),
             "cv_pdf": cv_pdf,
             "has_cl_pdf": bool(cl_pdf),
@@ -545,6 +565,18 @@ def scan_scouted_feed(prepared_applications: list) -> list:
     
     if not JOB_FEED_FILE.exists():
         return scouted_jobs
+
+    report = load_latest_scout_report()
+    report_contacts_map = {}
+    if report and isinstance(report, dict) and "jobs" in report:
+        for rj in report["jobs"]:
+            c_n = normalize_company(rj.get("company", ""))
+            t_n = normalize_title(rj.get("title", ""))
+            if c_n and t_n:
+                report_contacts_map[f"{c_n}_{t_n}"] = rj.get("contacts")
+            u = rj.get("url")
+            if u:
+                report_contacts_map[u] = rj.get("contacts")
         
     content = JOB_FEED_FILE.read_text(encoding="utf-8", errors="ignore")
     
@@ -664,6 +696,10 @@ def scan_scouted_feed(prepared_applications: list) -> list:
         db_record = saved_db.get(scout_id, {})
         status = db_record.get("status", "scouted")
         
+        scout_contacts = report_contacts_map.get(composite_key) or report_contacts_map.get(url)
+        if not scout_contacts:
+            scout_contacts = extract_job_contacts("", title, company)
+            
         scouted_jobs.append({
             "id": scout_id,
             "folder": None,
@@ -684,7 +720,8 @@ def scan_scouted_feed(prepared_applications: list) -> list:
             "applied_date": db_record.get("applied_date", ""),
             "portal": platform,
             "notes": db_record.get("notes", ""),
-            "interview_date": db_record.get("interview_date", "")
+            "interview_date": db_record.get("interview_date", ""),
+            "contacts": scout_contacts
         })
         
     return scouted_jobs
@@ -1647,6 +1684,32 @@ def generate_outreach_drafts(folder):
     title = role_info["title"]
     company = role_info["company"]
     
+    # Discover or load contacts
+    contacts = None
+    saved_drafts = {}
+    drafts_file = folder_path / f"Outreach_Drafts_{folder}.json"
+    if drafts_file.exists():
+        try:
+            saved_drafts = json.loads(drafts_file.read_text(encoding="utf-8"))
+            contacts = saved_drafts.get("contacts")
+        except Exception:
+            pass
+    if not contacts:
+        saved_db = load_pipeline_data()
+        contacts = saved_db.get(folder, {}).get("contacts")
+    if not contacts:
+        jd_text = ""
+        for f in folder_path.glob("*Job_Description*.md"):
+            try:
+                jd_text = f.read_text(encoding="utf-8")
+                break
+            except Exception:
+                pass
+        contacts = extract_job_contacts(jd_text, title, company)
+
+    salutation = f"Dear {contacts['primary_name']}," if (contacts and contacts.get("primary_name")) else f"Dear {company} Hiring Team,"
+    followup_salut = f"Hi {contacts['primary_name']}," if (contacts and contacts.get("primary_name")) else f"Hi {company} Hiring Team,"
+
     # 1. LinkedIn Connection Request Note (< 400 chars)
     linkedin_connect = (
         f"Hi! I'm an IT systems & infrastructure engineer based in Finland (TUAS B.Eng., 4.0 GPA). "
@@ -1663,7 +1726,7 @@ def generate_outreach_drafts(folder):
     # 2. Hiring Manager / Recruiter InMail / Direct Email
     cand = get_candidate_contact_info(WORKSPACE_DIR)
     hiring_inmail = (
-        f"Dear {company} Hiring Team,\n\n"
+        f"{salutation}\n\n"
         f"I recently applied for the {title} position and wanted to reach out directly. "
         f"With 8+ years of enterprise systems administration, security operations (Defender XDR, Sentinel, Wazuh SIEM), "
         f"and practical TryHackMe certifications (SOC Level 1, PenTest+), my background aligns directly with the hands-on "
@@ -1675,7 +1738,7 @@ def generate_outreach_drafts(folder):
     
     # 3. 7-Day Follow-Up Message
     follow_up = (
-        f"Hi {company} Hiring Team,\n\n"
+        f"{followup_salut}\n\n"
         f"I hope your week is going well! I am following up on my application for the {title} position submitted recently. "
         f"I remain very enthusiastic about the opportunity to contribute to {company} with my background in enterprise systems, "
         f"cloud security, and automated incident response.\n\n"
@@ -1684,18 +1747,13 @@ def generate_outreach_drafts(folder):
     )
 
     # Check for AI-tailored drafts file (cold-email-writer & linkedin-profile-optimizer)
-    drafts_file = folder_path / f"Outreach_Drafts_{folder}.json"
-    if drafts_file.exists():
-        try:
-            saved_drafts = json.loads(drafts_file.read_text(encoding="utf-8"))
-            if saved_drafts.get("linkedin_connect"):
-                linkedin_connect = saved_drafts["linkedin_connect"]
-            if saved_drafts.get("recruiter_inmail"):
-                hiring_inmail = saved_drafts["recruiter_inmail"]
-            if saved_drafts.get("follow_up"):
-                follow_up = saved_drafts["follow_up"]
-        except Exception:
-            pass
+    if saved_drafts:
+        if saved_drafts.get("linkedin_connect"):
+            linkedin_connect = saved_drafts["linkedin_connect"]
+        if saved_drafts.get("recruiter_inmail"):
+            hiring_inmail = saved_drafts["recruiter_inmail"]
+        if saved_drafts.get("follow_up"):
+            follow_up = saved_drafts["follow_up"]
     
     # Find PDF files for easy copying
     cv_pdfs = [str(f.resolve()) for f in folder_path.glob("*.pdf") if "Cover_Letter" not in f.name]
@@ -1708,6 +1766,7 @@ def generate_outreach_drafts(folder):
         "linkedin_connect": linkedin_connect,
         "hiring_inmail": hiring_inmail,
         "follow_up": follow_up,
+        "contacts": contacts,
         "cv_pdf_path": cv_pdfs[0] if cv_pdfs else None,
         "cl_pdf_path": cl_pdfs[0] if cl_pdfs else None
     })

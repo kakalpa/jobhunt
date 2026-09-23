@@ -35,6 +35,10 @@ if str(WORKSPACE_DIR) != str(APP_DIR):
 
 from scripts.job_filters import detect_language_requirement, normalize_company, normalize_title, get_candidate_contact_info
 from scripts.export_pdf import generate_pdf
+try:
+    from scripts.contact_extractor import extract_job_contacts, format_contacts_markdown
+except ImportError:
+    from contact_extractor import extract_job_contacts, format_contacts_markdown
 
 def sanitize_folder_name(company: str, title: str) -> str:
     """Generate a clean, filesystem-safe directory name."""
@@ -201,6 +205,10 @@ def generate_application_package(
     cand = get_candidate_contact_info(WORKSPACE_DIR)
     cand_slug = cand["name"].replace(" ", "_")
 
+    # Extract Contact Person & Outreach Information
+    contacts_info = extract_job_contacts(jd_body, title, company)
+    contacts_md = format_contacts_markdown(contacts_info, company, title)
+
     # 3. Write Job Description
     jd_file = folder_path / f"{folder_name}_Job_Description.md"
     jd_content = f"""# {title} — {company}
@@ -212,6 +220,10 @@ def generate_application_package(
 **Language Requirement:** {lang_info['badge']}  
 **Ingestion Date:** {today_en}  
 
+---
+
+## 👤 Discovered Contact & Outreach Details
+{contacts_md}
 ---
 
 ## Job Overview & Requirements
@@ -712,13 +724,17 @@ Immediate availability (0 days notice). Ready to onboard right away.
     ats_file.write_text(ats_content, encoding="utf-8")
 
     # 9. Write Outreach Drafts (cold-email-writer & linkedin-profile-optimizer)
+    greeting_salutation = f"Dear {contacts_info['primary_name']}," if contacts_info.get("primary_name") else f"Dear {company} Hiring Team,"
+    followup_salutation = f"Hi {contacts_info['primary_name']}," if contacts_info.get("primary_name") else f"Hi {company} Hiring Team,"
+
     outreach_payload = {
+        "contacts": contacts_info,
         "linkedin_connect": (ai_data.get("linkedin_connect") if ai_data else None) or (
             f"Hi! I'm an IT engineer in Finland with 8+ yrs in systems & security automation (TUAS 4.0). "
             f"I saw the {title} role at {company} and would love to connect and follow your team's work!"
         ),
         "recruiter_inmail": (ai_data.get("recruiter_inmail") if ai_data else None) or (
-            f"Dear {company} Hiring Team,\n\n"
+            f"{greeting_salutation}\n\n"
             f"I recently applied for the {title} position and wanted to reach out directly. "
             f"With 8+ years of enterprise systems administration, security operations, "
             f"and hands-on certifications, my background aligns directly with the depth your team needs.\n\n"
@@ -727,7 +743,7 @@ Immediate availability (0 days notice). Ready to onboard right away.
             f"Best regards,\n{cand['name']}\n{cand['phone']} | {cand['email']}"
         ),
         "follow_up": (ai_data.get("follow_up") if ai_data else None) or (
-            f"Hi {company} Hiring Team,\n\n"
+            f"{followup_salutation}\n\n"
             f"I hope your week is going well! I am following up on my application for the {title} position submitted recently. "
             f"I remain very enthusiastic about the opportunity to contribute to {company} with my background in enterprise systems, "
             f"cloud infrastructure, and automated incident response.\n\n"
@@ -743,7 +759,7 @@ Immediate availability (0 days notice). Ready to onboard right away.
     except Exception as e:
         print(f"Notice: Could not write outreach drafts json: {e}")
 
-    # 9. Update pipeline_data.json
+    # 10. Update pipeline_data.json
     db_file = WORKSPACE_DIR / "pipeline_data.json"
     db = {}
     if db_file.exists():
@@ -760,7 +776,8 @@ Immediate availability (0 days notice). Ready to onboard right away.
         "company": company,
         "location": location,
         "portal": "Direct / Web",
-        "notes": f"Application package generated automatically on {today_en}."
+        "notes": f"Application package generated automatically on {today_en}.",
+        "contacts": contacts_info
     }
     with open(db_file, "w", encoding="utf-8") as f:
         json.dump(db, f, indent=2, ensure_ascii=False)
@@ -772,6 +789,7 @@ Immediate availability (0 days notice). Ready to onboard right away.
         "match_score": match_score,
         "ats_score": 95,
         "language_tag": lang_info["tag"],
+        "contacts": contacts_info,
         "files": [
             jd_file.name,
             analysis_file.name,

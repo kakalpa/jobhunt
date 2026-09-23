@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from scripts.job_filters import is_it_job, detect_language_requirement, deduplicate_job_records, get_candidate_contact_info
+from scripts.contact_extractor import extract_job_contacts, format_contacts_markdown
 
 workspace = Path(__file__).resolve().parent.parent
 tracker_content = (workspace / "APPLICATIONS_TRACKER.md").read_text(encoding="utf-8", errors="ignore").lower()
@@ -49,6 +50,7 @@ for r in it_records:
     desc = str(r.get("description", ""))
     
     lang_info = detect_language_requirement(title, desc)
+    contacts = extract_job_contacts(desc, title, company)
     
     # Calculate score
     score = 70
@@ -77,7 +79,8 @@ for r in it_records:
         "language_tag": lang_info["tag"],
         "language_badge": lang_info["badge"],
         "description": desc,
-        "description_snippet": desc[:250].replace('\n', ' ') + "..." if desc else "N/A"
+        "description_snippet": desc[:250].replace('\n', ' ') + "..." if desc else "N/A",
+        "contacts": contacts
     })
 
 # 3. Cross-Site Deduplication
@@ -122,6 +125,19 @@ with open(feed_path, "w", encoding="utf-8") as f:
         f.write(f"- **Estimated Match:** {r['match_score']}% | **Location:** {r['location']} | **Platform:** {platform}\n")
         f.write(f"- **Language Requirement:** {r['language_badge']}\n")
         f.write(f"- **Direct Link:** {r['url']}\n")
+        c_info = r.get("contacts", {})
+        if c_info.get("has_contacts"):
+            c_details = []
+            if c_info.get("primary_name"):
+                c_details.append(f"**Contact:** {c_info['primary_name']}")
+            if c_info.get("primary_email"):
+                c_details.append(f"**Email:** {c_info['primary_email']}")
+            if c_info.get("primary_phone"):
+                c_details.append(f"**Phone:** `{c_info['primary_phone']}`")
+            if c_details:
+                f.write(f"- **Discovered Contacts:** {' | '.join(c_details)}\n")
+        if c_info.get("linkedin_search_url"):
+            f.write(f"- **Recruiter Search:** [Search Recruiters on LinkedIn]({c_info['linkedin_search_url']})\n")
         f.write(f"- **Summary:** {r['description_snippet']}\n\n")
 
     # 6. Save Structured JSON Report
@@ -145,7 +161,8 @@ with open(feed_path, "w", encoding="utf-8") as f:
                 "language_tag": j.get("language_tag", ""),
                 "already_applied": j["already_applied"],
                 "url": j["url"],
-                "description_snippet": j.get("description_snippet", "")
+                "description_snippet": j.get("description_snippet", ""),
+                "contacts": j.get("contacts", {})
             }
             for j in deduped_records
         ]

@@ -255,10 +255,34 @@ def notify_new_job_opportunity(job: dict) -> bool:
         f"🌐 <b>Platform:</b> {platform}\n"
         f"🗣️ <b>Language:</b> {badge}\n"
     )
+
+    contacts = job.get("contacts", {})
+    if contacts and contacts.get("has_contacts"):
+        c_lines = []
+        if contacts.get("primary_name"):
+            n_str = contacts['primary_name']
+            if contacts.get("primary_title"):
+                n_str += f" ({contacts['primary_title']})"
+            c_lines.append(f"👤 {n_str}")
+        if contacts.get("primary_email"):
+            c_lines.append(f"✉️ {contacts['primary_email']}")
+        if contacts.get("primary_phone"):
+            c_lines.append(f"📞 {contacts['primary_phone']}")
+        if contacts.get("calling_hours"):
+            c_lines.append(f"⏰ {contacts['calling_hours']}")
+        if c_lines:
+            msg += f"\n<b>Point of Contact:</b>\n" + "\n".join(f"• {l}" for l in c_lines) + "\n"
+
     if snippet and snippet != "N/A":
         msg += f"\n📝 <i>{snippet}</i>\n"
+
+    links = []
     if url:
-        msg += f"\n🔗 <a href=\"{url}\">Open Posting & Apply</a>"
+        links.append(f"<a href=\"{url}\">Open Posting</a>")
+    if contacts.get("linkedin_search_url"):
+        links.append(f"<a href=\"{contacts['linkedin_search_url']}\">Recruiters on LinkedIn</a>")
+    if links:
+        msg += f"\n🔗 " + " | ".join(links)
 
     success = send_telegram_message(msg)
     if success:
