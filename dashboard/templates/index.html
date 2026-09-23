@@ -939,6 +939,58 @@
     </div>
   </div>
 
+  <!-- AI FALLBACK DECISION MODAL (STOP OR CONTINUE) -->
+  <div id="ai-fallback-modal-backdrop" onclick="closeAiFallbackModal(true)" class="fixed inset-0 bg-black/85 backdrop-blur-md z-[60] hidden transition-opacity"></div>
+  <div id="ai-fallback-modal" class="fixed inset-0 z-[60] hidden flex items-center justify-center p-4 pointer-events-none">
+    <div class="bg-slate-900 border border-amber-500/40 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative pointer-events-auto space-y-4">
+      
+      <!-- Header -->
+      <div class="flex items-start justify-between gap-3 pb-3 border-b border-slate-800">
+        <div class="flex items-center gap-3">
+          <div class="h-10 w-10 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0">
+            <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-400"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-white tracking-tight">AI Tailoring Error Detected</h3>
+            <p class="text-xs text-amber-300 font-medium" id="ai-fallback-role-sub">—</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeAiFallbackModal(true)" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition" title="Close and cancel">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Explanatory note -->
+      <div class="space-y-2.5 text-xs">
+        <p class="text-slate-300">
+          The Gemini AI API encountered an error while attempting deep document tailoring:
+        </p>
+        <div class="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 font-mono text-[11px] text-rose-300 break-words" id="ai-fallback-error-text">
+          HTTP Error 401: Unauthorized (Invalid or expired API key)
+        </div>
+        <p class="text-slate-400 text-[11px] leading-relaxed">
+          Because offline fallback templates do not meet your quality standard, you have full control over whether to stop generation or proceed:
+        </p>
+      </div>
+
+      <!-- Action Choice Buttons -->
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-3 border-t border-slate-800">
+        <button type="button" onclick="handleAiFallbackChoice('stop')" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition active:scale-95 shadow-sm">
+          <i data-lucide="ban" class="w-3.5 h-3.5 text-rose-400"></i>
+          <span>Stop Process</span>
+        </button>
+        <button type="button" onclick="handleAiFallbackChoice('settings')" class="px-3.5 py-2 rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 border border-indigo-500/40 text-xs font-semibold flex items-center justify-center gap-1.5 transition active:scale-95 shadow-sm">
+          <i data-lucide="settings" class="w-3.5 h-3.5 text-indigo-400"></i>
+          <span>Update Key</span>
+        </button>
+        <button type="button" onclick="handleAiFallbackChoice('continue')" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 shadow-md shadow-amber-500/20">
+          <i data-lucide="play" class="w-3.5 h-3.5 fill-slate-950"></i>
+          <span>Continue with Fallback</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- SCOUT PROCESS & REPORT MODAL -->
   <div id="scout-modal-backdrop" onclick="closeScoutModal()" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden transition-opacity"></div>
   <div id="scout-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-3 sm:p-4 pointer-events-none">
@@ -1468,6 +1520,19 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
                   <span>Test API Key</span>
                 </button>
                 <span id="gemini-test-msg" class="text-xs"></span>
+              </div>
+
+              <div class="space-y-1.5 pt-3 border-t border-slate-700/60">
+                <label class="text-[11px] font-medium text-slate-300 flex items-center justify-between">
+                  <span>Fallback Behavior on AI Error</span>
+                  <span class="text-[10px] text-amber-400 font-semibold">Quality Standard Gate</span>
+                </label>
+                <select id="input-gemini-fallback-mode" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500">
+                  <option value="prompt">Prompt Me (Choose to Stop or Continue with Fallback)</option>
+                  <option value="stop">Strict Stop (Never generate with offline fallback)</option>
+                  <option value="allow">Auto Fallback (Always continue with offline templates)</option>
+                </select>
+                <p class="text-[10px] text-slate-500">Determines whether document generation stops or asks for confirmation when the Gemini API has an error.</p>
               </div>
             </div>
           </div>
@@ -4120,17 +4185,83 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
     }
 
     let activeWorkflowResult = null;
+    let pendingAiFallback = null;
+
+    function openAiFallbackDecisionModal({ job, isRegen, errorMsg }) {
+      pendingAiFallback = { job, isRegen, errorMsg };
+      const backdrop = document.getElementById('ai-fallback-modal-backdrop');
+      const modal = document.getElementById('ai-fallback-modal');
+      const sub = document.getElementById('ai-fallback-role-sub');
+      const errEl = document.getElementById('ai-fallback-error-text');
+
+      if (sub) sub.textContent = `${job.title} @ ${job.company}`;
+      if (errEl) errEl.textContent = errorMsg || "Unknown Gemini API error";
+
+      if (backdrop) backdrop.classList.remove('hidden');
+      if (modal) modal.classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeAiFallbackModal(didCancel = false) {
+      const backdrop = document.getElementById('ai-fallback-modal-backdrop');
+      const modal = document.getElementById('ai-fallback-modal');
+      if (backdrop) backdrop.classList.add('hidden');
+      if (modal) modal.classList.add('hidden');
+      if (didCancel) {
+        closeWorkflowModal();
+        showToast("🛑 Generation stopped. No fallback documents were created.");
+        pendingAiFallback = null;
+      }
+    }
+
+    async function handleAiFallbackChoice(choice) {
+      if (!pendingAiFallback) {
+        closeAiFallbackModal();
+        return;
+      }
+      const { job, isRegen } = pendingAiFallback;
+
+      if (choice === 'stop') {
+        closeAiFallbackModal(true);
+        pendingAiFallback = null;
+      } else if (choice === 'settings') {
+        closeAiFallbackModal(true);
+        pendingAiFallback = null;
+        openSettingsModal('ai');
+      } else if (choice === 'continue') {
+        closeAiFallbackModal(false);
+        pendingAiFallback = null;
+        // Re-execute workflow with explicit permission to use offline fallback
+        await triggerWorkflow(job, isRegen, true);
+      }
+    }
 
     function closeWorkflowModal() {
       document.getElementById('wf-modal-backdrop').classList.add('hidden');
       document.getElementById('wf-modal').classList.add('hidden');
     }
 
-    async function triggerWorkflow(jobId, isRegen = false) {
+    async function triggerWorkflow(jobId, isRegen = false, allowFallback = false) {
       const job = (typeof jobId === 'object' && jobId !== null) ? jobId : (allJobs.find(j => j.id === jobId) || currentJob);
       if (!job) {
         showToast("No role selected to run workflow.");
         return;
+      }
+
+      // Check pre-flight status if not already explicitly allowing fallback
+      if (!allowFallback && currentSettings?.gemini?.status === 'error') {
+        const fallbackMode = (currentSettings?.gemini?.fallback_mode) || 'prompt';
+        if (fallbackMode === 'stop') {
+          showToast("🛑 Generation blocked: Gemini API key has an error and fallback is disabled.", 5000);
+          return;
+        } else if (fallbackMode === 'prompt') {
+          openAiFallbackDecisionModal({
+            job: job,
+            isRegen: isRegen,
+            errorMsg: currentSettings.gemini.last_error || "API key error detected"
+          });
+          return;
+        }
       }
 
       // Open modal
@@ -4144,7 +4275,7 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
 
       const steps = [
         { id: 'wf-step-1', text: 'Ingesting & scraping job description...' },
-        { id: 'wf-step-2', text: 'Gemini AI deep-reading & tailoring context...' },
+        { id: 'wf-step-2', text: allowFallback ? 'Using calibrated archetype profile (offline fallback)...' : 'Gemini AI deep-reading & tailoring context...' },
         { id: 'wf-step-3', text: 'Crafting tailored CV with Google X-Y-Z metrics...' },
         { id: 'wf-step-4', text: 'Generating strategic 3-pillar Cover Letter & screening Q&A...' },
         { id: 'wf-step-5', text: 'Compiling recruiter-ready vector A4 PDFs (Chromium)...' },
@@ -4173,7 +4304,8 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
             url: job.url || '',
             location: job.location || 'Finland',
             description: job.notes || job.summary || '',
-            folder: job.folder || undefined
+            folder: job.folder || undefined,
+            allow_fallback: allowFallback
           })
         });
         const data = await res.json();
@@ -4198,7 +4330,11 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
             try { await navigator.clipboard.writeText(data.prompt); } catch (e) {}
           }
 
-          showToast(isRegen ? `🔄 Documents regenerated with Gemini AI for ${job.company}!` : `🎉 Application package generated for ${job.company}!`);
+          if (data.fallback_used) {
+            showToast(`⚠️ Application package generated for ${job.company} (using offline archetype fallback).`);
+          } else {
+            showToast(isRegen ? `🔄 Documents regenerated with Gemini AI for ${job.company}!` : `🎉 Application package generated for ${job.company}!`);
+          }
           lucide.createIcons();
 
           // Refresh jobs list
@@ -4209,6 +4345,32 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
           if (updated && currentJob && currentJob.id === job.id) {
             openDrawer(updated, currentTab);
           }
+        } else if (data.ai_error) {
+          // Pause workflow steps UI
+          const el = document.getElementById('wf-step-2');
+          if (el) {
+            el.className = "flex items-center gap-2 text-rose-400 font-semibold";
+            el.innerHTML = `<i data-lucide="alert-circle" class="w-4 h-4 text-rose-400 shrink-0"></i><span>AI Tailoring Paused (API Error)</span>`;
+          }
+          lucide.createIcons();
+
+          const fallbackMode = (currentSettings?.gemini?.fallback_mode) || 'prompt';
+          if (fallbackMode === 'stop') {
+            closeWorkflowModal();
+            showToast(`🛑 Generation stopped: ${data.message || data.error}`, 5000);
+            return;
+          } else if (fallbackMode === 'allow') {
+            // Auto continue with fallback if preference is 'allow'
+            await triggerWorkflow(job, isRegen, true);
+            return;
+          }
+
+          // Open decision modal so user can stop, update key, or continue with fallback
+          openAiFallbackDecisionModal({
+            job: job,
+            isRegen: isRegen,
+            errorMsg: data.message || data.error || "Gemini API rejected key or request"
+          });
         } else {
           showToast(`Error: ${data.error || 'Failed to generate package'}`);
         }
@@ -4560,6 +4722,11 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
           geminiPill.title = "No Gemini API key set";
         }
 
+        const fallbackSelect = document.getElementById('input-gemini-fallback-mode');
+        if (fallbackSelect && data.gemini && data.gemini.fallback_mode) {
+          fallbackSelect.value = data.gemini.fallback_mode;
+        }
+
         // 2. Telegram
         const tgTokenInput = document.getElementById('input-tg-token');
         const tgChatInput = document.getElementById('input-tg-chatid');
@@ -4757,6 +4924,7 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
 
       const payload = {
         gemini_api_key: document.getElementById('input-gemini-key').value.trim(),
+        gemini_fallback_mode: document.getElementById('input-gemini-fallback-mode') ? document.getElementById('input-gemini-fallback-mode').value : 'prompt',
         telegram_bot_token: document.getElementById('input-tg-token').value.trim(),
         telegram_chat_id: document.getElementById('input-tg-chatid').value.trim(),
         telegram_min_match_score: parseInt(document.getElementById('input-tg-minscore').value, 10),

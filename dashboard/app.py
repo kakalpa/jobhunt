@@ -1147,7 +1147,7 @@ def trigger_workflow_generate():
     url = payload.get("url", "")
     location = payload.get("location", "Finland")
     description = payload.get("description", "")
-    folder = payload.get("folder")
+    allow_fallback = bool(payload.get("allow_fallback", False))
     
     if not url and folder:
         url = KNOWN_JOB_URLS.get(folder, "")
@@ -1156,13 +1156,15 @@ def trigger_workflow_generate():
         return jsonify({"error": "Missing title or company"}), 400
         
     try:
+        from scripts.ai_tailor import AITailoringError
         result = generate_application_package(
             title=title,
             company=company,
             url=url,
             location=location,
             description=description,
-            folder_override=folder
+            folder_override=folder,
+            allow_fallback=allow_fallback
         )
         # Register in KNOWN_JOB_URLS if url provided
         if result.get("folder") and url and not is_candidate_personal_url(url):
@@ -1174,12 +1176,20 @@ def trigger_workflow_generate():
                 company=company,
                 title=title,
                 folder_name=result.get("folder", ""),
-                has_ai=bool(os.environ.get("GEMINI_API_KEY") or (WORKSPACE_DIR / ".env").exists())
+                has_ai=bool(result.get("ai_tailored", False))
             )
         except Exception as e:
             print(f"Notice: Telegram notification failed: {e}")
             
         return jsonify(result)
+    except AITailoringError as e:
+        return jsonify({
+            "success": False,
+            "ai_error": True,
+            "can_fallback": True,
+            "error": str(e),
+            "message": str(e)
+        }), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -1358,7 +1368,8 @@ def get_settings_api():
             "masked_key": mask_secret(gemini_key),
             "status": ai_status.get("status", "unknown"),
             "last_error": ai_status.get("last_error", ""),
-            "last_checked": ai_status.get("last_checked", "")
+            "last_checked": ai_status.get("last_checked", ""),
+            "fallback_mode": env.get("AI_FALLBACK_MODE", "prompt")
         },
         "telegram": {
             "enabled": bool(telegram_token and env.get("TELEGRAM_CHAT_ID")),
@@ -1403,6 +1414,10 @@ def update_settings_api():
         new_key = payload["gemini_api_key"].strip()
         if new_key and "..." not in new_key and "****" not in new_key:
             updates["GEMINI_API_KEY"] = new_key
+    if "gemini_fallback_mode" in payload:
+        f_mode = str(payload["gemini_fallback_mode"]).strip().lower()
+        if f_mode in ("prompt", "stop", "allow"):
+            updates["AI_FALLBACK_MODE"] = f_mode
             
     # 2. Telegram
     if "telegram_bot_token" in payload:

@@ -29,6 +29,12 @@ try:
 except ImportError:
     from job_filters import get_candidate_contact_info
 
+class AITailoringError(Exception):
+    """Exception raised when AI document tailoring encounters an API, configuration, or network error."""
+    def __init__(self, message: str, is_api_error: bool = True):
+        super().__init__(message)
+        self.is_api_error = is_api_error
+
 def get_api_key() -> str:
     """Load Gemini API Key from environment or .env file."""
     key = os.environ.get("GEMINI_API_KEY", "")
@@ -117,18 +123,23 @@ def check_gemini_api_key(test_key: str = None) -> dict:
         record_ai_api_status("error", err_msg)
         return {"valid": False, "status": "error", "error": err_msg, "message": f"Network error connecting to Gemini API: {err_msg}"}
 
-def tailor_application(title: str, company: str, location: str, jd_text: str) -> dict:
+def tailor_application(title: str, company: str, location: str, jd_text: str, strict: bool = False) -> dict:
     """
     Invokes Gemini to analyze the job posting and tailor the candidate's application
     using all specialized job search skills.
-    Returns a dictionary of tailored sections or None on error.
+    Returns a dictionary of tailored sections or raises AITailoringError if strict=True.
     """
     api_key = get_api_key()
     if not api_key:
+        record_ai_api_status("not_configured", "Missing GEMINI_API_KEY")
+        if strict:
+            raise AITailoringError("No GEMINI_API_KEY configured in environment or .env. Please configure your key in Settings.")
         return None
 
     cleaned_jd = (jd_text or "")[:4500].strip()
     if len(cleaned_jd) < 100:
+        if strict:
+            raise AITailoringError("Job description has fewer than 100 characters. Please provide the full job description.")
         return None
 
     cand = get_candidate_contact_info(WORKSPACE_DIR)
@@ -296,6 +307,10 @@ Return a STRICT JSON object with these exact keys:
             notify_api_key_error("Google Gemini AI", last_err_msg)
         except Exception:
             pass
+        if strict:
+            raise AITailoringError(f"Gemini API error ({last_err_msg})")
+    elif strict:
+        raise AITailoringError("Gemini API call completed without returning valid tailored sections.")
 
     return None
 

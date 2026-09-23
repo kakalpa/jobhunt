@@ -122,12 +122,12 @@ def generate_application_package(
     url: str = "",
     location: str = "Finland",
     description: str = "",
-    folder_override: str = None
+    folder_override: str = None,
+    allow_fallback: bool = False
 ) -> dict:
     """End-to-end generator for complete 9-file application package."""
     folder_name = folder_override or sanitize_folder_name(company, title)
     folder_path = WORKSPACE_DIR / folder_name
-    folder_path.mkdir(exist_ok=True)
     
     # 1. Fetch or synthesize Job Description
     scraped_text = fetch_job_text_from_url(url)
@@ -144,6 +144,25 @@ def generate_application_package(
     
     today_en = datetime.now().strftime("%B %d, %Y")
     today_fi = datetime.now().strftime("%d.%m.%Y")
+
+    # 2. Check for Gemini AI Deep Tailoring (fail-fast if fallback not permitted)
+    ai_data = None
+    ai_error_msg = ""
+    try:
+        from scripts.ai_tailor import tailor_application, AITailoringError
+        ai_data = tailor_application(title, company, location, jd_body, strict=(not allow_fallback))
+    except Exception as e:
+        ai_error_msg = str(e)
+        if not allow_fallback:
+            raise
+        print(f"Notice: AI tailoring fallback used: {e}")
+
+    if not ai_data and not allow_fallback:
+        from scripts.ai_tailor import AITailoringError
+        msg = ai_error_msg or "AI tailoring could not complete (API error, missing key, or rate limit)."
+        raise AITailoringError(f"{msg} Fallback to offline templates is paused for your decision.")
+
+    folder_path.mkdir(exist_ok=True)
     
     # Weighted Archetype Scoring (Title holds 3x weight)
     t_low = title.lower()
@@ -156,8 +175,8 @@ def generate_application_package(
                 sum(1 for k in ["devops", "cloud", "azure", "kubernetes", "docker", "ci/cd", "terraform", "ansible", "helm", "linux", "bicep", "sre", "platform"] if k in b_low)
                 
     dc_score = sum(3 for k in ["data center", "datacenter", "hardware", "field service", "field tech", "konesali"] if k in t_low) + \
-               sum(1 for k in ["data center", "datacenter", "hardware", "rack", "dl20", "dl380", "fiber", "cabling", "pdu", "bare-metal"] if k in b_low)
-               
+                sum(1 for k in ["data center", "datacenter", "hardware", "rack", "dl20", "dl380", "fiber", "cabling", "pdu", "bare-metal"] if k in b_low)
+                
     sup_score = sum(3 for k in ["support", "service desk", "deskside", "helpdesk", "lähituki", "it-tuki"] if k in t_low) + \
                 sum(1 for k in ["support", "service desk", "deskside", "helpdesk", "technician", "entra", "intune", "m365", "active directory"] if k in b_low)
 
@@ -182,7 +201,7 @@ def generate_application_package(
     cand = get_candidate_contact_info(WORKSPACE_DIR)
     cand_slug = cand["name"].replace(" ", "_")
 
-    # 1. Write Job Description
+    # 3. Write Job Description
     jd_file = folder_path / f"{folder_name}_Job_Description.md"
     jd_content = f"""# {title} — {company}
 
@@ -200,7 +219,7 @@ def generate_application_package(
 """
     jd_file.write_text(jd_content, encoding="utf-8")
 
-    # 2. Write Job Analysis
+    # 4. Write Job Analysis
     match_score = 95 if (is_support or is_security or is_datacenter) else 92
     analysis_file = folder_path / f"Job_Analysis_{folder_name}.md"
     analysis_content = f"""# Strategic Job Analysis & Calibration: {company} — {title}
@@ -242,16 +261,8 @@ def generate_application_package(
 """
     analysis_file.write_text(analysis_content, encoding="utf-8")
 
-    # 3. Write Tailored CV
+    # 5. Write Tailored CV
     cv_file = folder_path / f"{cand_slug}_{folder_name}.md"
-    
-    # Check for Gemini AI Deep Tailoring
-    ai_data = None
-    try:
-        from scripts.ai_tailor import tailor_application
-        ai_data = tailor_application(title, company, location, jd_body)
-    except Exception as e:
-        print(f"Notice: AI tailoring fallback used: {e}")
 
     # Role-Calibrated Archetype Baselines
     if is_datacenter:
@@ -771,6 +782,8 @@ Immediate availability (0 days notice). Ready to onboard right away.
             qa_file.name,
             ats_file.name
         ],
+        "ai_tailored": bool(ai_data is not None),
+        "fallback_used": bool(ai_data is None),
         "prompt": f"do the workflow for this: {url or (company + ' ' + title)}"
     }
 
@@ -1031,6 +1044,7 @@ def main():
     parser.add_argument("--location", default="Finland", help="Job location")
     parser.add_argument("--description", default="", help="Optional job description text")
     parser.add_argument("--folder", default=None, help="Optional specific folder name")
+    parser.add_argument("--allow-fallback", action="store_true", default=False, help="Allow fallback to offline templates if Gemini AI fails")
     args = parser.parse_args()
 
     result = generate_application_package(
@@ -1039,7 +1053,8 @@ def main():
         url=args.url,
         location=args.location,
         description=args.description,
-        folder_override=args.folder
+        folder_override=args.folder,
+        allow_fallback=args.allow_fallback
     )
     print(json.dumps(result, indent=2))
 
