@@ -111,6 +111,7 @@ def call_groq_json(prompt: str, api_key: str, timeout: int = 25) -> tuple:
     """Execute JSON generation against GroqCloud OpenAI-compatible endpoint."""
     url = "https://api.groq.com/openai/v1/chat/completions"
     last_err = ""
+    errors_by_model = []
     for model_name in GROQ_MODELS:
         payload = json.dumps({
             "model": model_name,
@@ -139,14 +140,16 @@ def call_groq_json(prompt: str, api_key: str, timeout: int = 25) -> tuple:
                 return parsed, f"groq:{model_name}", ""
         except Exception as e:
             last_err = str(e)
+            errors_by_model.append(f"{model_name}: {last_err}")
             print(f"⚠️ [Groq Failover] {model_name} error: {last_err}")
             continue
-    return None, "", last_err
+    return None, "", "; ".join(errors_by_model) if errors_by_model else last_err
 
 def call_openrouter_json(prompt: str, api_key: str, timeout: int = 25) -> tuple:
     """Execute JSON generation against OpenRouter free endpoint."""
     url = "https://openrouter.ai/api/v1/chat/completions"
     last_err = ""
+    errors_by_model = []
     for model_name in OPENROUTER_MODELS:
         payload = json.dumps({
             "model": model_name,
@@ -177,15 +180,16 @@ def call_openrouter_json(prompt: str, api_key: str, timeout: int = 25) -> tuple:
                 return parsed, f"openrouter:{model_name}", ""
         except Exception as e:
             last_err = str(e)
+            errors_by_model.append(f"{model_name}: {last_err}")
             print(f"⚠️ [OpenRouter Failover] {model_name} error: {last_err}")
             continue
-    return None, "", last_err
+    return None, "", "; ".join(errors_by_model) if errors_by_model else last_err
 
 def call_gemini_json(prompt: str, api_key: str = None, timeout: int = 20, max_retries: int = 1) -> tuple:
     """
     Executes a structured JSON generation request with automated multi-provider failover:
     1. Primary: Google Gemini models (gemini-3.5-flash, gemini-3-flash-preview)
-    2. Failover 1: GroqCloud (openai/gpt-oss-120b, openai/gpt-oss-20b)
+    2. Failover 1: GroqCloud (openai/gpt-oss-120b, openai/gpt-oss-20b, qwen/qwen3.8-27b)
     3. Failover 2: OpenRouter Free Models
     Returns (parsed_dict, model_used, error_msg).
     """
@@ -195,6 +199,7 @@ def call_gemini_json(prompt: str, api_key: str = None, timeout: int = 20, max_re
     openrouter_key = get_openrouter_key()
     
     last_err_msg = ""
+    failover_trace = []
 
     # --- 1. Try Google Gemini Primary ---
     if gemini_key:
@@ -208,6 +213,7 @@ def call_gemini_json(prompt: str, api_key: str = None, timeout: int = 20, max_re
         payload = json.dumps(data).encode("utf-8")
 
         for model_name in MODELS:
+            short_name = model_name.replace("models/", "")
             for attempt in range(max_retries):
                 url = f"https://generativelanguage.googleapis.com/v1beta/{model_name}:generateContent?key={gemini_key}"
                 req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
@@ -221,15 +227,26 @@ def call_gemini_json(prompt: str, api_key: str = None, timeout: int = 20, max_re
                         text = candidates[0]["content"]["parts"][0]["text"]
                         parsed = json.loads(text)
                         record_ai_api_status("ok", "", model_name)
+                        parsed["_ai_meta"] = {
+                            "engine": f"Google Gemini ({short_name})",
+                            "provider": "gemini",
+                            "model": model_name,
+                            "failover_trace": list(failover_trace),
+                            "summary": f"Generated via Google Gemini ({short_name})"
+                        }
                         return parsed, model_name, ""
                 except urllib.error.HTTPError as e:
                     last_err_msg = f"HTTP Error {e.code}: {e.reason}"
+                    failover_trace.append(f"Gemini ({short_name}): {last_err_msg}")
                     print(f"⚠️ [Gemini Client] {model_name} attempt {attempt+1}/{max_retries}: {last_err_msg}")
                     break
                 except Exception as e:
                     last_err_msg = str(e)
+                    failover_trace.append(f"Gemini ({short_name}): {last_err_msg}")
                     print(f"⚠️ [Gemini Client] {model_name} attempt {attempt+1}/{max_retries}: {last_err_msg}")
                     break
+    else:
+        failover_trace.append("Google Gemini: Key not configured")
 
     # --- 2. Failover to Groq ---
     if groq_key:
@@ -237,8 +254,19 @@ def call_gemini_json(prompt: str, api_key: str = None, timeout: int = 20, max_re
         parsed, model_used, groq_err = call_groq_json(prompt, groq_key, timeout=min(timeout, 45))
         if parsed:
             record_ai_api_status("ok", "", model_used)
+            groq_model_name = model_used.replace("groq:", "")
+            parsed["_ai_meta"] = {
+                "engine": f"Groq ({groq_model_name})",
+                "provider": "groq",
+                "model": groq_model_name,
+                "failover_trace": list(failover_trace),
+                "summary": f"Generated via Groq ({groq_model_name})" + (f" (after {failover_trace[0]})" if failover_trace else "")
+            }
             return parsed, model_used, ""
+        failover_trace.append(f"Groq: {groq_err}")
         last_err_msg = f"Groq failover error: {groq_err} (Previous Gemini error: {last_err_msg})"
+    else:
+        failover_trace.append("Groq: Key not configured")
 
     # --- 3. Failover to OpenRouter ---
     if openrouter_key:
@@ -246,18 +274,30 @@ def call_gemini_json(prompt: str, api_key: str = None, timeout: int = 20, max_re
         parsed, model_used, or_err = call_openrouter_json(prompt, openrouter_key, timeout=min(timeout, 45))
         if parsed:
             record_ai_api_status("ok", "", model_used)
+            or_model_name = model_used.replace("openrouter:", "")
+            parsed["_ai_meta"] = {
+                "engine": f"OpenRouter ({or_model_name})",
+                "provider": "openrouter",
+                "model": or_model_name,
+                "failover_trace": list(failover_trace),
+                "summary": f"Generated via OpenRouter ({or_model_name})" + (f" (after {failover_trace[0]})" if failover_trace else "")
+            }
             return parsed, model_used, ""
+        failover_trace.append(f"OpenRouter: {or_err}")
         last_err_msg = f"OpenRouter failover error: {or_err} (Previous error: {last_err_msg})"
+    else:
+        failover_trace.append("OpenRouter: Key not configured")
 
     # --- All Providers Failed ---
-    record_ai_api_status("error", last_err_msg)
+    all_err_summary = "All AI engines failed: " + " → ".join(failover_trace)
+    record_ai_api_status("error", all_err_summary)
     try:
         from scripts.telegram_notifier import notify_api_key_error
-        notify_api_key_error("AI Inference Engine", last_err_msg)
+        notify_api_key_error("AI Inference Engine", all_err_summary)
     except Exception:
         pass
 
-    return None, "", last_err_msg
+    return None, "", all_err_summary
 
 def get_ai_api_status() -> dict:
     """Retrieve current AI API health state."""
@@ -476,11 +516,13 @@ Return a STRICT JSON object with these exact keys:
 
     parsed, model_used, err_msg = call_gemini_json(prompt, timeout=25)
     if parsed and parsed.get("cv_summary") and parsed.get("cover_letter_body"):
-        print(f"✨ [AI Tailor] Successfully tailored application using {model_used} with all 12 skills!")
+        meta = parsed.get("_ai_meta", {})
+        engine_str = meta.get("engine", model_used)
+        print(f"✨ [AI Tailor] Successfully tailored application using {engine_str} with all 12 skills!")
         return parsed
 
     if strict:
-        raise AITailoringError(f"Gemini API error ({err_msg or 'Failed to generate tailored sections'})")
+        raise AITailoringError(f"{err_msg or 'Failed to generate tailored sections'}")
 
     return None
 

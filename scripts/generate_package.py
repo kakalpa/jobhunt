@@ -760,6 +760,26 @@ Immediate availability (0 days notice). Ready to onboard right away.
         print(f"Notice: Could not write outreach drafts json: {e}")
 
     # 10. Update pipeline_data.json
+    ai_meta = {}
+    if ai_data and isinstance(ai_data, dict) and "_ai_meta" in ai_data:
+        ai_meta = dict(ai_data["_ai_meta"])
+    elif ai_data:
+        ai_meta = {
+            "engine": "AI Inference Engine",
+            "provider": "ai",
+            "model": "auto",
+            "failover_trace": [],
+            "summary": "Generated via AI Inference Engine"
+        }
+    else:
+        ai_meta = {
+            "engine": "Offline Calibrated Archetype",
+            "provider": "offline",
+            "model": "archetype-rules",
+            "failover_trace": [ai_error_msg] if ai_error_msg else [],
+            "summary": "Generated using offline archetype templates (AI bypassed)"
+        }
+
     db_file = WORKSPACE_DIR / "pipeline_data.json"
     db = {}
     if db_file.exists():
@@ -777,7 +797,8 @@ Immediate availability (0 days notice). Ready to onboard right away.
         "location": location,
         "portal": "Direct / Web",
         "notes": f"Application package generated automatically on {today_en}.",
-        "contacts": contacts_info
+        "contacts": contacts_info,
+        "ai_meta": ai_meta
     }
     with open(db_file, "w", encoding="utf-8") as f:
         json.dump(db, f, indent=2, ensure_ascii=False)
@@ -802,6 +823,7 @@ Immediate availability (0 days notice). Ready to onboard right away.
         ],
         "ai_tailored": bool(ai_data is not None),
         "fallback_used": bool(ai_data is None),
+        "ai_meta": ai_meta,
         "prompt": f"do the workflow for this: {url or (company + ' ' + title)}"
     }
 

@@ -757,7 +757,7 @@
             <div class="text-slate-400 font-mono text-[11px] mt-0.5" id="files-folder-path">/home/...</div>
           </div>
           <div class="flex items-center gap-2 flex-wrap justify-end">
-            <button onclick="triggerWorkflow(currentJob?.id, true)" class="px-3 py-1.5 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 hover:text-indigo-200 border border-indigo-500/40 font-bold rounded-lg transition active:scale-95 flex items-center gap-1.5 shadow" title="Regenerate all application files with Gemini AI">
+            <button onclick="triggerWorkflow(currentJob?.id, true)" class="px-3 py-1.5 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 hover:text-indigo-200 border border-indigo-500/40 font-bold rounded-lg transition active:scale-95 flex items-center gap-1.5 shadow" title="Regenerate all application files with AI (Gemini / Groq)">
               <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
               <span>Regenerate Docs</span>
             </button>
@@ -1030,6 +1030,14 @@
         <div class="flex items-center justify-between">
           <span class="text-slate-400">Generated Folder:</span>
           <span class="font-mono text-amber-300 font-bold" id="wf-result-folder">—</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-slate-400">Tailoring Engine:</span>
+          <span class="font-mono text-sky-400 font-semibold" id="wf-result-ai-engine">—</span>
+        </div>
+        <div id="wf-result-failover-box" class="hidden p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-300 space-y-1">
+          <div class="font-semibold text-amber-400 flex items-center gap-1.5"><i data-lucide="shuffle" class="w-3.5 h-3.5 text-amber-400"></i><span>Provider Failover Active:</span></div>
+          <div id="wf-result-failover-detail" class="font-mono text-amber-200/90 whitespace-pre-wrap leading-relaxed"></div>
         </div>
         <div class="flex items-center justify-between">
           <span class="text-slate-400">Total Artifacts:</span>
@@ -3041,7 +3049,7 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
                 </button>
               ` : ''}
               ${job.folder ? `
-                <button onclick="event.stopPropagation(); triggerWorkflow('${job.id}', true)" title="Regenerate documents with Gemini AI" class="px-2 py-1 bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 hover:text-indigo-200 rounded border border-indigo-500/30 text-xs inline-flex items-center gap-1 transition active:scale-95 shadow-sm">
+                <button onclick="event.stopPropagation(); triggerWorkflow('${job.id}', true)" title="Regenerate documents with AI (Gemini / Groq)" class="px-2 py-1 bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 hover:text-indigo-200 rounded border border-indigo-500/30 text-xs inline-flex items-center gap-1 transition active:scale-95 shadow-sm">
                   <i data-lucide="refresh-cw" class="w-3 h-3"></i>
                   <span>Regen</span>
                 </button>
@@ -3192,6 +3200,27 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
         langEl.textContent = job.language_badge || job.language_tag || '🌐 English / Int\'l';
         langEl.className = `px-2.5 py-1 rounded-full text-xs font-semibold border ${job.language_class || (job.language_tag === 'Finnish Required' ? 'border-amber-500/30 bg-amber-500/10 text-amber-300' : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300')}`;
       }
+
+      // AI Engine Badge in Drawer
+      let aiBadgeEl = document.getElementById('drawer-ai-engine-badge');
+      if (!aiBadgeEl && langEl && langEl.parentElement) {
+        aiBadgeEl = document.createElement('span');
+        aiBadgeEl.id = 'drawer-ai-engine-badge';
+        langEl.parentElement.appendChild(aiBadgeEl);
+      }
+      if (aiBadgeEl) {
+        if (job.ai_meta && job.ai_meta.engine) {
+          const hasFail = job.ai_meta.failover_trace && job.ai_meta.failover_trace.length > 0;
+          aiBadgeEl.className = hasFail ? 
+            "px-2.5 py-1 rounded-full text-xs font-semibold border border-amber-500/40 bg-amber-500/10 text-amber-300 flex items-center gap-1 font-mono" :
+            "px-2.5 py-1 rounded-full text-xs font-semibold border border-sky-500/40 bg-sky-500/10 text-sky-300 flex items-center gap-1 font-mono";
+          aiBadgeEl.innerHTML = `<i data-lucide="cpu" class="w-3 h-3"></i><span>${job.ai_meta.engine}</span>`;
+          aiBadgeEl.title = job.ai_meta.summary || job.ai_meta.engine;
+          aiBadgeEl.classList.remove('hidden');
+        } else {
+          aiBadgeEl.classList.add('hidden');
+        }
+      }
       
       // Action Link
       const linkContainer = document.getElementById('drawer-action-link') || document.getElementById('drawer-direct-link-container');
@@ -3240,7 +3269,7 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
       if (folderActions) {
         if (job.folder) {
           folderActions.innerHTML = `
-            <button onclick="triggerWorkflow('${job.id}', true)" title="Regenerate all application documents using Gemini AI" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 hover:text-indigo-200 border border-indigo-500/30 text-xs font-semibold transition active:scale-95 shadow-sm">
+            <button onclick="triggerWorkflow('${job.id}', true)" title="Regenerate all application documents using AI (Gemini / Groq)" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 hover:text-indigo-200 border border-indigo-500/30 text-xs font-semibold transition active:scale-95 shadow-sm">
               <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
               <span>Regen</span>
             </button>
@@ -4890,7 +4919,7 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
 
       const steps = [
         { id: 'wf-step-1', text: 'Ingesting & scraping job description...' },
-        { id: 'wf-step-2', text: allowFallback ? 'Using calibrated archetype profile (offline fallback)...' : 'Gemini AI deep-reading & tailoring context...' },
+        { id: 'wf-step-2', text: allowFallback ? 'Using calibrated archetype profile (offline fallback)...' : 'AI deep-reading & tailoring context (Gemini / Groq / OpenRouter)...' },
         { id: 'wf-step-3', text: 'Crafting tailored CV with Google X-Y-Z metrics...' },
         { id: 'wf-step-4', text: 'Generating strategic 3-pillar Cover Letter & screening Q&A...' },
         { id: 'wf-step-5', text: 'Compiling recruiter-ready vector A4 PDFs (Chromium)...' },
@@ -4926,15 +4955,48 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
         const data = await res.json();
         if (data.success) {
           activeWorkflowResult = data;
+          const aiMeta = data.ai_meta || {};
+          const engineName = aiMeta.engine || (data.fallback_used ? 'Offline Calibrated Archetype' : 'AI Engine');
+          const failovers = aiMeta.failover_trace || [];
+          const hasFailover = failovers.length > 0;
+
           steps.forEach(s => {
             const el = document.getElementById(s.id);
             if (el) {
-              el.className = "flex items-center gap-2 text-emerald-400 font-medium";
-              el.innerHTML = `<i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 shrink-0"></i><span>${s.text.replace('...', '')}</span>`;
+              if (s.id === 'wf-step-2') {
+                el.className = "flex flex-col gap-1 text-emerald-400 font-medium";
+                let html = `<div class="flex items-center gap-2"><i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 shrink-0"></i><span>Tailored via <strong class="text-sky-300">${escapeHtml(engineName)}</strong></span></div>`;
+                if (hasFailover) {
+                  const failList = failovers.map(f => `• ${escapeHtml(f)}`).join('<br/>');
+                  html += `<div class="ml-6 px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-300 font-mono space-y-0.5">
+                    <div class="flex items-center gap-1 font-semibold text-amber-400"><i data-lucide="shuffle" class="w-3 h-3"></i><span>Failover Route Executed:</span></div>
+                    <div class="text-amber-200/90 whitespace-normal leading-relaxed">${failList}</div>
+                  </div>`;
+                }
+                el.innerHTML = html;
+              } else {
+                el.className = "flex items-center gap-2 text-emerald-400 font-medium";
+                el.innerHTML = `<i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 shrink-0"></i><span>${s.text.replace('...', '')}</span>`;
+              }
             }
           });
+
           document.getElementById('wf-result-box').classList.remove('hidden');
           document.getElementById('wf-result-folder').textContent = data.folder;
+          const engineEl = document.getElementById('wf-result-ai-engine');
+          if (engineEl) engineEl.textContent = engineName;
+
+          const failBox = document.getElementById('wf-result-failover-box');
+          const failDetail = document.getElementById('wf-result-failover-detail');
+          if (failBox && failDetail) {
+            if (hasFailover) {
+              failBox.classList.remove('hidden');
+              failDetail.textContent = failovers.join('\n');
+            } else {
+              failBox.classList.add('hidden');
+            }
+          }
+
           document.getElementById('wf-result-files').textContent = `${data.files.length} artifacts (CV, Letter, PDFs, Q&A, Prep, ATS)`;
           document.getElementById('wf-result-ats').textContent = `${data.ats_score}% (Audit Passed)`;
           
@@ -4947,8 +5009,11 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
 
           if (data.fallback_used) {
             showToast(`⚠️ Application package generated for ${job.company} (using offline archetype fallback).`);
+          } else if (hasFailover) {
+            const shortFail = failovers[0] ? ` (${failovers[0]})` : '';
+            showToast(isRegen ? `🔄 Documents regenerated via ${engineName}${shortFail} for ${job.company}!` : `🎉 Package generated via ${engineName} (failover active) for ${job.company}!`);
           } else {
-            showToast(isRegen ? `🔄 Documents regenerated with Gemini AI for ${job.company}!` : `🎉 Application package generated for ${job.company}!`);
+            showToast(isRegen ? `🔄 Documents regenerated via ${engineName} for ${job.company}!` : `🎉 Application package generated via ${engineName} for ${job.company}!`);
           }
           lucide.createIcons();
 
@@ -4961,11 +5026,15 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
             openDrawer(updated, currentTab);
           }
         } else if (data.ai_error) {
-          // Pause workflow steps UI
+          // Pause workflow steps UI with exact failure trace
           const el = document.getElementById('wf-step-2');
           if (el) {
-            el.className = "flex items-center gap-2 text-rose-400 font-semibold";
-            el.innerHTML = `<i data-lucide="alert-circle" class="w-4 h-4 text-rose-400 shrink-0"></i><span>AI Tailoring Paused (API Error)</span>`;
+            const errTrace = data.message || data.error || "All AI engines failed";
+            el.className = "flex flex-col gap-1 text-rose-400 font-semibold";
+            el.innerHTML = `
+              <div class="flex items-center gap-2"><i data-lucide="alert-circle" class="w-4 h-4 text-rose-400 shrink-0"></i><span>AI Tailoring Paused (All Engines Failed)</span></div>
+              <div class="ml-6 px-2.5 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-[11px] text-rose-300 font-mono font-normal leading-relaxed">${escapeHtml(errTrace)}</div>
+            `;
           }
           lucide.createIcons();
 
@@ -4984,7 +5053,7 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
           openAiFallbackDecisionModal({
             job: job,
             isRegen: isRegen,
-            errorMsg: data.message || data.error || "Gemini API rejected key or request"
+            errorMsg: data.message || data.error || "Gemini / Groq API rejected key or request"
           });
         } else {
           showToast(`Error: ${data.error || 'Failed to generate package'}`);

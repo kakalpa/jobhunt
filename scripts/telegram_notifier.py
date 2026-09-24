@@ -289,13 +289,16 @@ def notify_new_job_opportunity(job: dict) -> bool:
         record_sent_job(job)
     return success
 
-def notify_package_generated(company: str, title: str, folder_name: str, has_ai: bool = True) -> bool:
+def notify_package_generated(company: str, title: str, folder_name: str, has_ai: bool = True, ai_engine: str = "") -> bool:
     """Notifies when a complete 9-file application package has been generated."""
     config = get_telegram_config()
     if not config["enabled"]:
         return False
 
-    ai_badge = "✅ Gemini AI Tailored" if has_ai else "⚡ Template Mode"
+    if ai_engine:
+        ai_badge = f"✨ {ai_engine}"
+    else:
+        ai_badge = "✅ AI Tailored" if has_ai else "⚡ Template Mode"
     msg = (
         "🚀 <b>Application Package Ready!</b>\n\n"
         f"🏢 <b>Company:</b> {company}\n"

@@ -553,7 +553,8 @@ def scan_prepared_applications() -> list:
             "has_ats": bool(ats_md),
             "ats_md": ats_md,
             "has_jd": bool(jd_md),
-            "jd_md": jd_md
+            "jd_md": jd_md,
+            "ai_meta": db_record.get("ai_meta")
         })
         
     return applications
@@ -1225,11 +1226,14 @@ def trigger_workflow_generate():
 
         # Send Telegram notification for created package
         try:
+            ai_meta = result.get("ai_meta") or {}
+            engine_summary = ai_meta.get("summary") or ai_meta.get("engine", "")
             notify_package_generated(
                 company=company,
                 title=title,
                 folder_name=result.get("folder", ""),
-                has_ai=bool(result.get("ai_tailored", False))
+                has_ai=bool(result.get("ai_tailored", False)),
+                ai_engine=engine_summary
             )
         except Exception as e:
             print(f"Notice: Telegram notification failed: {e}")
