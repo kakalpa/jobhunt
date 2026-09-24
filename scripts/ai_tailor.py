@@ -107,6 +107,54 @@ def record_ai_api_status(status: str, error: str = "", model: str = ""):
     except Exception:
         pass
 
+def sanitize_meta_phrases(text: str) -> str:
+    """
+    Cleans up any unintentional LLM prompt leakage or meta-recruitment jargon
+    that should never appear in a candidate's outward-facing cover letter or CV.
+    Guarantees natural Finnish and English professional tone.
+    """
+    if not text or not isinstance(text, str):
+        return text
+
+    import re
+
+    patterns = [
+        # Remove clauses mentioning overqualification or flight risk
+        (r",?\s*(?:which\s+)?mitigates?\s+(?:any\s+)?concerns?\s+about\s+(?:overqualification|flight\s+risk)[^,.;]*", ""),
+        (r",?\s*mitigating\s+(?:any\s+)?concerns?\s+about\s+(?:overqualification|flight\s+risk)[^,.;]*", ""),
+        (r"\bconcerns?\s+about\s+overqualification\s+or\s+flight\s+risk;?\s*", ""),
+        (r"\boverqualification\s+or\s+flight\s+risk\b", "long-term commitment"),
+        (r"\boverqualification\b", "experience"),
+        (r"\boverqualified\b", "experienced"),
+        (r"\bflight\s+risk\b", "short-term hire"),
+        # Remove explicit salary bracket declarations in letter text
+        (r",?\s*and\s+my\s+alignment\s+with\s+the\s+(?:junior\s+)?(?:market\s+)?compensation\s+bracket[^,.;]*", ""),
+        (r",?\s*aligned\s+with\s+the\s+(?:junior\s+)?(?:market\s+)?compensation\s+bracket[^,.;]*", ""),
+        (r"\bjunior\s+market\s+compensation\s+bracket\b", "standard market expectations"),
+        (r"\brather\s+than\s+a\s+stepping\s+stone\b", "to grow and deliver lasting impact"),
+        (r"\bnot\s+a\s+stepping\s+stone\b", "a long-term dedication"),
+        # Tone down self-proclamations of humility (Finnish vaatimattomuus is demonstrated, not proclaimed)
+        (r"\bI\s+am\s+genuinely\s+humble,?\s*(?:and\s*)?coachable,?\s*and\b", "I am"),
+        (r"\bI\s+am\s+humble,?\s*(?:and\s*)?coachable,?\s*and\b", "I am"),
+        (r"\bI\s+am\s+genuinely\s+humble\b", "I am highly dedicated"),
+        (r"\bI\s+am\s+humble\b", "I bring a collaborative mindset"),
+        (r"\bgenuinely\s+humble\b", "respectful and collaborative"),
+    ]
+
+    cleaned = text
+    for pat, repl in patterns:
+        cleaned = re.sub(pat, repl, cleaned, flags=re.IGNORECASE)
+
+    # Clean up double punctuation, dangling semicolons, spaces
+    cleaned = re.sub(r';\s*;', ';', cleaned)
+    cleaned = re.sub(r';\s*,', ',', cleaned)
+    cleaned = re.sub(r';\s*\.', '.', cleaned)
+    cleaned = re.sub(r',\s*,', ',', cleaned)
+    cleaned = re.sub(r',\s*\.', '.', cleaned)
+    cleaned = re.sub(r'\s+([,.;])', r'\1', cleaned)
+    cleaned = re.sub(r'  +', ' ', cleaned)
+    return cleaned.strip()
+
 def call_groq_json(prompt: str, api_key: str, timeout: int = 25) -> tuple:
     """Execute JSON generation against GroqCloud OpenAI-compatible endpoint."""
     url = "https://api.groq.com/openai/v1/chat/completions"
@@ -430,14 +478,15 @@ def tailor_application(title: str, company: str, location: str, jd_text: str, st
 ---
 SPECIAL STRATEGIC MANDATE: JUNIOR / ENTRY / TRAINEE ROLE POSITIONING
 ⚠️ TARGET ROLE IS ENTRY/JUNIOR LEVEL: '{title}'.
-{cand_name} brings 8+ years of enterprise systems & support experience, but is NEW to the Finnish professional job market (graduating with a Finnish B.Eng. 4.0 GPA from TUAS in May 2026) and is DELIBERATELY seeking an entry role in Finland to establish his long-term career.
+{cand_name} brings 8+ years of enterprise systems & support experience, but is newly launching his career in Finland following his Finnish B.Eng. degree (TUAS, 4.0 GPA) and is DELIBERATELY seeking this role at {company} to build a long-term foundation.
 
-You MUST proactively neutralize recruiter hesitations (flight risk, salary mismatch, overqualification, ego):
-1. Motivated Entry & Long-Term Commitment: In the cover letter and Q&A, explicitly explain that this junior role is an intentional, highly motivated gateway to establish a long-term technical career in Finland and master {company}'s specific environment.
-2. Production-Ready with Zero Hand-Holding: Emphasize that unlike fresh graduates who require months of basic training, {company} gains immediate production-grade dependability, ticket discipline (ITIL), and systems competence from Day 1.
-3. Humility & Coachability (Vaatimattomuus): Convey genuine modesty, respect for team structure, eagerness to learn from senior colleagues, and enthusiasm for foundational operational tasks (troubleshooting, tickets, runbooks, maintenance).
-4. Realistic Entry Salary: Provide realistic Finnish entry/junior market salary guidance (€3,000–€3,500 / month) so the recruiter knows the candidate fits their junior budget without friction.
-5. CV Summary: Frame summary around: "Dependable IT systems engineer with a Bachelor of Engineering (TUAS, 4.0 GPA) and 8+ years of foundational enterprise infrastructure experience. New to the Finnish professional market and intentionally seeking an entry-level role at {company} to master your stack, deliver immediate operational reliability without onboarding overhead, and contribute long-term."
+STRICT WRITING RULES (ANTI-META-LANGUAGE CONSTRAINTS):
+- NEVER use meta-recruitment jargon such as: "overqualification", "overqualified", "flight risk", "salary bracket", "compensation bracket", "mitigates concerns", or "stepping stone".
+- NEVER say "I am humble" or "I am coachable". In Finnish professional culture (vaatimattomuus), modesty is shown through an understated, respectful tone and eagerness to learn—never by declaring oneself humble!
+- Tell the story naturally: Explain that having completed his degree in Finland, this role at {company} is an intentional, highly motivated choice to embed himself long-term in the Finnish tech sector.
+- Highlight the mutual benefit: {company} gains immediate Day-1 production dependability, mature troubleshooting discipline, and ticket rigor (ITIL) without onboarding hand-holding, while {cand_name} is eager to learn their specific stack and grow with the team.
+- Realistic Salary Guidance: In salary_guidance, set realistic Finnish junior IT market guidance (€3,000–€3,500 / month).
+- CV Summary: Frame summary around: "Dependable IT systems engineer with a Bachelor of Engineering (TUAS, 4.0 GPA) and 8+ years of foundational enterprise infrastructure experience. Establishing long-term career roots in Finland and intentionally targeting this role at {company} to deliver immediate operational reliability and grow with the team."
 """
     else:
         junior_strategy = f"""
@@ -574,6 +623,15 @@ Return a STRICT JSON object with these exact keys:
 
     parsed, model_used, err_msg = call_gemini_json(prompt, timeout=25)
     if parsed and parsed.get("cv_summary") and parsed.get("cover_letter_body"):
+        # Sanitize any accidental prompt leakage or meta-jargon
+        for k, v in list(parsed.items()):
+            if isinstance(v, str):
+                parsed[k] = sanitize_meta_phrases(v)
+            elif isinstance(v, list):
+                parsed[k] = [sanitize_meta_phrases(item) if isinstance(item, str) else item for item in v]
+            elif isinstance(v, dict):
+                parsed[k] = {dk: sanitize_meta_phrases(dv) if isinstance(dv, str) else dv for dk, dv in v.items()}
+
         meta = parsed.get("_ai_meta", {})
         engine_str = meta.get("engine", model_used)
         print(f"✨ [AI Tailor] Successfully tailored application using {engine_str} with all 12 skills!")
@@ -609,14 +667,12 @@ def generate_ai_interview_prep(title: str, company: str, location: str, jd_text:
 ---
 SPECIAL COACHING MANDATE: JUNIOR / ENTRY / TRAINEE ROLE INTERVIEW PREP
 ⚠️ TARGET POSITION IS ENTRY/JUNIOR LEVEL: '{title}'.
-Interviewers will naturally wonder: "Why are you applying for an entry role when you have 8+ years of enterprise experience?" They may worry about flight risk, overqualification, or salary mismatch.
-You MUST prepare {cand_name} to turn this into his greatest competitive advantage:
-1. In 'elevator_pitch': Directly articulate that as a fresh TUAS B.Eng. graduate (4.0 GPA) entering the Finnish job market, this role is his deliberate, top-choice gateway to establish roots in Finland.
-2. In 'overqualified_defense': Provide a polished, humble, and persuasive response to the question: "Why this entry/junior position with your background?" Explain:
-   - Deliberate choice: Entering the Finnish tech sector after graduating in Finland, eager to master {company}'s exact infrastructure and earn long-term trust.
-   - Employer advantage: {company} gets an engineer with mature troubleshooting discipline, ticket rigor (ITIL), and immediate production reliability without months of hand-holding.
-   - Humility & coachability (vaatimattomuus): Full respect for team hierarchy, eagerness to take on frontline operational tasks, and realistic junior salary expectations (€3,000–€3,500/mo).
-3. In 'salary_guidance': Set realistic Finnish junior IT market guidance: €3,000 – €3,500 / month.
+CRITICAL STYLE & VOCABULARY RULES:
+- NEVER use meta-recruitment words like "overqualified", "overqualification", "flight risk", "salary bracket", or "I am humble" in the generated scripts.
+- In 'elevator_pitch': Directly articulate that as a fresh TUAS B.Eng. graduate (4.0 GPA) entering the Finnish job market, this role is {cand_name}'s deliberate, top-choice gateway to establish roots in Finland and master {company}'s environment.
+- In 'overqualified_defense': Provide a polished, natural, spoken response to the question: "Why this entry/junior position with your background?" Explain:
+   "I chose to apply for this position deliberately. Having graduated with a 4.0 GPA from TUAS, my goal is to build a solid, long-term foundation with a respected Finnish organization like {company}. My prior enterprise background means you gain an engineer who delivers immediate Day-1 production reliability, ITIL ticket discipline, and zero onboarding hand-holding, while I am eager to learn your specific systems and grow with your team long term."
+- In 'salary_guidance': Set realistic Finnish junior IT market guidance: €3,000 – €3,500 / month.
 """
 
     prompt = f"""You are an expert Executive Interview Coach and Technical Assessment Specialist for {cand_name}, an experienced IT systems and infrastructure engineer based in Finland.
@@ -664,7 +720,7 @@ Generate a comprehensive, tailored Interview Preparation Guide in strict JSON fo
     "action": "Technical actions taken by the candidate",
     "result": "Quantifiable outcome"
   }},
-  "overqualified_defense": "Persuasive, spoken response addressing why the candidate is applying for this entry/junior position despite prior experience, emphasizing Finnish market entry, Day 1 production dependability, humility, and long-term commitment.",
+  "overqualified_defense": "Persuasive, spoken response addressing why the candidate is applying for this entry/junior position despite prior experience, emphasizing Finnish market entry, Day 1 production dependability, and long-term commitment.",
   "reverse_questions": [
     "High-IQ technical question about {company}'s architecture, monitoring, or stack",
     "Operational question about standby rotations, SLA targets, or team collaboration",
@@ -678,6 +734,14 @@ Generate a comprehensive, tailored Interview Preparation Guide in strict JSON fo
 
     parsed, model_used, err_msg = call_gemini_json(prompt, timeout=25)
     if parsed and parsed.get("elevator_pitch") and parsed.get("star_scenario_1"):
+        for k, v in list(parsed.items()):
+            if isinstance(v, str):
+                parsed[k] = sanitize_meta_phrases(v)
+            elif isinstance(v, list):
+                parsed[k] = [sanitize_meta_phrases(item) if isinstance(item, str) else item for item in v]
+            elif isinstance(v, dict):
+                parsed[k] = {dk: sanitize_meta_phrases(dv) if isinstance(dv, str) else dv for dk, dv in v.items()}
+
         print(f"🎯 [AI Interview Prep] Successfully generated prep guide using {model_used}!")
         return parsed
 
@@ -827,11 +891,14 @@ Sincerely,
 ---
 SPECIAL STRATEGIC MANDATE: JUNIOR / ENTRY / TRAINEE ROLE
 This is an entry/junior role: '{title}'.
-{cand_name} brings 8+ years of enterprise experience, but is NEW to the Finnish job market and seeking an intentional entry point following his B.Eng. graduation from TUAS (4.0 GPA).
-You MUST:
-1. In hook_paragraph: Frame this role as an intentional, highly motivated gateway to enter the Finnish tech ecosystem and build a long-term career.
-2. In why_company_paragraph: Address recruiter fears (overqualification / flight risk / salary friction) by emphasizing genuine humility (vaatimattomuus), coachability, eagerness to master {company}'s specific stack, and long-term commitment.
-3. Employer benefit: Highlight that {company} gains an engineer with Day 1 production dependability, ITIL ticketing rigor, and zero onboarding handholding, fully aligned with entry-level scope and junior market compensation (€3,000–€3,500/mo).
+{cand_name} brings 8+ years of enterprise experience, but is newly establishing his career in the Finnish tech market following his B.Eng. graduation from TUAS (4.0 GPA).
+
+CRITICAL STYLE & VOCABULARY CONSTRAINTS (MANDATORY):
+- NEVER use meta-recruitment jargon such as: "overqualification", "overqualified", "flight risk", "salary bracket", "compensation bracket", "mitigates concerns", or "stepping stone".
+- NEVER write "I am humble" or "I am coachable". Modesty is demonstrated through an understated tone and enthusiasm for learning—never by self-labeling.
+- In hook_paragraph: Frame this role as an intentional, highly motivated gateway to enter the Finnish tech ecosystem and build a long-term career.
+- In why_company_paragraph: Focus on why {company} is the ideal place to build long-term roots, enthusiasm for mastering {company}'s specific stack, and dedication to team reliability.
+- Employer benefit: Emphasize that {company} gains an engineer with Day 1 production dependability, ITIL ticketing rigor, and zero onboarding hand-holding.
 """
 
         prompt = f"""You are an executive career advisor and technical cover letter specialist for {cand_name}, an IT systems & infrastructure engineer in Finland.
@@ -865,6 +932,10 @@ Produce a STRICT JSON object containing:
 """
         parsed, model_used, err_msg = call_gemini_json(prompt, timeout=25)
         if parsed and parsed.get("hook_paragraph") and parsed.get("tech_pillar_paragraph"):
+            for k in ["hook_paragraph", "tech_pillar_paragraph", "ops_pillar_paragraph", "why_company_paragraph", "closing_paragraph"]:
+                if k in parsed and isinstance(parsed[k], str):
+                    parsed[k] = sanitize_meta_phrases(parsed[k])
+
             md = f"""# {cand_name}
 {cand_location} | {cand_phone} | {cand_email} | [LinkedIn]({cand_linkedin})
 
@@ -1065,6 +1136,12 @@ Generate a specialized, high-converting LinkedIn Pitch Package in strict JSON fo
 """
         parsed, model_used, err_msg = call_gemini_json(prompt, timeout=25)
         if parsed and parsed.get("why_top_choice_candidate") and parsed.get("linkedin_quick_pitch"):
+            for k, v in list(parsed.items()):
+                if isinstance(v, str):
+                    parsed[k] = sanitize_meta_phrases(v)
+                elif isinstance(v, list):
+                    parsed[k] = [sanitize_meta_phrases(item) if isinstance(item, str) else item for item in v]
+
             c = str(parsed["why_top_choice_candidate"]).strip()
             if len(c) > 400:
                 c = c[:397].rsplit(" ", 1)[0] + "..."
