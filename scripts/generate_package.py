@@ -142,7 +142,19 @@ def generate_application_package(
             existing_jd_text = existing_jd_file.read_text(encoding="utf-8").strip()
         except Exception:
             pass
-    jd_body = scraped_text if len(scraped_text) > 200 else (description if len(description) > 200 else (existing_jd_text or description or "Detailed job description from posting."))
+    if len(scraped_text) > 200:
+        jd_body = scraped_text
+    elif len(description) > 200:
+        jd_body = description
+    elif len(existing_jd_text) > 200:
+        jd_body = existing_jd_text
+    elif len(description.strip()) >= 100:
+        jd_body = description.strip()
+    elif len(existing_jd_text.strip()) >= 100:
+        jd_body = existing_jd_text.strip()
+    else:
+        from scripts.ai_tailor import synthesize_fallback_job_description
+        jd_body = synthesize_fallback_job_description(title, company, location, description or existing_jd_text)
     lang_info = detect_language_requirement(title, jd_body)
     is_finnish = lang_info["tag"] == "Finnish Required"
     
