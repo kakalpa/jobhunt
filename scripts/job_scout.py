@@ -504,9 +504,18 @@ def run_scout(queries: list, location: str, hours: int, limit: int, remote_only:
     output_md = workspace_dir / "JOB_SCOUT_FEED.md"
     log_scout(f"\n💾 Generating Markdown Feed: {output_md}...")
     
+    try:
+        import zoneinfo
+        fi_tz = zoneinfo.ZoneInfo("Europe/Helsinki")
+        now_fi = datetime.now(fi_tz)
+        timestamp_display = f"{now_fi.strftime('%Y-%m-%d %H:%M:%S')} EEST"
+    except Exception:
+        timestamp_display = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} UTC"
+    iso_stamp = datetime.now(timezone.utc).isoformat()
+
     with open(output_md, "w", encoding="utf-8") as f:
         f.write(f"# Automated IT Job Scout Feed\n\n")
-        f.write(f"**Last Scanned:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}  \n")
+        f.write(f"**Last Scanned:** {timestamp_display}  \n")
         f.write(f"**Target Location:** {location} | **Remote Filter:** {remote_only} | **Lookback:** {hours} hours  \n")
         f.write(f"**Discovered Postings:** {len(deduped_records)} unique IT roles (Cross-Site Deduplicated)  \n\n")
         f.write("---\n\n")
@@ -554,7 +563,8 @@ def run_scout(queries: list, location: str, hours: int, limit: int, remote_only:
     output_json = workspace_dir / "scout_latest_report.json"
     log_scout(f"💾 Generating Structured JSON Report: {output_json}...")
     report_data = {
-        "last_scanned": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "last_scanned": timestamp_display,
+        "last_scanned_iso": iso_stamp,
         "location": location,
         "raw_count": raw_count,
         "it_count": len(it_records),

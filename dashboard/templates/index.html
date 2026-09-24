@@ -4596,13 +4596,48 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
       }, 1500);
     }
 
+    function formatScoutScanTime(report) {
+      if (!report) return "Just now";
+      const raw = report.last_scanned_iso || report.last_scanned;
+      if (!raw) return "Just now";
+      
+      if (typeof raw === 'string' && raw.includes('EEST')) {
+        return raw;
+      }
+      
+      try {
+        let d;
+        if (raw.endsWith('Z') || raw.includes('+')) {
+          d = new Date(raw);
+        } else if (raw.includes(' ') && !raw.includes('UTC')) {
+          d = new Date(raw.replace(' ', 'T') + 'Z');
+        } else {
+          d = new Date(raw);
+        }
+        
+        if (isNaN(d.getTime())) return raw;
+        
+        const now = new Date();
+        const diffMin = Math.round((now - d) / 60000);
+        let rel = "just now";
+        if (diffMin >= 1 && diffMin < 60) rel = `${diffMin}m ago`;
+        else if (diffMin >= 60 && diffMin < 1440) rel = `${Math.floor(diffMin / 60)}h ago`;
+        else if (diffMin >= 1440) rel = `${Math.floor(diffMin / 1440)}d ago`;
+
+        const localTime = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        return `${localTime} (${rel})`;
+      } catch (e) {
+        return raw;
+      }
+    }
+
     function renderScoutReport(report) {
       if (!report) return;
       document.getElementById('rep-raw-count').textContent = report.raw_count || 0;
       document.getElementById('rep-it-count').textContent = report.it_count || 0;
       document.getElementById('rep-deduped-count').textContent = report.deduped_count || 0;
       document.getElementById('rep-high-count').textContent = report.high_match_count || 0;
-      document.getElementById('rep-last-scanned-time').textContent = `Last Scan: ${report.last_scanned || 'Just now'}`;
+      document.getElementById('rep-last-scanned-time').textContent = `Last Scan: ${formatScoutScanTime(report)}`;
 
       const container = document.getElementById('rep-jobs-container');
       const allJobsInReport = report.jobs || [];
