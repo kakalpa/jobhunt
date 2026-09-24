@@ -12,7 +12,7 @@ import re
 import json
 import time
 import argparse
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Ensure immediate real-time unbuffered log output
@@ -508,10 +508,12 @@ def run_scout(queries: list, location: str, hours: int, limit: int, remote_only:
         import zoneinfo
         fi_tz = zoneinfo.ZoneInfo("Europe/Helsinki")
         now_fi = datetime.now(fi_tz)
-        timestamp_display = f"{now_fi.strftime('%Y-%m-%d %H:%M:%S')} EEST"
+        timestamp_display = f"{now_fi.strftime('%Y-%m-%d %H:%M:%S')} {now_fi.tzname() or 'EEST'}"
+        iso_stamp = now_fi.isoformat()
     except Exception:
-        timestamp_display = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} UTC"
-    iso_stamp = datetime.now(timezone.utc).isoformat()
+        now_local = datetime.now().astimezone()
+        timestamp_display = f"{now_local.strftime('%Y-%m-%d %H:%M:%S')} {now_local.tzname() or 'EEST'}"
+        iso_stamp = now_local.isoformat()
 
     with open(output_md, "w", encoding="utf-8") as f:
         f.write(f"# Automated IT Job Scout Feed\n\n")

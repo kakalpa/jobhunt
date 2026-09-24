@@ -35,6 +35,7 @@ services:
       - RETENTION_NOTIFY_TELEGRAM=${RETENTION_NOTIFY_TELEGRAM:-true}
       - WORKSPACE_DIR=/workspace
       - PORT=5500
+      - TZ=${TZ:-Europe/Helsinki}
     env_file:
       - path: .env
         required: false
