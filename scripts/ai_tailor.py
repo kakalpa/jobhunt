@@ -35,30 +35,54 @@ class AITailoringError(Exception):
         super().__init__(message)
         self.is_api_error = is_api_error
 
-def get_api_key() -> str:
-    """Load Gemini API Key from environment or .env file."""
-    key = os.environ.get("GEMINI_API_KEY", "")
+def get_key_from_env(name: str) -> str:
+    """Load specified API key from process environment or .env file."""
+    key = os.environ.get(name, "")
     if key:
-        return key.strip()
+        return key.strip().strip('"').strip("'")
     env_path = WORKSPACE_DIR / ".env"
     if env_path.exists():
         for line in env_path.read_text(encoding="utf-8").splitlines():
             line = line.strip()
-            if line.startswith("GEMINI_API_KEY="):
+            if line.startswith(f"{name}="):
                 return line.split("=", 1)[1].strip().strip('"').strip("'")
     return ""
 
+def get_api_key() -> str:
+    """Load Gemini API Key from environment or .env file."""
+    return get_key_from_env("GEMINI_API_KEY")
+
+def get_groq_key() -> str:
+    """Load Groq API Key from environment or .env file."""
+    return get_key_from_env("GROQ_API_KEY")
+
+def get_openrouter_key() -> str:
+    """Load OpenRouter API Key from environment or .env file."""
+    return get_key_from_env("OPENROUTER_API_KEY")
+
+def has_any_ai_key() -> bool:
+    """Check if at least one AI API key (Gemini, Groq, or OpenRouter) is configured."""
+    return bool(get_api_key() or get_groq_key() or get_openrouter_key())
+
 MODELS = [
-    "models/gemini-3-flash-preview",
     "models/gemini-3.5-flash",
-    "models/gemini-3.6-flash",
-    "models/gemini-flash-latest"
+    "models/gemini-3-flash-preview"
+]
+
+GROQ_MODELS = [
+    "openai/gpt-oss-120b",
+    "openai/gpt-oss-20b"
+]
+
+OPENROUTER_MODELS = [
+    "qwen/qwen3.8-27b:free",
+    "nex-agi/nex-n2.5-pro:free"
 ]
 
 AI_STATUS_FILE = WORKSPACE_DIR / ".ai_api_status.json"
 
 def record_ai_api_status(status: str, error: str = "", model: str = ""):
-    """Persist the health and error state of the Gemini AI API integration."""
+    """Persist the health and error state of the AI API integration."""
     now_iso = datetime.now().isoformat()
     data = {
         "status": status,
@@ -81,61 +105,151 @@ def record_ai_api_status(status: str, error: str = "", model: str = ""):
     except Exception:
         pass
 
-def call_gemini_json(prompt: str, api_key: str, timeout: int = 90, max_retries: int = 2) -> tuple:
+def call_groq_json(prompt: str, api_key: str, timeout: int = 25) -> tuple:
+    """Execute JSON generation against GroqCloud OpenAI-compatible endpoint."""
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    last_err = ""
+    for model_name in GROQ_MODELS:
+        payload = json.dumps({
+            "model": model_name,
+            "messages": [
+                {"role": "system", "content": "You are an expert career consultant and document tailoring assistant. Return valid JSON only."},
+                {"role": "user", "content": prompt}
+            ],
+            "response_format": {"type": "json_object"},
+            "temperature": 0.2
+        }).encode("utf-8")
+        req = urllib.request.Request(
+            url,
+            data=payload,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "User-Agent": "JobHunt/1.0"
+            }
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as response:
+                res = json.loads(response.read().decode("utf-8"))
+                text = res["choices"][0]["message"]["content"]
+                parsed = json.loads(text)
+                return parsed, f"groq:{model_name}", ""
+        except Exception as e:
+            last_err = str(e)
+            print(f"⚠️ [Groq Failover] {model_name} error: {last_err}")
+            continue
+    return None, "", last_err
+
+def call_openrouter_json(prompt: str, api_key: str, timeout: int = 25) -> tuple:
+    """Execute JSON generation against OpenRouter free endpoint."""
+    url = "https://openrouter.ai/api/v1/chat/completions"
+    last_err = ""
+    for model_name in OPENROUTER_MODELS:
+        payload = json.dumps({
+            "model": model_name,
+            "messages": [
+                {"role": "system", "content": "You are an expert career consultant and document tailoring assistant. Return valid JSON only."},
+                {"role": "user", "content": prompt}
+            ],
+            "response_format": {"type": "json_object"},
+            "temperature": 0.2
+        }).encode("utf-8")
+        req = urllib.request.Request(
+            url,
+            data=payload,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://jobhunt.local",
+                "X-Title": "JobHunt",
+                "User-Agent": "JobHunt/1.0"
+            }
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as response:
+                res = json.loads(response.read().decode("utf-8"))
+                text = res["choices"][0]["message"]["content"]
+                parsed = json.loads(text)
+                return parsed, f"openrouter:{model_name}", ""
+        except Exception as e:
+            last_err = str(e)
+            print(f"⚠️ [OpenRouter Failover] {model_name} error: {last_err}")
+            continue
+    return None, "", last_err
+
+def call_gemini_json(prompt: str, api_key: str = None, timeout: int = 20, max_retries: int = 1) -> tuple:
     """
-    Executes a structured JSON generation request against Gemini models with:
-    - Multi-model waterfall fallback across responsive models
-    - Transient HTTP 503 / 429 / socket timeout retries with exponential backoff
-    - Automatic JSON extraction and validation
+    Executes a structured JSON generation request with automated multi-provider failover:
+    1. Primary: Google Gemini models (gemini-3.5-flash, gemini-3-flash-preview)
+    2. Failover 1: GroqCloud (openai/gpt-oss-120b, openai/gpt-oss-20b)
+    3. Failover 2: OpenRouter Free Models
     Returns (parsed_dict, model_used, error_msg).
     """
     import time
-    data = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {
-            "responseMimeType": "application/json",
-            "temperature": 0.2
-        }
-    }
-    payload = json.dumps(data).encode("utf-8")
+    gemini_key = (api_key or get_api_key()).strip()
+    groq_key = get_groq_key()
+    openrouter_key = get_openrouter_key()
+    
     last_err_msg = ""
 
-    for model_name in MODELS:
-        for attempt in range(max_retries):
-            url = f"https://generativelanguage.googleapis.com/v1beta/{model_name}:generateContent?key={api_key}"
-            req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
-            try:
-                with urllib.request.urlopen(req, timeout=timeout) as response:
-                    raw_bytes = response.read().decode("utf-8")
-                    res = json.loads(raw_bytes)
-                    candidates = res.get("candidates", [])
-                    if not candidates:
-                        raise ValueError("No candidates returned in Gemini API response")
-                    text = candidates[0]["content"]["parts"][0]["text"]
-                    parsed = json.loads(text)
-                    record_ai_api_status("ok", "", model_name)
-                    return parsed, model_name, ""
-            except urllib.error.HTTPError as e:
-                last_err_msg = f"HTTP Error {e.code}: {e.reason}"
-                print(f"⚠️ [Gemini Client] {model_name} attempt {attempt+1}/{max_retries}: {last_err_msg}")
-                if e.code == 503:
-                    time.sleep(2.0 * (attempt + 1))
-                    continue
-                elif e.code == 429:
-                    # Model quota limit reached; advance directly to next model in waterfall
-                    break
-                else:
-                    break
-            except Exception as e:
-                last_err_msg = str(e)
-                print(f"⚠️ [Gemini Client] {model_name} attempt {attempt+1}/{max_retries}: {last_err_msg}")
-                time.sleep(2.5 * (attempt + 1))
-                continue
+    # --- 1. Try Google Gemini Primary ---
+    if gemini_key:
+        data = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {
+                "responseMimeType": "application/json",
+                "temperature": 0.2
+            }
+        }
+        payload = json.dumps(data).encode("utf-8")
 
+        for model_name in MODELS:
+            for attempt in range(max_retries):
+                url = f"https://generativelanguage.googleapis.com/v1beta/{model_name}:generateContent?key={gemini_key}"
+                req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+                try:
+                    with urllib.request.urlopen(req, timeout=timeout) as response:
+                        raw_bytes = response.read().decode("utf-8")
+                        res = json.loads(raw_bytes)
+                        candidates = res.get("candidates", [])
+                        if not candidates:
+                            raise ValueError("No candidates returned in Gemini API response")
+                        text = candidates[0]["content"]["parts"][0]["text"]
+                        parsed = json.loads(text)
+                        record_ai_api_status("ok", "", model_name)
+                        return parsed, model_name, ""
+                except urllib.error.HTTPError as e:
+                    last_err_msg = f"HTTP Error {e.code}: {e.reason}"
+                    print(f"⚠️ [Gemini Client] {model_name} attempt {attempt+1}/{max_retries}: {last_err_msg}")
+                    break
+                except Exception as e:
+                    last_err_msg = str(e)
+                    print(f"⚠️ [Gemini Client] {model_name} attempt {attempt+1}/{max_retries}: {last_err_msg}")
+                    break
+
+    # --- 2. Failover to Groq ---
+    if groq_key:
+        print(f"🔄 [AI Failover] Switching to Groq fallback engine...")
+        parsed, model_used, groq_err = call_groq_json(prompt, groq_key, timeout=min(timeout, 45))
+        if parsed:
+            record_ai_api_status("ok", "", model_used)
+            return parsed, model_used, ""
+        last_err_msg = f"Groq failover error: {groq_err} (Previous Gemini error: {last_err_msg})"
+
+    # --- 3. Failover to OpenRouter ---
+    if openrouter_key:
+        print(f"🔄 [AI Failover] Switching to OpenRouter fallback engine...")
+        parsed, model_used, or_err = call_openrouter_json(prompt, openrouter_key, timeout=min(timeout, 45))
+        if parsed:
+            record_ai_api_status("ok", "", model_used)
+            return parsed, model_used, ""
+        last_err_msg = f"OpenRouter failover error: {or_err} (Previous error: {last_err_msg})"
+
+    # --- All Providers Failed ---
     record_ai_api_status("error", last_err_msg)
     try:
         from scripts.telegram_notifier import notify_api_key_error
-        notify_api_key_error("Google Gemini AI", last_err_msg)
+        notify_api_key_error("AI Inference Engine", last_err_msg)
     except Exception:
         pass
 
@@ -143,9 +257,8 @@ def call_gemini_json(prompt: str, api_key: str, timeout: int = 90, max_retries: 
 
 def get_ai_api_status() -> dict:
     """Retrieve current AI API health state."""
-    api_key = get_api_key()
-    if not api_key:
-        return {"status": "not_configured", "configured": False, "last_error": "No GEMINI_API_KEY configured."}
+    if not has_any_ai_key():
+        return {"status": "not_configured", "configured": False, "last_error": "No AI API keys configured (Gemini, Groq, or OpenRouter)."}
     
     if AI_STATUS_FILE.exists():
         try:
@@ -160,6 +273,10 @@ def check_gemini_api_key(test_key: str = None) -> dict:
     """Validate API key directly against Google Generative Language models endpoint."""
     key = (test_key or get_api_key()).strip()
     if not key:
+        # Check if Groq is available instead
+        groq_k = get_groq_key()
+        if groq_k:
+            return check_groq_api_key(groq_k)
         record_ai_api_status("not_configured", "Missing GEMINI_API_KEY")
         return {"valid": False, "status": "not_configured", "error": "No GEMINI_API_KEY configured in environment or .env"}
 
@@ -168,21 +285,44 @@ def check_gemini_api_key(test_key: str = None) -> dict:
     try:
         with urllib.request.urlopen(req, timeout=8) as response:
             if response.status == 200:
-                record_ai_api_status("ok", "", "models-endpoint")
-                return {"valid": True, "status": "ok", "error": None, "message": "Gemini API key is active and authorized."}
+                record_ai_api_status("ok", "", "gemini-models-endpoint")
+                return {"valid": True, "status": "ok", "provider": "gemini", "error": None, "message": "Google Gemini API key is active and authorized."}
     except urllib.error.HTTPError as e:
         err_msg = f"HTTP Error {e.code}: {e.reason}"
         record_ai_api_status("error", err_msg)
-        try:
-            from scripts.telegram_notifier import notify_api_key_error
-            notify_api_key_error("Google Gemini AI", err_msg)
-        except Exception:
-            pass
         return {"valid": False, "status": "error", "error": err_msg, "message": f"Gemini API rejected key: {err_msg}"}
     except Exception as e:
         err_msg = str(e)
         record_ai_api_status("error", err_msg)
         return {"valid": False, "status": "error", "error": err_msg, "message": f"Network error connecting to Gemini API: {err_msg}"}
+
+def check_groq_api_key(test_key: str = None) -> dict:
+    """Validate Groq API key directly against models endpoint."""
+    key = (test_key or get_groq_key()).strip()
+    if not key:
+        return {"valid": False, "status": "not_configured", "error": "No GROQ_API_KEY configured"}
+    url = "https://api.groq.com/openai/v1/models"
+    req = urllib.request.Request(url, headers={"Authorization": f"Bearer {key}", "User-Agent": "JobHunt/1.0"})
+    try:
+        with urllib.request.urlopen(req, timeout=8) as response:
+            if response.status == 200:
+                return {"valid": True, "status": "ok", "provider": "groq", "error": None, "message": "Groq API key is active and authorized."}
+    except Exception as e:
+        return {"valid": False, "status": "error", "error": str(e), "message": f"Groq API error: {e}"}
+
+def check_openrouter_api_key(test_key: str = None) -> dict:
+    """Validate OpenRouter API key directly against models endpoint."""
+    key = (test_key or get_openrouter_key()).strip()
+    if not key:
+        return {"valid": False, "status": "not_configured", "error": "No OPENROUTER_API_KEY configured"}
+    url = "https://openrouter.ai/api/v1/models"
+    req = urllib.request.Request(url, headers={"Authorization": f"Bearer {key}", "User-Agent": "JobHunt/1.0"})
+    try:
+        with urllib.request.urlopen(req, timeout=8) as response:
+            if response.status == 200:
+                return {"valid": True, "status": "ok", "provider": "openrouter", "error": None, "message": "OpenRouter API key is active and authorized."}
+    except Exception as e:
+        return {"valid": False, "status": "error", "error": str(e), "message": f"OpenRouter API error: {e}"}
 
 def tailor_application(title: str, company: str, location: str, jd_text: str, strict: bool = False) -> dict:
     """
@@ -190,11 +330,10 @@ def tailor_application(title: str, company: str, location: str, jd_text: str, st
     using all specialized job search skills.
     Returns a dictionary of tailored sections or raises AITailoringError if strict=True.
     """
-    api_key = get_api_key()
-    if not api_key:
-        record_ai_api_status("not_configured", "Missing GEMINI_API_KEY")
+    if not has_any_ai_key():
+        record_ai_api_status("not_configured", "Missing AI API keys (Gemini, Groq, or OpenRouter)")
         if strict:
-            raise AITailoringError("No GEMINI_API_KEY configured in environment or .env. Please configure your key in Settings.")
+            raise AITailoringError("No AI API keys configured in environment or .env. Please configure your key in Settings.")
         return None
 
     cleaned_jd = (jd_text or "")[:4500].strip()
@@ -331,7 +470,7 @@ Return a STRICT JSON object with these exact keys:
 }}
 """
 
-    parsed, model_used, err_msg = call_gemini_json(prompt, api_key, timeout=90)
+    parsed, model_used, err_msg = call_gemini_json(prompt, timeout=25)
     if parsed and parsed.get("cv_summary") and parsed.get("cover_letter_body"):
         print(f"✨ [AI Tailor] Successfully tailored application using {model_used} with all 12 skills!")
         return parsed
@@ -346,8 +485,7 @@ def generate_ai_interview_prep(title: str, company: str, location: str, jd_text:
     Invokes Gemini to generate comprehensive Interview Preparation & Systematic CV Walk-Through
     incorporating interview-prep-generator, finnish-job-market-tailor, and salary-negotiation-prep.
     """
-    api_key = get_api_key()
-    if not api_key:
+    if not has_any_ai_key():
         return None
 
     cleaned_jd = (jd_text or "")[:4500].strip()
@@ -411,7 +549,7 @@ Generate a comprehensive, tailored Interview Preparation Guide in strict JSON fo
 }}
 """
 
-    parsed, model_used, err_msg = call_gemini_json(prompt, api_key, timeout=90)
+    parsed, model_used, err_msg = call_gemini_json(prompt, timeout=25)
     if parsed and parsed.get("elevator_pitch") and parsed.get("star_scenario_1"):
         print(f"🎯 [AI Interview Prep] Successfully generated prep guide using {model_used}!")
         return parsed
@@ -539,8 +677,7 @@ Sincerely,
             "generated_by": "deterministic_expanded_engine"
         }
 
-    api_key = get_api_key()
-    if api_key and len(cleaned_jd) > 80:
+    if has_any_ai_key() and len(cleaned_jd) > 80:
         lang_directive = "Author the body paragraphs in natural, idiomatic, professional Finnish (hakemuskirje)." if is_finnish else "Author the body paragraphs in clear, polished, authoritative business English."
         salutation = f"Hei {company} tiimi," if is_finnish else f"Dear {company} Hiring Team,"
         signoff = "Ystävällisin terveisin," if is_finnish else "Sincerely,"
@@ -575,7 +712,7 @@ Produce a STRICT JSON object containing:
   "closing_paragraph": "1 confident closing paragraph highlighting permanent EU work authorization, immediate 0-day notice, Supo clearance readiness, C1 English and practical Finnish."
 }}
 """
-        parsed, model_used, err_msg = call_gemini_json(prompt, api_key, timeout=90)
+        parsed, model_used, err_msg = call_gemini_json(prompt, timeout=25)
         if parsed and parsed.get("hook_paragraph") and parsed.get("tech_pillar_paragraph"):
             md = f"""# {cand_name}
 {cand_location} | {cand_phone} | {cand_email} | [LinkedIn]({cand_linkedin})
@@ -719,8 +856,7 @@ def generate_top_choice_pitch(title: str, company: str, location: str = "Finland
             "generated_by": "deterministic_engine"
         }
 
-    api_key = get_api_key()
-    if api_key and len(cleaned_jd) > 100:
+    if has_any_ai_key() and len(cleaned_jd) > 100:
         prompt = f"""You are an expert LinkedIn Career Coach and Executive Pitch Specialist for {cand_name}, an experienced IT systems and infrastructure engineer based in Finland.
 
 COMPANY: {company}
@@ -747,7 +883,7 @@ Generate a specialized, high-converting LinkedIn Pitch Package in strict JSON fo
   "matched_skills": ["Top 4-5 technical skills extracted from JD that match the candidate"]
 }}
 """
-        parsed, model_used, err_msg = call_gemini_json(prompt, api_key, timeout=90)
+        parsed, model_used, err_msg = call_gemini_json(prompt, timeout=25)
         if parsed and parsed.get("why_top_choice_candidate") and parsed.get("linkedin_quick_pitch"):
             c = str(parsed["why_top_choice_candidate"]).strip()
             if len(c) > 400:

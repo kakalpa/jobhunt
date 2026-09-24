@@ -304,12 +304,16 @@ def acquire_scout_lock(workspace_dir: Path):
     except Exception:
         return None
 
-def release_scout_lock(fd):
+def release_scout_lock(fd, workspace_dir: Path = None):
     if fd:
         try:
             import fcntl
             fcntl.flock(fd.fileno(), fcntl.LOCK_UN)
             fd.close()
+            if workspace_dir:
+                lock_file = workspace_dir / ".scout.lock"
+                if lock_file.exists():
+                    lock_file.unlink(missing_ok=True)
         except Exception:
             pass
 
@@ -421,7 +425,7 @@ def run_scout(queries: list, location: str, hours: int, limit: int, remote_only:
             
     if not all_jobs:
         log_scout("\n❌ No jobs found across the specified criteria. Try widening the hours or search terms.")
-        release_scout_lock(lock_fd)
+        release_scout_lock(lock_fd, workspace_dir)
         return None
         
     combined_df = pd.concat(all_jobs, ignore_index=True)
@@ -662,7 +666,7 @@ def run_scout(queries: list, location: str, hours: int, limit: int, remote_only:
     log_scout(f"✅ Scout Mission Complete in {elapsed:.1f}s!")
     log_scout(f"📊 Discovered {len(deduped_records)} unique IT roles ({sum(1 for j in deduped_records if j['match_score'] >= 80)} high matches)")
     log_scout(f"📁 Live feed saved to: {output_md}")
-    release_scout_lock(lock_fd)
+    release_scout_lock(lock_fd, workspace_dir)
     return output_md
 
 def main():

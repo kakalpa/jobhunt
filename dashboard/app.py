@@ -1405,6 +1405,8 @@ def get_settings_api():
     """Return current tool configuration with sensitive credentials masked."""
     env = read_raw_env_dict()
     gemini_key = env.get("GEMINI_API_KEY", "")
+    groq_key = env.get("GROQ_API_KEY", "")
+    openrouter_key = env.get("OPENROUTER_API_KEY", "")
     telegram_token = env.get("TELEGRAM_BOT_TOKEN", "")
     
     default_queries = "Junior IT, Junior Security, Junior Systems Administrator, IT Support Specialist, Service Desk Analyst, Data Center Technician, Field Service Technician, SOC Analyst, IT Specialist, Cybersecurity, IT Trainee, System Administrator, Sec Ops, Dev ops, Junior Sec Ops, DV Ops"
@@ -1422,7 +1424,16 @@ def get_settings_api():
             "status": ai_status.get("status", "unknown"),
             "last_error": ai_status.get("last_error", ""),
             "last_checked": ai_status.get("last_checked", ""),
+            "model": ai_status.get("model", ""),
             "fallback_mode": env.get("AI_FALLBACK_MODE", "prompt")
+        },
+        "groq": {
+            "has_key": bool(groq_key),
+            "masked_key": mask_secret(groq_key)
+        },
+        "openrouter": {
+            "has_key": bool(openrouter_key),
+            "masked_key": mask_secret(openrouter_key)
         },
         "telegram": {
             "enabled": bool(telegram_token and env.get("TELEGRAM_CHAT_ID")),
@@ -1464,11 +1475,19 @@ def update_settings_api():
     current_env = read_raw_env_dict()
     updates = {}
     
-    # 1. Gemini
+    # 1. Gemini & Failover AI Engines
     if "gemini_api_key" in payload:
         new_key = payload["gemini_api_key"].strip()
         if new_key and "..." not in new_key and "****" not in new_key:
             updates["GEMINI_API_KEY"] = new_key
+    if "groq_api_key" in payload:
+        new_key = payload["groq_api_key"].strip()
+        if new_key and "..." not in new_key and "****" not in new_key:
+            updates["GROQ_API_KEY"] = new_key
+    if "openrouter_api_key" in payload:
+        new_key = payload["openrouter_api_key"].strip()
+        if new_key and "..." not in new_key and "****" not in new_key:
+            updates["OPENROUTER_API_KEY"] = new_key
     if "gemini_fallback_mode" in payload:
         f_mode = str(payload["gemini_fallback_mode"]).strip().lower()
         if f_mode in ("prompt", "stop", "allow"):
@@ -1567,14 +1586,25 @@ def ai_status_endpoint():
 
 @app.route("/api/ai/test", methods=["POST"])
 def ai_test_endpoint():
-    """Test validation of configured or provided Gemini API key."""
+    """Test validation of configured or provided Gemini, Groq, or OpenRouter API key."""
     payload = request.json or {}
-    test_key = payload.get("gemini_api_key", "").strip()
+    provider = payload.get("provider", "gemini").lower()
     try:
-        from scripts.ai_tailor import check_gemini_api_key
-        actual_key = test_key if (test_key and "..." not in test_key and "****" not in test_key) else None
-        res = check_gemini_api_key(actual_key)
-        return jsonify(res)
+        if provider == "groq":
+            from scripts.ai_tailor import check_groq_api_key
+            test_key = payload.get("groq_api_key", "").strip()
+            actual_key = test_key if (test_key and "..." not in test_key and "****" not in test_key) else None
+            return jsonify(check_groq_api_key(actual_key))
+        elif provider == "openrouter":
+            from scripts.ai_tailor import check_openrouter_api_key
+            test_key = payload.get("openrouter_api_key", "").strip()
+            actual_key = test_key if (test_key and "..." not in test_key and "****" not in test_key) else None
+            return jsonify(check_openrouter_api_key(actual_key))
+        else:
+            from scripts.ai_tailor import check_gemini_api_key
+            test_key = payload.get("gemini_api_key", "").strip()
+            actual_key = test_key if (test_key and "..." not in test_key and "****" not in test_key) else None
+            return jsonify(check_gemini_api_key(actual_key))
     except Exception as e:
         return jsonify({"valid": False, "status": "error", "error": str(e), "message": str(e)}), 500
 
@@ -2091,6 +2121,8 @@ def scout_status():
     fresh_report = load_latest_scout_report()
     if fresh_report:
         scout_process_status["report"] = fresh_report
+        if not scout_process_status.get("last_run") and fresh_report.get("last_scanned"):
+            scout_process_status["last_run"] = fresh_report.get("last_scanned")
     return jsonify(scout_process_status)
 
 @app.route("/api/scout/report")

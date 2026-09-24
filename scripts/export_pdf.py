@@ -193,7 +193,7 @@ def generate_pdf(input_md_path: str, output_pdf_path: str = None) -> str:
             f"--print-to-pdf={output_pdf_path}",
             tmp_html_path
         ]
-        subprocess.run(cmd, capture_output=True, text=True, check=True)
+        subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=25)
         print(f"✅ Generated PDF: {output_pdf_path}")
         return output_pdf_path
     finally:
