@@ -418,6 +418,34 @@ def tailor_application(title: str, company: str, location: str, jd_text: str, st
     cand = get_candidate_contact_info(WORKSPACE_DIR)
     cand_name = cand["name"]
 
+    t_lower = (title or "").lower()
+    is_junior_role = any(k in t_lower for k in [
+        "junior", "trainee", "entry", "intern", "associate", "graduate", 
+        "vastavalmistunut", "harjoittelija", "apulainen", "nuorempi"
+    ])
+
+    junior_strategy = ""
+    if is_junior_role:
+        junior_strategy = f"""
+---
+SPECIAL STRATEGIC MANDATE: JUNIOR / ENTRY / TRAINEE ROLE POSITIONING
+⚠️ TARGET ROLE IS ENTRY/JUNIOR LEVEL: '{title}'.
+{cand_name} brings 8+ years of enterprise systems & support experience, but is NEW to the Finnish professional job market (graduating with a Finnish B.Eng. 4.0 GPA from TUAS in May 2026) and is DELIBERATELY seeking an entry role in Finland to establish his long-term career.
+
+You MUST proactively neutralize recruiter hesitations (flight risk, salary mismatch, overqualification, ego):
+1. Motivated Entry & Long-Term Commitment: In the cover letter and Q&A, explicitly explain that this junior role is an intentional, highly motivated gateway to establish a long-term technical career in Finland and master {company}'s specific environment.
+2. Production-Ready with Zero Hand-Holding: Emphasize that unlike fresh graduates who require months of basic training, {company} gains immediate production-grade dependability, ticket discipline (ITIL), and systems competence from Day 1.
+3. Humility & Coachability (Vaatimattomuus): Convey genuine modesty, respect for team structure, eagerness to learn from senior colleagues, and enthusiasm for foundational operational tasks (troubleshooting, tickets, runbooks, maintenance).
+4. Realistic Entry Salary: Provide realistic Finnish entry/junior market salary guidance (€3,000–€3,500 / month) so the recruiter knows the candidate fits their junior budget without friction.
+5. CV Summary: Frame summary around: "Dependable IT systems engineer with a Bachelor of Engineering (TUAS, 4.0 GPA) and 8+ years of foundational enterprise infrastructure experience. New to the Finnish professional market and intentionally seeking an entry-level role at {company} to master your stack, deliver immediate operational reliability without onboarding overhead, and contribute long-term."
+"""
+    else:
+        junior_strategy = f"""
+---
+FINNISH MARKET ENTRY CONTEXT:
+{cand_name} is entering the Finnish tech market with a top academic record (TUAS B.Eng. 4.0 GPA), 8+ years of production systems experience, permanent EU work authorization, and 0-day notice. Position him as a dependable, humble, and immediately productive engineer dedicated to establishing a long-term career in Finland.
+"""
+
     prompt = f"""You are an expert AI Career Coach and Application Tailoring Engine for {cand_name}, an experienced IT systems and infrastructure engineer based in Finland.
 
 You are preparing an end-to-end application package for:
@@ -426,7 +454,7 @@ POSITION: {title}
 LOCATION: {location}
 JOB DESCRIPTION & REQUIREMENTS:
 {cleaned_jd}
-
+{junior_strategy}
 ---
 CANDIDATE BASE PROFILE ({cand_name}):
 - Academic: B.Eng. in Information Technology, Turku University of Applied Sciences (TUAS), GPA 4.0 / 4.0 (May 2026).
@@ -441,6 +469,7 @@ INCORPORATE THESE SPECIALIZED SKILL METHODOLOGIES:
    - Understated, factual tone. Strictly avoid US-style hyperbole ("rockstar", "visionary", "testament").
    - Honest Finnish language transparency (fluent English C1, conversational Finnish actively developing).
    - Emphasize Finnish degree (TUAS B.Eng. 4.0 GPA), local reference (Mr. Tero Virtanen, Senior Lecturer at TUAS), and readiness for Supo standard security clearance (perusmuotoinen turvallisuusselvitys) and drug screening.
+   - Entry Positioning: Highlight that as an international IT graduate entering the Finnish job market, candidate is eager to establish long-term roots and deliver immediate production-level reliability.
    - Generate a 3-minute recruiter call script ("Lisätietoja antaa") with 2 intelligent technical questions.
 
 2. cover-letter-generator:
@@ -568,6 +597,28 @@ def generate_ai_interview_prep(title: str, company: str, location: str, jd_text:
     cand = get_candidate_contact_info(WORKSPACE_DIR)
     cand_name = cand["name"]
 
+    t_lower = (title or "").lower()
+    is_junior_role = any(k in t_lower for k in [
+        "junior", "trainee", "entry", "intern", "associate", "graduate", 
+        "vastavalmistunut", "harjoittelija", "apulainen", "nuorempi"
+    ])
+
+    junior_coaching = ""
+    if is_junior_role:
+        junior_coaching = f"""
+---
+SPECIAL COACHING MANDATE: JUNIOR / ENTRY / TRAINEE ROLE INTERVIEW PREP
+⚠️ TARGET POSITION IS ENTRY/JUNIOR LEVEL: '{title}'.
+Interviewers will naturally wonder: "Why are you applying for an entry role when you have 8+ years of enterprise experience?" They may worry about flight risk, overqualification, or salary mismatch.
+You MUST prepare {cand_name} to turn this into his greatest competitive advantage:
+1. In 'elevator_pitch': Directly articulate that as a fresh TUAS B.Eng. graduate (4.0 GPA) entering the Finnish job market, this role is his deliberate, top-choice gateway to establish roots in Finland.
+2. In 'overqualified_defense': Provide a polished, humble, and persuasive response to the question: "Why this entry/junior position with your background?" Explain:
+   - Deliberate choice: Entering the Finnish tech sector after graduating in Finland, eager to master {company}'s exact infrastructure and earn long-term trust.
+   - Employer advantage: {company} gets an engineer with mature troubleshooting discipline, ticket rigor (ITIL), and immediate production reliability without months of hand-holding.
+   - Humility & coachability (vaatimattomuus): Full respect for team hierarchy, eagerness to take on frontline operational tasks, and realistic junior salary expectations (€3,000–€3,500/mo).
+3. In 'salary_guidance': Set realistic Finnish junior IT market guidance: €3,000 – €3,500 / month.
+"""
+
     prompt = f"""You are an expert Executive Interview Coach and Technical Assessment Specialist for {cand_name}, an experienced IT systems and infrastructure engineer based in Finland.
 
 COMPANY: {company}
@@ -575,7 +626,7 @@ POSITION: {title}
 LOCATION: {location}
 JOB DESCRIPTION / TECHNICAL CONTEXT:
 {cleaned_jd}
-
+{junior_coaching}
 ---
 CANDIDATE PROFILE ({cand_name}):
 - Education: Bachelor of Engineering in IT, Turku University of Applied Sciences (TUAS), 4.0 / 4.0 GPA (Graduating May 2026). Specialized in OT/IT convergence, telemetry, cybersecurity.
@@ -613,13 +664,14 @@ Generate a comprehensive, tailored Interview Preparation Guide in strict JSON fo
     "action": "Technical actions taken by the candidate",
     "result": "Quantifiable outcome"
   }},
+  "overqualified_defense": "Persuasive, spoken response addressing why the candidate is applying for this entry/junior position despite prior experience, emphasizing Finnish market entry, Day 1 production dependability, humility, and long-term commitment.",
   "reverse_questions": [
     "High-IQ technical question about {company}'s architecture, monitoring, or stack",
     "Operational question about standby rotations, SLA targets, or team collaboration",
     "Strategic question on upcoming migrations, tool modernizations, or 6-month roadmap",
     "Success measurement question for the first 90 days"
   ],
-  "salary_guidance": "Recommended monthly gross range in € (e.g. €4,200 - €4,800/mo) grounded in Finnish IT sector standards.",
+  "salary_guidance": "Recommended monthly gross range in € (e.g. €3,000 - €3,500/mo for junior, €4,200 - €4,800/mo for mid/senior) grounded in Finnish IT sector standards.",
   "practical_details": "Key details on immediate 0-day notice, Finnish driving license, Supo clearance, and references."
 }}
 """
@@ -655,6 +707,11 @@ def generate_expanded_cover_letter(title: str, company: str, location: str = "Fi
     title_lower = (title or "").lower()
     jd_lower = cleaned_jd.lower()
 
+    is_junior = any(k in title_lower for k in [
+        "junior", "trainee", "entry", "intern", "associate", "graduate", 
+        "vastavalmistunut", "harjoittelija", "apulainen", "nuorempi"
+    ])
+
     is_security = any(k in title_lower or k in jd_lower for k in ("security", "soc", "cyber", "threat", "siem", "incident", "pentest", "vulnerability"))
     is_devops = any(k in title_lower or k in jd_lower for k in ("devops", "cloud", "platform", "sre", "kubernetes", "docker", "ci/cd", "terraform", "ansible"))
     is_datacenter = any(k in title_lower or k in jd_lower for k in ("data center", "datacenter", "hardware", "cabling", "rack", "dl380", "bare metal", "server hardware"))
@@ -670,11 +727,14 @@ def generate_expanded_cover_letter(title: str, company: str, location: str = "Fi
             else:
                 tech_p = "Tekninen ydinosaamiseni kattaa laajat monialustaiset työasemaympäristöt ja identiteetinhallinnan. Olen vastannut yli 200 monikäyttöjärjestelmäisen päätelaitteen (Windows 10/11, macOS, Linux) elinkaaresta sekä hallinnoinut yli 300 käyttäjän Microsoft 365- ja Entra ID (Azure AD) -kokonaisuuksia Intune MDM -vaatimustenmukaisuuden mukaisesti. Hallitsen Active Directoryn (AD DS, GPO, RBAC), HPE ProLiant -palvelinlaitteistojen vianrajauksen sekä yritysverkkojen perusrakenteet (TCP/IP, VLAN, DNS, DHCP)."
 
-            hook_p = f"Yritysten toimintavarmuuden ja modernin IT-infrastruktuurin merkityksen korostuessa olin erittäin innostunut huomaamaan **{title}** -tehtävänne **{company}**lla. Valmistuttuani tietotekniikan insinööriksi Turun ammattikorkeakoulusta (TUAS, GPA 4.0 / 4.0) ja kerrytettyäni yli 8 vuoden monipuolisen käytännön kokemuksen yritysten järjestelmäylläpidosta, pilvi-infrasta sekä operatiivisesta tuesta, tarjoan tiimillenne välittömästi tuottavan ja ennaltaehkäisevään ylläpitoon sitoutuneen vahvistuksen."
+            if is_junior:
+                hook_p = f"Valmistuttuani tietotekniikan insinööriksi Turun ammattikorkeakoulusta (TUAS, GPA 4.0 / 4.0) ja asuttuani pysyvästi Suomessa, hain erittäin motivoituneena **{title}** -tehtäväänne **{company}**lla. Tämä tehtävä on minulle tietoinen ja innostava valinta luoda pitkäaikainen ura suomalaisessa teknologiayhteisössä. Yhdistämällä yli 8 vuoden käytännön järjestelmäkokemuksen ja tuotantotason luotettavuuden aitoon ammatilliseen nöyryyteen ja oppimishaluun, tarjoan tiimillenne heti tuottavan vahvistuksen ilman perehdytysviivettä."
+                why_p = f"Hakemukseni tähän entry-tason tehtävään on harkittu ja motivoitunut: Suomen työmarkkinoille asettuvana ammattilaisena tavoitteeni on juurtua pitkäaikaisesti yritykseen, joka arvostaa luotettavuutta ja korkeita insinööristandardeja. **{company}** tarjoaa juuri oikean ympäristön, jossa operatiivinen tarkkuuteni, haluni oppia syvällisesti tiiminne järjestelmät ja valmius perustason ylläpitotehtäviin tuovat tiimillenne välitöntä arvoa."
+            else:
+                hook_p = f"Yritysten toimintavarmuuden ja modernin IT-infrastruktuurin merkityksen korostuessa olin erittäin innostunut huomaamaan **{title}** -tehtävänne **{company}**lla. Valmistuttuani tietotekniikan insinööriksi Turun ammattikorkeakoulusta (TUAS, GPA 4.0 / 4.0) ja kerrytettyäni yli 8 vuoden monipuolisen käytännön kokemuksen yritysten järjestelmäylläpidosta, pilvi-infrasta sekä operatiivisesta tuesta, tarjoan tiimillenne välittömästi tuottavan ja ennaltaehkäisevään ylläpitoon sitoutuneen vahvistuksen."
+                why_p = f"Minua houkuttelee **{company}**ssa erityisesti sitoutumisenne korkeaan teknologiseen laatuun, luotettaviin palveluihin sekä moderniin insinöörikulttuuriin. Viihdyn suomalaisessa matalahierarkkisessa työkulttuurissa, jossa arvostetaan vastuunottoa, selkeää dokumentaatiota ja jatkuvaa ammatillista kehittymistä. Tehtävä tarjoaa minulle loistavan mahdollisuuden tuoda osaamiseni osaksi {location}n tiimiänne."
 
             ops_p = "Operatiivinen täsmällisyys ja järjestelmällisyys ohjaavat kaikkea tekemistäni. Toimiessani apulaistiiminvetäjänä (Associate Tech Lead) saavutin 94 %:n ensiratkaisuasteen (First-Time-Fix) korkeavolyymisissa tukijonoissa ITIL-prosessien ja CAB-muutoshallinnan puitteissa. Ennaltaehkäisevänä insinöörinä kehitän automaatiota toistuvien häiriöiden pysyvään poistamiseen, mikä on vähentänyt toistuvia tukipyyntöjä jopa 40 %. Lisäksi voitto vuoden 2026 DNCS Live-Fire -kyberhackathonissa osoittaa kykyni toimia rauhallisesti ja tehokkaasti vaativissakin teknisissä vikatilanteissa."
-
-            why_p = f"Minua houkuttelee **{company}**ssa erityisesti sitoutumisenne korkeaan teknologiseen laatuun, luotettaviin palveluihin sekä moderniin insinöörikulttuuriin. Viihdyn suomalaisessa matalahierarkkisessa työkulttuurissa, jossa arvostetaan vastuunottoa, selkeää dokumentaatiota ja jatkuvaa ammatillista kehittymistä. Tehtävä tarjoaa minulle loistavan mahdollisuuden tuoda osaamiseni osaksi {location}n tiimiänne."
 
             closing_p = f"Asun pysyvästi Suomessa ja minulla on EU-työlupa, minkä ansiosta voin aloittaa välittömästi (0 päivän irtisanomisaika). Olen täysin valmis Supon perusmuotoiseen turvallisuusselvitykseen. Työskentelen sujuvasti englanniksi (C1) ja kehitän aktiivisesti käytännön suomen kielen taitoani arjen työyhteisöviestintää varten. Keskustelen mielelläni tarkemmin siitä, miten kokemukseni voi tukea {company}n tavoitteita."
 
@@ -711,11 +771,14 @@ Ystävällisin terveisin,
             else:
                 tech_p = f"My core technical foundation encompasses enterprise workplace ecosystems, hybrid identity, and multi-OS endpoint management. I have administered fleets of over 200 workstations (Windows 10/11, macOS, and Linux) alongside 300+ user Microsoft 365 and Entra ID (Azure AD) tenants with Intune MDM compliance policies. My experience spans Active Directory (AD DS, Group Policy, RBAC), enterprise peripheral integration, bare-metal server break-fix (HPE DL20/DL380), and network infrastructure troubleshooting across TCP/IP, VLANs, DNS, and DHCP."
 
-            hook_p = f"With modern organizations increasingly prioritizing operational resilience and cloud continuity, I was excited to discover the **{title}** opening at **{company}**. Combining a Bachelor of Engineering in Information Technology from Turku University of Applied Sciences (TUAS, 4.0 / 4.0 GPA) with over eight years of progressive hands-on experience in enterprise systems administration, cloud infrastructure, and operational reliability, I am eager to deliver immediate reliability and operational excellence to your team."
+            if is_junior:
+                hook_p = f"As a Bachelor of Engineering graduate in Information Technology from Turku University of Applied Sciences (TUAS, 4.0 / 4.0 GPA) with extensive enterprise systems background, I am deliberately applying for the **{title}** position at **{company}** as an intentional, highly motivated entry into the Finnish professional tech sector. Bringing eight years of enterprise infrastructure discipline alongside permanent EU work authorization and 0-day notice availability, I offer your team Day 1 production dependability, operational humility, and a dedicated long-term commitment."
+                why_p = f"Applying for this position is a deliberate career choice: as a professional newly entering Finland's industry, my foremost priority is establishing solid roots within an organization known for engineering rigor and operational stability. **{company}** offers precisely the collaborative culture where my proactive ticket discipline, eagerness to master your exact stack, and enthusiasm for foundational operational excellence will create lasting value for your team in {location}."
+            else:
+                hook_p = f"With modern organizations increasingly prioritizing operational resilience and cloud continuity, I was excited to discover the **{title}** opening at **{company}**. Combining a Bachelor of Engineering in Information Technology from Turku University of Applied Sciences (TUAS, 4.0 / 4.0 GPA) with over eight years of progressive hands-on experience in enterprise systems administration, cloud infrastructure, and operational reliability, I am eager to deliver immediate reliability and operational excellence to your team."
+                why_p = f"What draws me specifically to **{company}** is your reputation for high engineering standards, operational dependability, and forward-looking technical vision. I thrive in collaborative Nordic workplace cultures that champion technical ownership, clear documentation, and continuous professional growth. Contributing my background to support your technical operations and strategic roadmap in {location} offers the ideal environment where my dedication to preventative engineering and long-term service stability will create lasting value."
 
             ops_p = "Operational rigor and proactive prevention are central to how I work. In my role as Associate Tech Lead, I maintained a 94% First-Time-Fix rate across 200+ multi-OS workstations and 300+ user tenants while upholding strict ITIL SLA commitments and CAB change management governance. Rather than repeatedly resolving the same operational friction, I develop modular automation scripts in Python, Bash, and PowerShell that have reduced routine administrative overhead by 40%. Furthermore, earning 1st Place in the 2026 DNCS Live-Fire Cybersecurity Hackathon demonstrated my capacity to troubleshoot intricate technical environments, isolate cascading faults, and deliver dependable solutions under pressure."
-
-            why_p = f"What draws me specifically to **{company}** is your reputation for high engineering standards, operational dependability, and forward-looking technical vision. I thrive in collaborative Nordic workplace cultures that champion technical ownership, clear documentation, and continuous professional growth. Contributing my background to support your technical operations and strategic roadmap in {location} offers the ideal environment where my dedication to preventative engineering and long-term service stability will create lasting value."
 
             closing_p = f"Based permanently in Finland with full EU work authorization, I offer immediate 0-day notice availability and am fully prepared for standard security clearance (perusmuotoinen turvallisuusselvitys) and reference verifications. I communicate fluently in English (C1) and am actively advancing my practical Finnish for everyday workplace communication. I welcome the opportunity to discuss how my technical depth, operational discipline, and customer-first mindset align with {company}'s objectives."
 
@@ -758,6 +821,19 @@ Sincerely,
         signoff = "Ystävällisin terveisin," if is_finnish else "Sincerely,"
         re_label = f"Aihe: Hakemus tehtävään: {title}" if is_finnish else f"RE: Application for {title}"
 
+        junior_mandate = ""
+        if is_junior:
+            junior_mandate = f"""
+---
+SPECIAL STRATEGIC MANDATE: JUNIOR / ENTRY / TRAINEE ROLE
+This is an entry/junior role: '{title}'.
+{cand_name} brings 8+ years of enterprise experience, but is NEW to the Finnish job market and seeking an intentional entry point following his B.Eng. graduation from TUAS (4.0 GPA).
+You MUST:
+1. In hook_paragraph: Frame this role as an intentional, highly motivated gateway to enter the Finnish tech ecosystem and build a long-term career.
+2. In why_company_paragraph: Address recruiter fears (overqualification / flight risk / salary friction) by emphasizing genuine humility (vaatimattomuus), coachability, eagerness to master {company}'s specific stack, and long-term commitment.
+3. Employer benefit: Highlight that {company} gains an engineer with Day 1 production dependability, ITIL ticketing rigor, and zero onboarding handholding, fully aligned with entry-level scope and junior market compensation (€3,000–€3,500/mo).
+"""
+
         prompt = f"""You are an executive career advisor and technical cover letter specialist for {cand_name}, an IT systems & infrastructure engineer in Finland.
 
 Generate a rich, comprehensive 4-pillar expanded cover letter body for:
@@ -766,7 +842,7 @@ ROLE: {title}
 LOCATION: {location}
 JOB DESCRIPTION & REQUIREMENTS:
 {cleaned_jd}
-
+{junior_mandate}
 ---
 CANDIDATE BASE DATA:
 - Name: {cand_name}
@@ -862,6 +938,12 @@ def generate_top_choice_pitch(title: str, company: str, location: str = "Finland
     }
 
     jd_low = cleaned_jd.lower()
+    t_lower = (title or "").lower()
+    is_junior = any(k in t_lower for k in [
+        "junior", "trainee", "entry", "intern", "associate", "graduate", 
+        "vastavalmistunut", "harjoittelija", "apulainen", "nuorempi"
+    ])
+
     matched_tech = [desc for kw, desc in tech_catalog.items() if kw in jd_low]
     if not matched_tech:
         matched_tech = [
@@ -878,33 +960,46 @@ def generate_top_choice_pitch(title: str, company: str, location: str = "Finland
 
         clean_comp_tag = re.sub(r'[^a-zA-Z0-9]', '', company)
 
-        why_candidate = (
-            f"Why I'm the top choice for {company}'s {title}: With a 4.0 GPA in ICT (TUAS) and 8+ yrs in enterprise infrastructure ({top_skills_preview}), I deliver high availability and automation. At Mainframe, I achieved a 94% First-Time-Fix rate across 200+ endpoints. Based in Finland with EU authorization and 0-day notice, I can make an immediate, turnkey impact."
-        )
-        if len(why_candidate) > 395:
+        if is_junior:
             why_candidate = (
-                f"Top choice for {company}'s {title}: 4.0 GPA in ICT (TUAS) + 8+ yrs enterprise infra ({top_skills_preview}). Delivered a 94% First-Time-Fix rate across 200+ endpoints with Python/Bash automation. Turnkey hire in Finland: permanent EU authorization, Supo-ready, and 0-day notice."
+                f"Top choice for {company}'s {title}: TUAS B.Eng. (4.0 GPA) + 8+ yrs enterprise infra. Turnkey entry hire: Day-1 production dependability, zero onboarding overhead, permanent EU authorization, and 0-day notice. Modest, highly coachable, and eager to commit long-term."
             )
+            why_company = (
+                f"💡 Why {company} is My #1 Top Choice:\n\n"
+                f"As a recent TUAS B.Eng. graduate (4.0 GPA) entering the Finnish tech market, I am deliberately seeking an entry-level role at {company} to establish my long-term career foundation. {company} stands out for its high engineering standards, operational dependability, and collaborative Nordic culture.\n\n"
+                f"This position is an intentional choice: with 8+ years of prior enterprise systems background, I offer {company} immediate production reliability and ticket discipline without onboarding overhead, while having the humility, coachability, and realistic junior salary expectations of an engineer dedicated to growing with your team in {location}."
+            )
+            quick_connect = (
+                f"Hi! I'm an IT systems engineer (TUAS 4.0 GPA, 8+ yrs enterprise infra) entering the Finnish tech sector. "
+                f"I'm excited about the {title} opening at {company}—eager to bring Day-1 reliability, 0-day notice, and permanent EU authorization. Would love to connect!"
+            )
+        else:
+            why_candidate = (
+                f"Why I'm the top choice for {company}'s {title}: With a 4.0 GPA in ICT (TUAS) and 8+ yrs in enterprise infrastructure ({top_skills_preview}), I deliver high availability and automation. At Mainframe, I achieved a 94% First-Time-Fix rate across 200+ endpoints. Based in Finland with EU authorization and 0-day notice, I can make an immediate, turnkey impact."
+            )
+            if len(why_candidate) > 395:
+                why_candidate = (
+                    f"Top choice for {company}'s {title}: 4.0 GPA in ICT (TUAS) + 8+ yrs enterprise infra ({top_skills_preview}). Delivered a 94% First-Time-Fix rate across 200+ endpoints with Python/Bash automation. Turnkey hire in Finland: permanent EU authorization, Supo-ready, and 0-day notice."
+                )
+            why_company = (
+                f"💡 Why {company} is My #1 Top Choice:\n\n"
+                f"{company} stands out as an exceptional organization where technological reliability and modern engineering standards drive measurable impact. The {title} role is a natural next step for my background, giving me the opportunity to deploy my expertise in {matched_tech[0]} and {matched_tech[1] if len(matched_tech) > 1 else 'operational automation'}.\n\n"
+                f"I am specifically energized by your focus on scalable systems and high service availability. Collaborating with {company}'s team in {location} offers the ideal environment where my dedication to preventative engineering, zero-downtime operations, and continuous learning will deliver immediate and lasting value."
+            )
+            quick_connect = (
+                f"Hi! I'm an IT systems & infrastructure engineer based in Finland (TUAS B.Eng., 4.0 GPA). "
+                f"I saw the {title} role at {company} and wanted to reach out. "
+                f"With 8+ yrs in enterprise infra ({top_skills_preview}), 94% first-time-fix rate, 0-day notice, and permanent EU work authorization, I'd love to connect and discuss how I can support your team!"
+            )
+            if len(quick_connect) > 395:
+                quick_connect = (
+                    f"Hi! I'm an IT systems engineer based in Finland (TUAS 4.0 GPA, 8+ yrs infra). "
+                    f"I saw the {title} role at {company} and would love to connect! "
+                    f"With hands-on expertise in {top_skills_preview}, 0-day notice, and permanent EU authorization, I'm eager to contribute to your team."
+                )
+
         if len(why_candidate) > 400:
             why_candidate = why_candidate[:397].rsplit(" ", 1)[0] + "..."
-
-        why_company = (
-            f"💡 Why {company} is My #1 Top Choice:\n\n"
-            f"{company} stands out as an exceptional organization where technological reliability and modern engineering standards drive measurable impact. The {title} role is a natural next step for my background, giving me the opportunity to deploy my expertise in {matched_tech[0]} and {matched_tech[1] if len(matched_tech) > 1 else 'operational automation'}.\n\n"
-            f"I am specifically energized by your focus on scalable systems and high service availability. Collaborating with {company}'s team in {location} offers the ideal environment where my dedication to preventative engineering, zero-downtime operations, and continuous learning will deliver immediate and lasting value."
-        )
-
-        quick_connect = (
-            f"Hi! I'm an IT systems & infrastructure engineer based in Finland (TUAS B.Eng., 4.0 GPA). "
-            f"I saw the {title} role at {company} and wanted to reach out. "
-            f"With 8+ yrs in enterprise infra ({top_skills_preview}), 94% first-time-fix rate, 0-day notice, and permanent EU work authorization, I'd love to connect and discuss how I can support your team!"
-        )
-        if len(quick_connect) > 395:
-            quick_connect = (
-                f"Hi! I'm an IT systems engineer based in Finland (TUAS 4.0 GPA, 8+ yrs infra). "
-                f"I saw the {title} role at {company} and would love to connect! "
-                f"With hands-on expertise in {top_skills_preview}, 0-day notice, and permanent EU authorization, I'm eager to contribute to your team."
-            )
         if len(quick_connect) > 400:
             quick_connect = quick_connect[:397].rsplit(" ", 1)[0] + "..."
 
@@ -932,6 +1027,15 @@ def generate_top_choice_pitch(title: str, company: str, location: str = "Finland
         }
 
     if has_any_ai_key() and len(cleaned_jd) > 100:
+        junior_pitch_guidance = ""
+        if is_junior:
+            junior_pitch_guidance = f"""
+SPECIAL MANDATE FOR JUNIOR / ENTRY ROLE:
+Target role '{title}' is an entry/junior position. 
+{cand_name} brings 8+ years of prior enterprise experience but is newly entering the Finnish tech market following TUAS B.Eng. (4.0 GPA).
+Frame why_top_choice_candidate and why_top_choice_company around deliberate entry, zero onboarding overhead, Day 1 production dependability, coachability, and long-term commitment.
+"""
+
         prompt = f"""You are an expert LinkedIn Career Coach and Executive Pitch Specialist for {cand_name}, an experienced IT systems and infrastructure engineer based in Finland.
 
 COMPANY: {company}
@@ -939,6 +1043,7 @@ POSITION: {title}
 LOCATION: {location}
 JOB DESCRIPTION / TECHNICAL REQUIREMENTS:
 {cleaned_jd}
+{junior_pitch_guidance}
 
 ---
 CANDIDATE FACTUAL PROFILE ({cand_name}):

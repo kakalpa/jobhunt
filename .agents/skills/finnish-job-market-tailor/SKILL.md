@@ -45,6 +45,18 @@ Activate this skill when:
 * Finnish employers take references seriously. Having a local Finnish reference (e.g., a university lecturer or Finnish company manager like Mr. Tero Virtanen from TUAS) adds immense credibility.
 * Have diplomas and transcripts from Finnish institutions readily available.
 
+### 6. Navigating the "Overqualified" Paradox: Junior & Gateway Roles in Finland
+When an experienced international professional (e.g., with 5–8+ years foreign enterprise experience and a fresh Finnish B.Eng. degree) applies for entry-level, trainee, or junior positions, Finnish recruiters face three predictable hesitations:
+1. **Flight Risk:** *"Will this person leave after 3 months as soon as a senior job appears?"*
+2. **Salary Mismatch:** *"Our budget is €3,000–€3,400 for a junior. Will they demand €4,500+?"*
+3. **Ego & Hierarchy Friction:** *"Will they resent taking orders from a younger lead or doing routine ticketing?"*
+
+**The Tactical Solution:**
+* **Intentional Gateway Framing:** Explicitly state in the cover letter, CV summary, and interview that this role is a deliberate, highly motivated gateway to enter the Finnish tech ecosystem and build a long-term career locally after graduating from TUAS.
+* **The Employer Advantage:** Sell the massive upside: unlike fresh graduates who require 3–6 months of basic hand-holding, the team gets an engineer with mature troubleshooting instincts, ITIL ticket discipline, and Day 1 production dependability at junior budget.
+* **Modesty & Coachability (*Vaatimattomuus*):** Emphasize eagerness to learn the company's specific stack, respect for team structure, and enthusiasm for foundational operational tasks.
+* **Proactive Salary Alignment:** Anchor salary expectations directly to Finnish junior IT standards (€3,000–€3,500 / month) to eliminate budgetary hesitation immediately.
+
 ---
 
 ## Output Deliverables
@@ -54,3 +66,5 @@ When tailoring an application for the Finnish market:
 2. **Bilingual Form Q&A:** Provide both English and clean Finnish versions for standard portal text boxes.
 3. **ATS-Ready Clean PDF:** Standard A4 format, concise 2-page limit, crisp typography.
 4. **Transparent Language Phrasing:** Clear, professional phrasing regarding Finnish language acquisition.
+5. **Gateway Positioning (for Junior Roles):** Clear explanation neutralizing overqualification and confirming long-term commitment and junior salary calibration.
+

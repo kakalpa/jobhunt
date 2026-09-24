@@ -507,7 +507,18 @@ Turku University of Applied Sciences (TUAS), Finland
     # 4. Write Strategic Cover Letter (under 1500 chars)
     cl_file = folder_path / f"{cand_slug}_Cover_Letter_{folder_name}.md"
     
-    if is_security:
+    t_lower = (title or "").lower()
+    is_junior = any(k in t_lower for k in [
+        "junior", "trainee", "entry", "intern", "associate", "graduate", 
+        "vastavalmistunut", "harjoittelija", "apulainen", "nuorempi"
+    ])
+
+    if is_junior:
+        cl_core_p2 = f"Combining eight years of enterprise infrastructure experience with a Bachelor of Engineering from Turku University of Applied Sciences (4.0 GPA), I am intentionally seeking this entry-level role at {company} as a motivated gateway into the Finnish tech market. I bring immediate production reliability, ticket discipline (ITIL), and zero onboarding drag—giving your team dependable Day 1 support while I commit to mastering your environment and growing long term."
+        qa_why = f"As a Bachelor of Engineering graduate from TUAS (4.0 GPA) with permanent EU work authorization, I am deliberately applying for the {title} position at {company} to establish my long-term career in Finland. While I bring 8+ years of foundational enterprise systems and ticket discipline, I am genuinely enthusiastic about taking on operational responsibilities, learning {company}'s exact environment, and delivering Day 1 production dependability without onboarding drag."
+        qa_tech = f"I have managed fleets of 200+ workstations (Windows 10/11, macOS, Linux) and 300+ user tenants across Microsoft 365, Entra ID (Azure AD), Intune MDM, and Active Directory. I have diagnosed hardware faults on bare-metal servers (HPE DL20/DL380), configured structured cabling and network switches, and automated routine tasks with Python and PowerShell, cutting recurring tickets by 40%."
+        salary_str = "€3,000 – €3,500 / month (aligned with Finnish entry-level & junior market standards)."
+    elif is_security:
         cl_core_p2 = f"Across my 8+ years in enterprise systems and specialized security engineering, I focus on proactive threat containment, incident triage, and secure identity governance. I have hands-on experience administering Microsoft Defender XDR, Sentinel SIEM, and Wazuh, authoring KQL detection rules, and translating incidents into automated remediation playbooks. Holding verifiable TryHackMe SOC Level 1 and PenTest+ certifications alongside winning 1st Place in the 2026 DNCS Live-Fire Hackathon, I combine deep technical investigation with a prevention-first mindset."
         qa_why = f"I am passionate about defensive cybersecurity, threat hunting, and automated incident response. {company}'s security priorities and technical environment closely match my experience in deploying Defender XDR, Sentinel SIEM, and Zero Trust perimeters. Having graduated with a 4.0 GPA from TUAS and earned hands-on SOC 1 and PenTest+ certifications, I want to apply my rapid triage and detection engineering skills to protect {company}'s digital assets."
         qa_tech = f"My technical stack centers on Microsoft Defender XDR, Microsoft Sentinel (KQL), Wazuh SIEM, and Splunk for log analysis and threat detection. I manage identity perimeters across Entra ID (Conditional Access, MFA, RBAC) and author automated incident response runbooks using PowerShell, Python, and the Microsoft Graph API. I map detections against the MITRE ATT&CK framework and align operations with ISO/IEC 27005 risk standards."
@@ -877,12 +888,18 @@ def generate_interview_prep(
 
     # Role archetype detection for tailored fallback stories & salary benchmarks
     title_lower = title.lower()
+    is_junior = any(k in title_lower for k in [
+        "junior", "trainee", "entry", "intern", "associate", "graduate", 
+        "vastavalmistunut", "harjoittelija", "apulainen", "nuorempi"
+    ])
     is_security = any(k in title_lower for k in ["security", "soc", "grc", "cyber", "pentest"])
     is_datacenter = any(k in title_lower for k in ["data center", "datacenter", "hardware", "field service", "facility", "infrastructure", "operations", "ot"])
     is_devops = any(k in title_lower for k in ["devops", "sre", "cloud", "platform", "automation", "kubernetes"])
 
     default_salary = "€3,400 – €3,900 / month (aligned with Finnish IT collective agreement TES)"
-    if is_security:
+    if is_junior:
+        default_salary = "€3,000 – €3,500 / month (aligned with Finnish entry-level & junior market standards)"
+    elif is_security:
         default_salary = "€4,400 – €5,000 / month (aligned with Finnish ICT Collective Agreement standards)"
     elif is_datacenter:
         default_salary = "€3,500 – €4,200 / month (plus shift / on-call allowances)"
@@ -909,6 +926,18 @@ def generate_interview_prep(
         sumathi_focus = cw.get("sumathi_focus", "")
         if isinstance(sumathi_focus, list):
             sumathi_focus = "\n".join(f"  - {item}" for item in sumathi_focus)
+
+        defense = ai_prep.get("overqualified_defense", "")
+        defense_md = ""
+        if defense:
+            defense_md = f"""---
+
+## Addressing the Experience vs. Entry-Level Role Question (Finnish Market Entry)
+> **Strategic Defense:** Turn your 8+ years of enterprise experience into the employer's greatest competitive advantage—immediate Day-1 production dependability with zero onboarding hand-holding, paired with genuine humility (*vaatimattomuus*) and realistic entry-level salary alignment.
+
+**Prepared Spoken Script:**
+"{defense}"
+"""
 
         mot_points = ai_prep.get("motivation_points", [])
         mot_md = "\n".join(f"{i+1}. **{p}**" for i, p in enumerate(mot_points)) if mot_points else f"1. Strategic alignment with {company}'s technology stack and engineering culture."
@@ -962,7 +991,7 @@ def generate_interview_prep(
 * **Role:** System Administrator / IT Support Coordinator
 * **Key Focus:**
 {sumathi_focus}
-
+{defense_md}
 ---
 
 ## 3. Core Motivation for {company} & Position
@@ -989,6 +1018,17 @@ def generate_interview_prep(
 """
     else:
         # High quality archetype fallback
+        defense_md = ""
+        if is_junior:
+            defense_md = f"""---
+
+## Addressing the Experience vs. Entry-Level Role Question (Finnish Market Entry)
+> **Strategic Defense:** Turn your 8+ years of enterprise experience into the employer's greatest competitive advantage—immediate Day-1 production dependability with zero onboarding hand-holding, paired with genuine humility (*vaatimattomuus*) and realistic entry-level salary alignment.
+
+**Prepared Spoken Script:**
+"I chose to apply for this entry-level position deliberately. Having recently graduated from TUAS with a 4.0 GPA in IT, I am newly entering the Finnish professional job market. My foremost objective is to establish solid, long-term roots with a respected Finnish organization like {company}. While I bring 8+ years of enterprise systems background, that experience means you gain an engineer who delivers immediate Day-1 production reliability, ITIL ticket discipline, and zero onboarding hand-holding—while having the modesty, coachability, and realistic entry-level salary expectations of someone eager to master your specific stack and grow with your team."
+"""
+
         if is_security:
             star1_block = """### Scenario 1: Critical Threat Triage & Automated Containment
 * **Situation:** High-severity alert triggered indicating anomalous Kerberoasting activity and lateral movement across domain controllers.
@@ -1051,7 +1091,7 @@ def generate_interview_prep(
 * **Key Focus:**
   - Sustained 98% SLA resolution rate across 250+ enterprise users.
   - Decreased workstation provisioning turnaround by 50% through standardized OS deployment images.
-
+{defense_md}
 ---
 
 ## 3. Core Motivation for {company} & Position
