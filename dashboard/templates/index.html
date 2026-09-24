@@ -577,6 +577,11 @@
               <span>Active Pipeline</span>
               <span id="tab-count-active" class="px-1.5 py-0.2 rounded-full bg-sky-500/30 text-white text-[10px]">0</span>
             </button>
+            <button onclick="setPipelineTab('this_scout')" id="tab-btn-this_scout" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white bg-slate-800/60 border border-slate-700/60 transition flex items-center gap-1.5 shrink-0" title="Unique openings discovered in latest scout run">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-indigo-400"></i>
+              <span>This Scout (Unique)</span>
+              <span id="tab-count-this_scout" class="px-1.5 py-0.2 rounded-full bg-slate-700 text-slate-300 text-[10px]">0</span>
+            </button>
             <button onclick="setPipelineTab('ready')" id="tab-btn-ready" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white bg-slate-800/60 border border-slate-700/60 transition flex items-center gap-1.5 shrink-0">
               <span>Ready to Apply</span>
               <span id="tab-count-ready" class="px-1.5 py-0.2 rounded-full bg-slate-700 text-slate-300 text-[10px]">0</span>
@@ -623,6 +628,14 @@
               <option value="70">70%+</option>
               <option value="80" selected>80%+ Match</option>
               <option value="90">90%+ Top</option>
+            </select>
+
+            <!-- Order / Sort Filter -->
+            <select id="sort-filter" onchange="filterJobs()" class="bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none" title="Order jobs">
+              <option value="smart" selected>Order: New &bull; % &bull; Language</option>
+              <option value="score_desc">Match Score (High &rarr; Low)</option>
+              <option value="score_asc">Match Score (Low &rarr; High)</option>
+              <option value="company">Company (A &rarr; Z)</option>
             </select>
 
             <!-- Hidden Status Filter for compatibility -->
@@ -1357,27 +1370,40 @@
       <div id="scout-report-view" class="flex-1 flex flex-col min-h-0 overflow-y-auto space-y-4 pr-1 hidden">
         
         <!-- Summary KPI Cards -->
+        <!-- Summary KPI Cards (Interactive Filters) -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 shrink-0">
-          <div class="bg-slate-950/70 border border-slate-800 p-3 rounded-xl">
-            <div class="text-[11px] text-slate-400 mb-0.5">Total Scraped</div>
+          <div onclick="setReportFilter('all')" class="bg-slate-950/70 border border-slate-800 hover:border-slate-700 hover:bg-slate-900/60 p-3 rounded-xl cursor-pointer transition group" title="Click to view all scraped">
+            <div class="text-[11px] text-slate-400 mb-0.5 flex items-center justify-between">
+              <span>Total Scraped</span>
+              <i data-lucide="list" class="w-3 h-3 text-slate-400 opacity-60 group-hover:opacity-100 transition"></i>
+            </div>
             <div class="text-xl font-bold text-white font-mono" id="rep-raw-count">0</div>
             <div class="text-[10px] text-slate-500">Across LinkedIn & Indeed</div>
           </div>
 
-          <div class="bg-slate-950/70 border border-slate-800 p-3 rounded-xl">
-            <div class="text-[11px] text-slate-400 mb-0.5">Filtered IT Roles</div>
+          <div onclick="setReportFilter('all')" class="bg-slate-950/70 border border-slate-800 hover:border-sky-500/50 hover:bg-slate-900/60 p-3 rounded-xl cursor-pointer transition group" title="Click to view all IT roles">
+            <div class="text-[11px] text-slate-400 mb-0.5 flex items-center justify-between">
+              <span>Filtered IT Roles</span>
+              <i data-lucide="shield-check" class="w-3 h-3 text-sky-400 opacity-60 group-hover:opacity-100 transition"></i>
+            </div>
             <div class="text-xl font-bold text-sky-400 font-mono" id="rep-it-count">0</div>
             <div class="text-[10px] text-slate-500">Non-IT rows removed</div>
           </div>
 
-          <div class="bg-slate-950/70 border border-slate-800 p-3 rounded-xl">
-            <div class="text-[11px] text-slate-400 mb-0.5">Unique Openings</div>
+          <div onclick="setReportFilter('unique')" class="bg-slate-950/70 border border-slate-800 hover:border-indigo-500/60 hover:bg-slate-900/60 p-3 rounded-xl cursor-pointer transition group" id="rep-kpi-unique" title="Click to filter by Unique Openings">
+            <div class="text-[11px] text-slate-400 mb-0.5 flex items-center justify-between">
+              <span class="text-indigo-300 font-medium">Unique Openings</span>
+              <i data-lucide="layers" class="w-3 h-3 text-indigo-400 opacity-70 group-hover:opacity-100 transition"></i>
+            </div>
             <div class="text-xl font-bold text-indigo-400 font-mono" id="rep-deduped-count">0</div>
             <div class="text-[10px] text-slate-500">Multi-site posts merged</div>
           </div>
 
-          <div class="bg-slate-950/70 border border-slate-800 p-3 rounded-xl">
-            <div class="text-[11px] text-slate-400 mb-0.5">High Match (≥80%)</div>
+          <div onclick="setReportFilter('high')" class="bg-slate-950/70 border border-slate-800 hover:border-emerald-500/60 hover:bg-slate-900/60 p-3 rounded-xl cursor-pointer transition group" id="rep-kpi-high" title="Click to filter by Match ≥80%">
+            <div class="text-[11px] text-slate-400 mb-0.5 flex items-center justify-between">
+              <span class="text-emerald-300 font-medium">High Match (≥80%)</span>
+              <i data-lucide="star" class="w-3 h-3 text-emerald-400 opacity-70 group-hover:opacity-100 transition"></i>
+            </div>
             <div class="text-xl font-bold text-emerald-400 font-mono" id="rep-high-count">0</div>
             <div class="text-[10px] text-slate-500">Prime candidate matches</div>
           </div>
@@ -1385,16 +1411,27 @@
 
         <!-- Filter bar for report jobs -->
         <div class="flex items-center justify-between gap-2 shrink-0 flex-wrap pb-1 border-b border-slate-800">
-          <div class="flex items-center gap-1 text-xs">
+          <div class="flex items-center gap-1.5 text-xs flex-wrap">
             <button onclick="setReportFilter('all')" id="rf-btn-all" class="px-2.5 py-1 rounded-lg bg-sky-500 text-white font-medium text-[11px] transition">All</button>
+            <button onclick="setReportFilter('unique')" id="rf-btn-unique" class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:text-white font-medium text-[11px] transition flex items-center gap-1.5" title="Show Unique Openings discovered in this scout run">
+              <i data-lucide="layers" class="w-3 h-3 text-indigo-400"></i>
+              <span>Unique Openings (This Scout)</span>
+            </button>
+            <button onclick="setReportFilter('new')" id="rf-btn-new" class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:text-white font-medium text-[11px] transition">⭐ New Only</button>
             <button onclick="setReportFilter('high')" id="rf-btn-high" class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:text-white font-medium text-[11px] transition">⭐ Match ≥80%</button>
             <button onclick="setReportFilter('intl')" id="rf-btn-intl" class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:text-white font-medium text-[11px] transition">🌐 English / Int'l</button>
             <button onclick="setReportFilter('suomi')" id="rf-btn-suomi" class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:text-white font-medium text-[11px] transition">🇫🇮 Finnish Req.</button>
-            <button onclick="setReportFilter('new')" id="rf-btn-new" class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:text-white font-medium text-[11px] transition">⭐ New Only</button>
           </div>
 
-          <div class="text-[11px] text-slate-400 font-mono" id="rep-last-scanned-time">
-            Last Scan: —
+          <div class="flex items-center gap-2">
+            <!-- Active Sort Order Badge -->
+            <div class="text-[10px] px-2 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 font-medium flex items-center gap-1" title="Jobs sorted by New first, Match Percentage descending, and English/International first">
+              <i data-lucide="arrow-down-up" class="w-3 h-3 text-indigo-400"></i>
+              <span>Order: New &bull; % &bull; Lang</span>
+            </div>
+            <div class="text-[11px] text-slate-400 font-mono" id="rep-last-scanned-time">
+              Last Scan: —
+            </div>
           </div>
         </div>
 
@@ -2480,6 +2517,48 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
       }
     }
 
+    // ====================================================
+    // SMART SORT COMPARATOR: NEW -> MATCH % -> LANGUAGE
+    // ====================================================
+    function sortJobsSmart(a, b) {
+      // 1. New first (!already_applied before already_applied, or status === 'scouted'/'ready' before applied/interviewing)
+      const getNewRank = (j) => {
+        if (j.already_applied === false) return 1;
+        if (j.already_applied === true) return 0;
+        if (j.type === 'scouted' || j.status === 'scouted') return 1;
+        if (j.status === 'ready') return 1;
+        return 0;
+      };
+      const rankNewA = getNewRank(a);
+      const rankNewB = getNewRank(b);
+      if (rankNewA !== rankNewB) {
+        return rankNewB - rankNewA; // new (1) before tracked (0)
+      }
+
+      // 2. Percentage (match_score descending)
+      const scoreA = Number(a.match_score || 0);
+      const scoreB = Number(b.match_score || 0);
+      if (scoreA !== scoreB) {
+        return scoreB - scoreA;
+      }
+
+      // 3. Language preference: English / International (1) -> Finnish Advantage (2) -> Finnish Required (3)
+      const getLangRank = (j) => {
+        const l = (j.language_tag || j.language_badge || '').toLowerCase();
+        if (l.includes('english') || l.includes('international') || l.includes('intl')) return 1;
+        if (l.includes('advantage') || l.includes('adv')) return 2;
+        if (l.includes('finnish') || l.includes('suomi')) return 3;
+        return 4;
+      };
+      const langA = getLangRank(a);
+      const langB = getLangRank(b);
+      if (langA !== langB) {
+        return langA - langB; // English (1) before Finnish (3)
+      }
+
+      return 0;
+    }
+
     async function loadJobs() {
       try {
         const res = await fetch('/api/jobs');
@@ -2510,6 +2589,7 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
 
         // Tab counts
         if (document.getElementById('tab-count-active')) document.getElementById('tab-count-active').textContent = activePipelineCount;
+        if (document.getElementById('tab-count-this_scout')) document.getElementById('tab-count-this_scout').textContent = data.counts.this_scout || (currentScoutReport ? (currentScoutReport.deduped_count || 0) : 0);
         if (document.getElementById('tab-count-ready')) document.getElementById('tab-count-ready').textContent = data.counts.ready || 0;
         if (document.getElementById('tab-count-applied')) document.getElementById('tab-count-applied').textContent = data.counts.applied || 0;
         if (document.getElementById('tab-count-interviewing')) document.getElementById('tab-count-interviewing').textContent = data.counts.interviewing || 0;
@@ -2783,6 +2863,9 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
       if (emptyState) emptyState.classList.add('hidden');
       container.innerHTML = '';
 
+      // Order by: New -> Percentage -> Language
+      scoutedJobs.sort(sortJobsSmart);
+
       const displayJobs = triageExpanded ? scoutedJobs : scoutedJobs.slice(0, 4);
 
       displayJobs.forEach(job => {
@@ -2911,7 +2994,7 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
     // ====================================================
     function setPipelineTab(tab) {
       currentPipelineTab = tab;
-      const tabs = ['active', 'ready', 'applied', 'interviewing', 'archived'];
+      const tabs = ['active', 'this_scout', 'ready', 'applied', 'interviewing', 'archived'];
       tabs.forEach(t => {
         const btn = document.getElementById(`tab-btn-${t}`);
         if (!btn) return;
@@ -2951,6 +3034,8 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
         let matchesTab = true;
         if (tab === 'active') {
           matchesTab = !isArchived && !isScouted;
+        } else if (tab === 'this_scout') {
+          matchesTab = (j.from_this_scout || j.type === 'scouted' || j.status === 'scouted');
         } else if (tab === 'ready') {
           matchesTab = !isArchived && !isScouted && (j.status === 'ready' || (!j.status && j.type !== 'scouted'));
         } else if (tab === 'applied') {
@@ -2963,6 +3048,19 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
 
         return matchesQuery && matchesScore && matchesLang && matchesTab;
       });
+
+      // Sort filtered jobs
+      const sortSelect = document.getElementById('sort-filter');
+      const sortMode = sortSelect ? sortSelect.value : 'smart';
+      if (sortMode === 'smart') {
+        filtered.sort(sortJobsSmart);
+      } else if (sortMode === 'score_desc') {
+        filtered.sort((a, b) => (b.match_score || 0) - (a.match_score || 0));
+      } else if (sortMode === 'score_asc') {
+        filtered.sort((a, b) => (a.match_score || 0) - (b.match_score || 0));
+      } else if (sortMode === 'company') {
+        filtered.sort((a, b) => (a.company || '').localeCompare(b.company || ''));
+      }
 
       renderKanban(filtered);
       renderTable(filtered, tab);
@@ -4832,12 +4930,16 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
 
       // Filter jobs
       const filtered = allJobsInReport.filter(j => {
+        if (activeReportFilter === 'unique') return true;
         if (activeReportFilter === 'high') return (j.match_score || 0) >= 80;
         if (activeReportFilter === 'intl') return (j.language_tag === 'English / International' || (j.language_badge && j.language_badge.includes('English')));
         if (activeReportFilter === 'suomi') return (j.language_tag === 'Finnish Required' || (j.language_badge && j.language_badge.includes('Finnish')));
         if (activeReportFilter === 'new') return !j.already_applied;
         return true;
       });
+
+      // Sort jobs by: New -> Percentage -> Language
+      filtered.sort(sortJobsSmart);
 
       if (filtered.length === 0) {
         container.innerHTML = `
@@ -4925,7 +5027,7 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
 
     function setReportFilter(f) {
       activeReportFilter = f;
-      const filterBtns = ['all', 'high', 'intl', 'suomi', 'new'];
+      const filterBtns = ['all', 'unique', 'high', 'intl', 'suomi', 'new'];
       filterBtns.forEach(btnId => {
         const b = document.getElementById(`rf-btn-${btnId}`);
         if (b) {
@@ -4936,6 +5038,25 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
           }
         }
       });
+
+      // Active styling on clickable KPI cards
+      const uniqueKpi = document.getElementById('rep-kpi-unique');
+      if (uniqueKpi) {
+        if (f === 'unique') {
+          uniqueKpi.classList.add('ring-2', 'ring-indigo-500', 'bg-indigo-950/40');
+        } else {
+          uniqueKpi.classList.remove('ring-2', 'ring-indigo-500', 'bg-indigo-950/40');
+        }
+      }
+      const highKpi = document.getElementById('rep-kpi-high');
+      if (highKpi) {
+        if (f === 'high') {
+          highKpi.classList.add('ring-2', 'ring-emerald-500', 'bg-emerald-950/40');
+        } else {
+          highKpi.classList.remove('ring-2', 'ring-emerald-500', 'bg-emerald-950/40');
+        }
+      }
+
       if (currentScoutReport) {
         renderScoutReport(currentScoutReport);
       }

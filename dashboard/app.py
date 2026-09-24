@@ -967,14 +967,45 @@ def get_jobs():
     prepared = scan_prepared_applications()
     scouted = scan_scouted_feed(prepared)
     
+    latest_report = load_latest_scout_report() or {}
+    report_urls = {j.get("url") for j in latest_report.get("jobs", []) if j.get("url")}
+    report_keys = {
+        f"{normalize_company(j.get('company',''))}_{normalize_title(j.get('title',''))}"
+        for j in latest_report.get("jobs", [])
+    }
+
     all_jobs = prepared + scouted
+    for j in all_jobs:
+        c_norm = normalize_company(j.get("company", ""))
+        t_norm = normalize_title(j.get("title", ""))
+        key = f"{c_norm}_{t_norm}"
+        j["from_this_scout"] = (
+            (j.get("url") and j.get("url") in report_urls) or
+            key in report_keys or
+            j.get("type") == "scouted"
+        )
     
-    # Sort by match score descending
-    all_jobs.sort(key=lambda x: (x.get("match_score") or 0), reverse=True)
+    # Sort jobs by: New -> Match Score -> Language preference
+    def job_sort_key(j):
+        is_new = 1 if (j.get("already_applied") is False or j.get("status") in ("scouted", "ready")) else 0
+        score = j.get("match_score") or 0
+        lang = (j.get("language_tag") or "").lower()
+        if "english" in lang or "international" in lang:
+            lang_rank = 1
+        elif "advantage" in lang:
+            lang_rank = 2
+        elif "finnish" in lang or "suomi" in lang:
+            lang_rank = 3
+        else:
+            lang_rank = 4
+        return (is_new, score, -lang_rank)
+
+    all_jobs.sort(key=job_sort_key, reverse=True)
     
     # Calculate counts
     counts = {
         "all": len(all_jobs),
+        "this_scout": sum(1 for j in all_jobs if j.get("from_this_scout")),
         "scouted": sum(1 for j in all_jobs if j["status"] == "scouted"),
         "ready": sum(1 for j in all_jobs if j["status"] == "ready"),
         "applied": sum(1 for j in all_jobs if j["status"] == "applied"),
