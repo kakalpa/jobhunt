@@ -172,7 +172,8 @@ def security_and_auth_guard():
     # Public exemptions
     if (
         path.startswith("/static/") or
-        path in ("/login", "/login/verify-mfa", "/login/setup-mfa", "/logout", "/healthz")
+        path in ("/login", "/login/verify-mfa", "/login/setup-mfa", "/logout", "/healthz",
+                 "/favicon.ico", "/apple-touch-icon.png", "/apple-touch-icon-precomposed.png")
     ):
         return None
 
