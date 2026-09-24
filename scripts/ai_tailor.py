@@ -71,12 +71,14 @@ MODELS = [
 
 GROQ_MODELS = [
     "openai/gpt-oss-120b",
-    "openai/gpt-oss-20b"
+    "openai/gpt-oss-20b",
+    "qwen/qwen3.8-27b"
 ]
 
 OPENROUTER_MODELS = [
-    "qwen/qwen3.8-27b:free",
-    "nex-agi/nex-n2.5-pro:free"
+    "nex-agi/nex-n2.5-pro:free",
+    "nex-agi/nex-n2.5-mini:free",
+    "nvidia/nemotron-3.5-lightning:free"
 ]
 
 AI_STATUS_FILE = WORKSPACE_DIR / ".ai_api_status.json"
@@ -117,7 +119,8 @@ def call_groq_json(prompt: str, api_key: str, timeout: int = 25) -> tuple:
                 {"role": "user", "content": prompt}
             ],
             "response_format": {"type": "json_object"},
-            "temperature": 0.2
+            "temperature": 0.2,
+            "max_tokens": 4096
         }).encode("utf-8")
         req = urllib.request.Request(
             url,
@@ -125,7 +128,7 @@ def call_groq_json(prompt: str, api_key: str, timeout: int = 25) -> tuple:
             headers={
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
-                "User-Agent": "JobHunt/1.0"
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
             }
         )
         try:
@@ -152,7 +155,8 @@ def call_openrouter_json(prompt: str, api_key: str, timeout: int = 25) -> tuple:
                 {"role": "user", "content": prompt}
             ],
             "response_format": {"type": "json_object"},
-            "temperature": 0.2
+            "temperature": 0.2,
+            "max_tokens": 4096
         }).encode("utf-8")
         req = urllib.request.Request(
             url,
@@ -162,7 +166,7 @@ def call_openrouter_json(prompt: str, api_key: str, timeout: int = 25) -> tuple:
                 "Content-Type": "application/json",
                 "HTTP-Referer": "https://jobhunt.local",
                 "X-Title": "JobHunt",
-                "User-Agent": "JobHunt/1.0"
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
             }
         )
         try:
