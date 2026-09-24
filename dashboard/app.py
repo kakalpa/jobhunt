@@ -733,6 +733,21 @@ def scan_scouted_feed(prepared_applications: list) -> list:
 def healthz():
     return jsonify({"status": "healthy", "timestamp": datetime.now().isoformat()}), 200
 
+@app.route("/apple-touch-icon.png")
+@app.route("/apple-touch-icon-precomposed.png")
+def apple_touch_icon():
+    icon_file = static_dir / "apple-touch-icon.png"
+    if icon_file.exists():
+        return send_from_directory(str(static_dir), "apple-touch-icon.png", mimetype="image/png")
+    abort(404)
+
+@app.route("/favicon.ico")
+def favicon():
+    ico_file = static_dir / "favicon.ico"
+    if ico_file.exists():
+        return send_from_directory(str(static_dir), "favicon.ico", mimetype="image/x-icon")
+    return send_from_directory(str(static_dir), "favicon-32x32.png", mimetype="image/png")
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     global AUTH_CONFIG

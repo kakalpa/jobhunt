@@ -5,6 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Job Hunt Command Center</title>
   <meta name="csrf-token" content="{{ csrf_token or '' }}">
+
+  <!-- Favicon & Apple Web App Icons -->
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
+  <link rel="icon" type="image/svg+xml" href="/static/icon.svg">
+  <link rel="shortcut icon" href="/favicon.ico">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="JobCockpit">
+  <meta name="theme-color" content="#0b0f19">
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -178,56 +188,128 @@
       background: rgba(51, 65, 85, 0.6);
       margin: 1.25rem 0;
     }
+
+    /* ========================================== */
+    /* SIDEBAR COLLAPSE & RESPONSIVE DRAWER CSS   */
+    /* ========================================== */
+    #main-sidebar {
+      will-change: width, transform;
+    }
+    @media (min-width: 768px) {
+      #main-sidebar {
+        transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      #main-sidebar.collapsed {
+        width: 4.75rem !important;
+        padding-left: 0.625rem !important;
+        padding-right: 0.625rem !important;
+      }
+      #main-sidebar.collapsed .sidebar-text,
+      #main-sidebar.collapsed #scout-text,
+      #main-sidebar.collapsed .sidebar-brand-text {
+        display: none !important;
+      }
+      #main-sidebar.collapsed .sidebar-nav-item {
+        justify-content: center !important;
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+      }
+      #main-sidebar.collapsed #btn-scout {
+        justify-content: center !important;
+        padding: 0.625rem !important;
+      }
+      #main-sidebar.collapsed .sidebar-action-grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.35rem !important;
+      }
+      #main-sidebar.collapsed .sidebar-footer-brand {
+        justify-content: center !important;
+      }
+      #main-sidebar.collapsed .sidebar-header {
+        justify-content: center !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+      }
+    }
+    @media (max-width: 767px) {
+      #main-sidebar {
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      #main-sidebar.mobile-open {
+        transform: translateX(0) !important;
+      }
+      #mobile-sidebar-backdrop.active {
+        opacity: 1 !important;
+        pointer-events: auto !important;
+      }
+    }
   </style>
 </head>
 <body class="bg-[#0b0f19] text-slate-100 h-screen overflow-hidden flex font-sans selection:bg-sky-500 selection:text-white">
 
   <!-- ========================================== -->
+  <!-- MOBILE SIDEBAR BACKDROP OVERLAY            -->
+  <!-- ========================================== -->
+  <div id="mobile-sidebar-backdrop" onclick="toggleMobileSidebar(false)" class="fixed inset-0 bg-black/70 backdrop-blur-xs z-30 transition-opacity duration-300 pointer-events-none opacity-0 md:hidden"></div>
+
+  <!-- ========================================== -->
   <!-- FIXED LEFT SIDEBAR NAVIGATION              -->
   <!-- ========================================== -->
-  <aside class="w-60 shrink-0 bg-[#0f172a] border-r border-slate-800/80 flex flex-col justify-between p-4 z-30 select-none hidden md:flex">
+  <aside id="main-sidebar" class="w-64 md:w-60 shrink-0 bg-[#0f172a] border-r border-slate-800/80 flex flex-col justify-between p-3.5 z-40 select-none fixed inset-y-0 left-0 -translate-x-full md:translate-x-0 md:static shadow-2xl md:shadow-none transition-all duration-300 ease-in-out">
     <div>
-      <!-- Top Branding -->
-      <div class="flex items-center gap-3 px-2 py-3 mb-6">
-        <div class="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center shadow-md shadow-blue-500/25 text-white">
-          <i data-lucide="layers" class="w-4 h-4"></i>
+      <!-- Top Branding & Toggles -->
+      <div class="sidebar-header flex items-center justify-between px-1.5 py-2 mb-5">
+        <div class="flex items-center gap-2.5 overflow-hidden">
+          <div class="h-8 w-8 shrink-0 rounded-lg bg-blue-600 flex items-center justify-center shadow-md shadow-blue-500/25 text-white">
+            <i data-lucide="layers" class="w-4 h-4"></i>
+          </div>
+          <span class="sidebar-text sidebar-brand-text text-sm font-extrabold tracking-wider text-white whitespace-nowrap">JOBCOCKPIT</span>
         </div>
-        <span class="text-sm font-extrabold tracking-wider text-white">JOBCOCKPIT</span>
+        
+        <!-- Desktop Collapse Button -->
+        <button id="btn-collapse-sidebar" onclick="toggleSidebarCollapse()" class="hidden md:inline-flex p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/80 transition" title="Toggle Sidebar (Ctrl+B)">
+          <i data-lucide="panel-left-close" id="sidebar-collapse-icon" class="w-4 h-4"></i>
+        </button>
+
+        <!-- Mobile Close Button -->
+        <button onclick="toggleMobileSidebar(false)" class="md:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/80 transition" title="Close Sidebar">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
       </div>
 
       <!-- Navigation Links -->
       <nav class="space-y-1.5">
-        <a href="#action-queue-section" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-slate-800/90 text-white shadow-sm border border-slate-700/60 transition group">
-          <i data-lucide="layout-grid" class="w-4 h-4 text-sky-400 group-hover:scale-110 transition"></i>
-          <span>Dashboard</span>
+        <a href="#action-queue-section" onclick="closeMobileSidebarIfOpen()" class="sidebar-nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-slate-800/90 text-white shadow-sm border border-slate-700/60 transition group" title="Dashboard">
+          <i data-lucide="layout-grid" class="w-4 h-4 shrink-0 text-sky-400 group-hover:scale-110 transition"></i>
+          <span class="sidebar-text whitespace-nowrap">Dashboard</span>
         </a>
-        <a href="#pipeline-section" onclick="setPipelineTab('active')" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition group">
-          <i data-lucide="briefcase" class="w-4 h-4 text-slate-400 group-hover:text-sky-400 group-hover:scale-110 transition"></i>
-          <span>Jobs</span>
+        <a href="#pipeline-section" onclick="setPipelineTab('active'); closeMobileSidebarIfOpen();" class="sidebar-nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition group" title="Jobs">
+          <i data-lucide="briefcase" class="w-4 h-4 shrink-0 text-slate-400 group-hover:text-sky-400 group-hover:scale-110 transition"></i>
+          <span class="sidebar-text whitespace-nowrap">Jobs</span>
         </a>
-        <a href="#action-queue-section" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition group">
-          <i data-lucide="check-square" class="w-4 h-4 text-slate-400 group-hover:text-amber-400 group-hover:scale-110 transition"></i>
-          <span>Tasks</span>
+        <a href="#action-queue-section" onclick="closeMobileSidebarIfOpen()" class="sidebar-nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition group" title="Tasks">
+          <i data-lucide="check-square" class="w-4 h-4 shrink-0 text-slate-400 group-hover:text-amber-400 group-hover:scale-110 transition"></i>
+          <span class="sidebar-text whitespace-nowrap">Tasks</span>
         </a>
-        <a href="#pipeline-summary-section" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition group">
-          <i data-lucide="bar-chart-2" class="w-4 h-4 text-slate-400 group-hover:text-emerald-400 group-hover:scale-110 transition"></i>
-          <span>Analytics</span>
+        <a href="#pipeline-summary-section" onclick="closeMobileSidebarIfOpen()" class="sidebar-nav-item flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition group" title="Analytics">
+          <i data-lucide="bar-chart-2" class="w-4 h-4 shrink-0 text-slate-400 group-hover:text-emerald-400 group-hover:scale-110 transition"></i>
+          <span class="sidebar-text whitespace-nowrap">Analytics</span>
         </a>
-        <button onclick="openSettingsModal()" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition text-left group">
-          <i data-lucide="user" class="w-4 h-4 text-slate-400 group-hover:text-indigo-400 group-hover:scale-110 transition"></i>
-          <span>Profile</span>
+        <button onclick="openSettingsModal(); closeMobileSidebarIfOpen();" class="sidebar-nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/50 transition text-left group" title="Profile Settings">
+          <i data-lucide="user" class="w-4 h-4 shrink-0 text-slate-400 group-hover:text-indigo-400 group-hover:scale-110 transition"></i>
+          <span class="sidebar-text whitespace-nowrap">Profile</span>
         </button>
       </nav>
     </div>
 
     <!-- Bottom Actions & Branding -->
     <div class="space-y-3 pt-4 border-t border-slate-800/80">
-      <button id="btn-scout" onclick="openScoutModal()" class="w-full inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-semibold text-xs shadow-md shadow-sky-500/15 transition active:scale-95">
-        <i data-lucide="radar" id="scout-icon" class="w-4 h-4"></i>
-        <span id="scout-text">Run IT Scout</span>
+      <button id="btn-scout" onclick="openScoutModal()" class="w-full inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-semibold text-xs shadow-md shadow-sky-500/15 transition active:scale-95" title="Run IT Scout">
+        <i data-lucide="radar" id="scout-icon" class="w-4 h-4 shrink-0"></i>
+        <span id="scout-text" class="sidebar-text whitespace-nowrap">Run IT Scout</span>
       </button>
 
-      <div class="grid grid-cols-3 gap-1.5">
+      <div class="grid grid-cols-3 gap-1.5 sidebar-action-grid">
         <button id="btn-telegram" onclick="openTelegramModal()" class="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 text-slate-300 transition hover:text-white flex items-center justify-center" title="Telegram Alerts">
           <i data-lucide="send" class="w-3.5 h-3.5 text-sky-400"></i>
         </button>
@@ -239,9 +321,9 @@
         </button>
       </div>
 
-      <div class="pt-3 border-t border-slate-800/80 flex items-center gap-2 px-1 text-slate-400 text-xs">
-        <i data-lucide="layers" class="w-4 h-4 text-sky-400"></i>
-        <span class="font-bold tracking-wider text-slate-300 text-[11px]">JOBCOCKPIT</span>
+      <div class="sidebar-footer-brand pt-3 border-t border-slate-800/80 flex items-center gap-2 px-1 text-slate-400 text-xs">
+        <i data-lucide="layers" class="w-4 h-4 text-sky-400 shrink-0"></i>
+        <span class="sidebar-text font-bold tracking-wider text-slate-300 text-[11px] whitespace-nowrap">JOBCOCKPIT</span>
       </div>
     </div>
   </aside>
@@ -252,18 +334,31 @@
   <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden bg-[#0b0f19]">
     
     <!-- Top Navigation Bar -->
-    <header class="h-14 border-b border-slate-800/80 bg-[#0f172a]/70 backdrop-blur px-6 flex items-center justify-between gap-4 shrink-0 z-20">
+    <header class="h-14 border-b border-slate-800/80 bg-[#0f172a]/70 backdrop-blur px-4 sm:px-6 flex items-center justify-between gap-3 shrink-0 z-20">
       
-      <!-- Global Search -->
-      <div class="relative w-72 md:w-96 max-w-full">
-        <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
-        <input 
-          type="text" 
-          id="global-search-input" 
-          oninput="onGlobalSearch(this.value)" 
-          placeholder="Search..." 
-          class="w-full bg-[#1e293b]/70 border border-slate-700/60 rounded-xl pl-9 pr-4 py-1.5 text-xs text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-sky-500 focus:border-sky-500 transition shadow-inner"
+      <div class="flex items-center gap-2.5">
+        <!-- Mobile Sidebar Hamburger Button -->
+        <button 
+          id="btn-mobile-sidebar-toggle" 
+          onclick="toggleMobileSidebar(true)" 
+          class="md:hidden p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/80 border border-slate-700/60 transition flex items-center justify-center shrink-0" 
+          aria-label="Open Navigation Menu"
+          title="Open Navigation"
         >
+          <i data-lucide="menu" class="w-4 h-4"></i>
+        </button>
+
+        <!-- Global Search -->
+        <div class="relative w-52 sm:w-72 md:w-96 max-w-full">
+          <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+          <input 
+            type="text" 
+            id="global-search-input" 
+            oninput="onGlobalSearch(this.value)" 
+            placeholder="Search..." 
+            class="w-full bg-[#1e293b]/70 border border-slate-700/60 rounded-xl pl-9 pr-4 py-1.5 text-xs text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-sky-500 focus:border-sky-500 transition shadow-inner"
+          >
+        </div>
       </div>
 
       <!-- Controls & User Pill -->
@@ -2266,7 +2361,82 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
     let currentPipelineTab = 'active';
     let triageExpanded = false;
 
+    // ==========================================
+    // SIDEBAR COLLAPSE & MOBILE DRAWER LOGIC
+    // ==========================================
+    function initSidebarState() {
+      const isCollapsed = localStorage.getItem('jobhunt_sidebar_collapsed') === 'true';
+      const sidebar = document.getElementById('main-sidebar');
+      const icon = document.getElementById('sidebar-collapse-icon');
+      if (sidebar) {
+        if (isCollapsed) {
+          sidebar.classList.add('collapsed');
+          if (icon) icon.setAttribute('data-lucide', 'panel-left-open');
+        } else {
+          sidebar.classList.remove('collapsed');
+          if (icon) icon.setAttribute('data-lucide', 'panel-left-close');
+        }
+      }
+    }
+
+    function toggleSidebarCollapse() {
+      const sidebar = document.getElementById('main-sidebar');
+      const icon = document.getElementById('sidebar-collapse-icon');
+      if (!sidebar) return;
+      
+      const willCollapse = !sidebar.classList.contains('collapsed');
+      if (willCollapse) {
+        sidebar.classList.add('collapsed');
+        localStorage.setItem('jobhunt_sidebar_collapsed', 'true');
+        if (icon) icon.setAttribute('data-lucide', 'panel-left-open');
+      } else {
+        sidebar.classList.remove('collapsed');
+        localStorage.setItem('jobhunt_sidebar_collapsed', 'false');
+        if (icon) icon.setAttribute('data-lucide', 'panel-left-close');
+      }
+      lucide.createIcons();
+    }
+
+    function toggleMobileSidebar(forceVal) {
+      const sidebar = document.getElementById('main-sidebar');
+      const backdrop = document.getElementById('mobile-sidebar-backdrop');
+      if (!sidebar || !backdrop) return;
+      
+      const isOpen = sidebar.classList.contains('mobile-open');
+      const show = (typeof forceVal === 'boolean') ? forceVal : !isOpen;
+
+      if (show) {
+        sidebar.classList.add('mobile-open');
+        backdrop.classList.add('active');
+        document.body.classList.add('overflow-hidden');
+      } else {
+        sidebar.classList.remove('mobile-open');
+        backdrop.classList.remove('active');
+        document.body.classList.remove('overflow-hidden');
+      }
+      lucide.createIcons();
+    }
+
+    function closeMobileSidebarIfOpen() {
+      if (window.innerWidth < 768) {
+        toggleMobileSidebar(false);
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      // Toggle sidebar on Ctrl+B or Cmd+B
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b' && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+        e.preventDefault();
+        toggleSidebarCollapse();
+      }
+      // Close mobile drawer on Escape
+      if (e.key === 'Escape') {
+        toggleMobileSidebar(false);
+      }
+    });
+
     document.addEventListener('DOMContentLoaded', () => {
+      initSidebarState();
       lucide.createIcons();
       applyArchivedColumnVisibility();
       loadJobs();
@@ -4473,6 +4643,16 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
       topText.textContent = mode === 'fast' ? "Re-Indexing..." : "Scouting IT Roles...";
       topBtn.disabled = true;
 
+      // Update mobile FAB
+      const mobBtn = document.getElementById('btn-mobile-scout-fab');
+      const mobIcon = document.getElementById('mobile-scout-icon');
+      const mobText = document.getElementById('mobile-scout-text');
+      const mobPing = document.getElementById('mobile-scout-ping');
+      if (mobIcon) mobIcon.classList.add('animate-spin');
+      if (mobText) mobText.textContent = mode === 'fast' ? "Re-Indexing..." : "Scouting...";
+      if (mobPing) mobPing.classList.remove('hidden');
+      if (mobBtn) mobBtn.disabled = true;
+
       badge.className = "text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-sky-500/20 text-sky-400 border border-sky-500/40 animate-pulse";
       badge.textContent = mode === 'fast' ? "Syncing Feed" : "Scanning Live";
       ping.classList.remove('hidden');
@@ -4606,6 +4786,16 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
             liveBtn.disabled = false;
             fastBtn.disabled = false;
             viewReportBtn.classList.remove('hidden');
+
+            // Reset mobile FAB
+            const mobBtn = document.getElementById('btn-mobile-scout-fab');
+            const mobIcon = document.getElementById('mobile-scout-icon');
+            const mobText = document.getElementById('mobile-scout-text');
+            const mobPing = document.getElementById('mobile-scout-ping');
+            if (mobIcon) mobIcon.classList.remove('animate-spin');
+            if (mobText) mobText.textContent = "Run Scout";
+            if (mobPing) mobPing.classList.add('hidden');
+            if (mobBtn) mobBtn.disabled = false;
 
             if (data.report) {
               currentScoutReport = data.report;
@@ -4820,9 +5010,19 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
           const topIcon = document.getElementById('scout-icon');
           const topText = document.getElementById('scout-text');
           const topBtn = document.getElementById('btn-scout');
-          topIcon.classList.add('animate-spin');
-          topText.textContent = "Scouting IT Roles...";
-          topBtn.disabled = true;
+          if (topIcon) topIcon.classList.add('animate-spin');
+          if (topText) topText.textContent = "Scouting IT Roles...";
+          if (topBtn) topBtn.disabled = true;
+
+          const mobBtn = document.getElementById('btn-mobile-scout-fab');
+          const mobIcon = document.getElementById('mobile-scout-icon');
+          const mobText = document.getElementById('mobile-scout-text');
+          const mobPing = document.getElementById('mobile-scout-ping');
+          if (mobIcon) mobIcon.classList.add('animate-spin');
+          if (mobText) mobText.textContent = "Scouting...";
+          if (mobPing) mobPing.classList.remove('hidden');
+          if (mobBtn) mobBtn.disabled = true;
+
           pollScoutStatus();
         }
       } catch (e) {}
@@ -5881,5 +6081,24 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
       showToast("Dashboard refreshed!");
     }
   </script>
+
+  <!-- ========================================== -->
+  <!-- MOBILE FLOATING ACTION BUTTON (RUN SCOUT)  -->
+  <!-- ========================================== -->
+  <aside class="md:hidden fixed right-4 z-40" style="bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));">
+    <button 
+      id="btn-mobile-scout-fab" 
+      onclick="openScoutModal()" 
+      class="flex items-center gap-2.5 px-4 py-3 rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-xs shadow-xl shadow-sky-500/35 border border-white/20 active:scale-95 transition-all"
+      title="Run IT Scout"
+      aria-label="Run IT Scout"
+    >
+      <span class="relative flex h-3.5 w-3.5 items-center justify-center">
+        <span id="mobile-scout-ping" class="hidden animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-300 opacity-75"></span>
+        <i data-lucide="radar" id="mobile-scout-icon" class="w-4 h-4 text-white"></i>
+      </span>
+      <span id="mobile-scout-text" class="tracking-wide">Run Scout</span>
+    </button>
+  </aside>
 </body>
 </html>
