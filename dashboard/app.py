@@ -2164,6 +2164,10 @@ def trigger_scout_scan():
                 scout_process_status["progress_percent"] = 100
                 scout_process_status["last_run"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 scout_process_status["report"] = load_latest_scout_report()
+            elif code == 75 or any("Another scout discovery run is already in progress" in l for l in scout_process_status["logs"]):
+                scout_process_status["stage"] = "⚠️ A scheduled scout scan is already actively running in the background. Please wait for it to finish."
+                scout_process_status["progress_percent"] = 50
+                scout_process_status["error"] = "Another scout run is active."
             else:
                 scout_process_status["stage"] = f"Scout ended with exit code {code}"
                 scout_process_status["error"] = f"Process exited with code {code}"

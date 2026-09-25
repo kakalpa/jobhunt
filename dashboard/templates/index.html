@@ -1357,7 +1357,10 @@
           <div class="flex-1 w-full space-y-2">
             <div class="flex items-center justify-between text-xs">
               <span id="scout-stage-text" class="text-white font-semibold truncate">Ready to scan Finland & EU Remote IT roles...</span>
-              <span id="scout-progress-pct" class="font-mono text-sky-400 font-bold">0%</span>
+              <div class="flex items-center gap-2">
+                <span id="scout-timer-badge" class="font-mono text-[11px] text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30 hidden">⏱️ <span id="scout-elapsed-sec">00:00</span></span>
+                <span id="scout-progress-pct" class="font-mono text-sky-400 font-bold">0%</span>
+              </div>
             </div>
 
             <!-- Progress Bar Track -->
@@ -1411,11 +1414,11 @@
           <div class="flex items-center gap-2">
             <button id="btn-trigger-live" onclick="triggerScout('live')" class="px-3.5 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-medium text-xs flex items-center gap-1.5 transition active:scale-95 shadow">
               <i data-lucide="play" class="w-3.5 h-3.5 fill-white"></i>
-              <span>Full Live Scout</span>
+              <span>Full Live Web Scout (~2.5m)</span>
             </button>
-            <button id="btn-trigger-fast" onclick="triggerScout('fast')" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-medium flex items-center gap-1.5 transition active:scale-95" title="Re-index database against keywords in 1s">
+            <button id="btn-trigger-fast" onclick="triggerScout('fast')" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-medium flex items-center gap-1.5 transition active:scale-95" title="Re-score existing local feed against CV keywords in 1s without scraping">
               <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-400"></i>
-              <span>Quick Re-Sync</span>
+              <span>Quick Re-Sync (1s)</span>
             </button>
           </div>
 
@@ -5054,6 +5057,32 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
     let currentScoutReport = null;
     let activeReportFilter = 'all';
     let scoutPollingInterval = null;
+    let scoutStartTime = null;
+    let scoutTimerInterval = null;
+
+    function startScoutTimer() {
+      if (!scoutStartTime) scoutStartTime = Date.now();
+      const badge = document.getElementById('scout-timer-badge');
+      const secEl = document.getElementById('scout-elapsed-sec');
+      if (badge) badge.classList.remove('hidden');
+      if (!scoutTimerInterval) {
+        scoutTimerInterval = setInterval(() => {
+          if (!scoutStartTime) return;
+          const diff = Math.floor((Date.now() - scoutStartTime) / 1000);
+          const mins = String(Math.floor(diff / 60)).padStart(2, '0');
+          const secs = String(diff % 60).padStart(2, '0');
+          if (secEl) secEl.textContent = `${mins}:${secs}`;
+        }, 1000);
+      }
+    }
+
+    function stopScoutTimer() {
+      if (scoutTimerInterval) {
+        clearInterval(scoutTimerInterval);
+        scoutTimerInterval = null;
+      }
+      scoutStartTime = null;
+    }
 
     function openScoutModal(forceTab = null) {
       document.getElementById('scout-modal-backdrop').classList.remove('hidden');
@@ -5246,13 +5275,15 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
       }
 
       if (data.is_running) {
+        startScoutTimer();
         badge.className = "text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-sky-500/20 text-sky-400 border border-sky-500/40 animate-pulse";
         badge.textContent = "Scanning Live";
         ping.classList.remove('hidden');
         sweep.classList.remove('opacity-40');
       } else {
+        stopScoutTimer();
         badge.className = "text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/40";
-        badge.textContent = "Completed";
+        badge.textContent = data.error ? "Halted" : "Completed";
         ping.classList.add('hidden');
         sweep.classList.add('opacity-40');
       }

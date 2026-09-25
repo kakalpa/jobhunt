@@ -912,7 +912,7 @@ def main():
     
     args = parser.parse_args()
     
-    run_scout(
+    res = run_scout(
         queries=args.queries,
         location=args.location,
         hours=args.hours,
@@ -920,6 +920,8 @@ def main():
         remote_only=args.remote,
         sites=args.sites
     )
+    if res is None:
+        sys.exit(75)
 
 if __name__ == "__main__":
     main()
