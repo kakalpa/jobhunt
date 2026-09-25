@@ -292,6 +292,99 @@ def scrape_arbeitnow(query: str, limit: int = 15) -> list:
         log_scout(f"   ⚠️ [Arbeitnow API] notice: {e}")
     return jobs
 
+def scrape_jobly(query: str, limit: int = 15) -> list:
+    """Scrapes Jobly.fi for Finnish national and enterprise IT job postings."""
+    import urllib.request
+    import urllib.parse
+    import html as html_lib
+    encoded_query = urllib.parse.quote_plus(query)
+    url = f"https://www.jobly.fi/tyopaikat?search={encoded_query}"
+    headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"}
+    jobs = []
+    try:
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=10) as r:
+            html = r.read().decode("utf-8", errors="ignore")
+        cards = re.findall(r"<article[^>]*>(.*?)</article>", html, re.DOTALL)
+        for c in cards:
+            link_m = re.search(r"href=\"(https://www\.jobly\.fi/tyopaikka/[^\"]+)\"", c)
+            if not link_m:
+                continue
+            job_url = link_m.group(1)
+            title_m = re.search(r"<h[23][^>]*>(.*?)</h[23]>", c, re.DOTALL)
+            clean_title = html_lib.unescape(re.sub(r"<[^>]+>", "", title_m.group(1)).strip()) if title_m else "IT Opportunity"
+            
+            comp_m = re.search(r"class=\"recruiter-company-profile-job-organization\"[^>]*>.*?<a[^>]*>(.*?)</a>", c, re.DOTALL)
+            if not comp_m:
+                comp_m = re.search(r"class=\"[^\"]*company[^\"]*\"[^>]*>(.*?)<", c, re.DOTALL)
+            raw_comp = html_lib.unescape(re.sub(r"<[^>]+>", "", comp_m.group(1)).strip()) if comp_m else ""
+            if not raw_comp or "tallenna" in raw_comp.lower() or len(raw_comp) < 2:
+                parts = [p.strip() for p in clean_title.split(",") if p.strip()]
+                clean_comp = parts[1] if len(parts) >= 2 else "Employer via Jobly"
+            else:
+                clean_comp = raw_comp
+            
+            loc_m = re.search(r"class=\"location\"[^>]*>.*?<span>(.*?)</span>", c, re.DOTALL)
+            if not loc_m:
+                loc_m = re.search(r"class=\"[^\"]*location[^\"]*\"[^>]*>(.*?)<", c, re.DOTALL)
+            clean_loc = html_lib.unescape(re.sub(r"<[^>]+>", "", loc_m.group(1)).strip()) if loc_m else "Finland"
+            
+            jobs.append({
+                "title": clean_title,
+                "company": clean_comp,
+                "location": clean_loc,
+                "job_url": job_url,
+                "site": "jobly",
+                "date_posted": "Recently",
+                "description": f"{clean_title} at {clean_comp} in {clean_loc} via Jobly.fi."
+            })
+            if len(jobs) >= limit:
+                break
+    except Exception as e:
+        log_scout(f"   ⚠️ [Jobly.fi] notice: {e}")
+    return jobs
+
+def scrape_thehub(query: str, limit: int = 15) -> list:
+    """Scrapes The Hub (thehub.io) for Finnish tech startups & scaleup IT roles."""
+    import urllib.request
+    import urllib.parse
+    import html as html_lib
+    encoded_query = urllib.parse.quote_plus(query)
+    url = f"https://thehub.io/jobs?countryCode=FI&search={encoded_query}"
+    headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"}
+    jobs = []
+    try:
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=10) as r:
+            html = r.read().decode("utf-8", errors="ignore")
+        cards = re.findall(r"(<div class=\"card-job-find-list[^\"]*\">.*?</a>\s*</div>)", html, re.DOTALL)
+        for c in cards:
+            link_m = re.search(r"href=\"(/jobs/[a-f0-9]+)\"", c)
+            if not link_m:
+                continue
+            job_url = f"https://thehub.io{link_m.group(1)}"
+            lines = [l.strip() for l in re.sub(r"<[^>]+>", "\n", c).splitlines() if l.strip()]
+            if not lines:
+                continue
+            title = html_lib.unescape(lines[0])
+            comp = html_lib.unescape(lines[1]) if len(lines) > 1 else "Startup via The Hub"
+            loc = html_lib.unescape(lines[2]) if len(lines) > 2 else "Finland"
+            
+            jobs.append({
+                "title": title,
+                "company": comp,
+                "location": f"{loc}, Finland" if "finland" not in loc.lower() else loc,
+                "job_url": job_url,
+                "site": "thehub",
+                "date_posted": "Recently",
+                "description": f"{title} at {comp} ({loc}) via The Hub Finland (Nordic Startup Jobs)."
+            })
+            if len(jobs) >= limit:
+                break
+    except Exception as e:
+        log_scout(f"   ⚠️ [The Hub] notice: {e}")
+    return jobs
+
 def acquire_scout_lock(workspace_dir: Path):
     lock_path = workspace_dir / ".scout.lock"
     try:
@@ -342,14 +435,14 @@ def run_scout(queries: list, location: str, hours: int, limit: int, remote_only:
     log_scout("==================================================================")
     log_scout(f"🚀 Starting Streamlined IT Job Scout at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     log_scout(f"📍 Location: {location} | Remote Only: {remote_only} | Lookback: {hours}h")
-    log_scout(f"🌐 Platforms: {', '.join(valid_sites)} + Duunitori + Arbeitnow (EU) | Queries: {len(queries)}")
+    log_scout(f"🌐 Platforms: {', '.join(valid_sites)} + Duunitori + Jobly + The Hub + Arbeitnow (EU) | Queries: {len(queries)}")
     log_scout("==================================================================")
     
     all_jobs = []
     
     for idx, query in enumerate(queries, 1):
         pct = int((idx / len(queries)) * 100)
-        log_scout(f"\n🔍 [{idx}/{len(queries)} - {pct}%] Searching for: '{query}' across {', '.join(valid_sites)}, Duunitori & Arbeitnow...")
+        log_scout(f"\n🔍 [{idx}/{len(queries)} - {pct}%] Searching for: '{query}' across {', '.join(valid_sites)}, Duunitori, Jobly, The Hub & Arbeitnow...")
         
         query_start = time.time()
         query_jobs_count = 0
@@ -402,6 +495,42 @@ def run_scout(queries: list, location: str, hours: int, limit: int, remote_only:
                     log_scout(f"   ↳ [Duunitori] 0 postings found")
             except Exception as e:
                 log_scout(f"   ⚠️ [Duunitori] notice: {e}")
+
+        # Query Jobly.fi for Finnish enterprise & consultancy opportunities
+        if "finland" in location.lower() or "jobly" in sites:
+            log_scout(f"   ⏳ Querying [Jobly.fi] for '{query}'...")
+            try:
+                jobly_list = scrape_jobly(query, limit=limit)
+                if jobly_list:
+                    log_scout(f"   ↳ [Jobly.fi] Found {len(jobly_list)} postings:")
+                    for j_job in jobly_list[:3]:
+                        log_scout(f"      • {j_job['title']} @ {j_job['company']}")
+                    if len(jobly_list) > 3:
+                        log_scout(f"      ... and {len(jobly_list) - 3} more postings")
+                    all_jobs.append(pd.DataFrame(jobly_list))
+                    query_jobs_count += len(jobly_list)
+                else:
+                    log_scout(f"   ↳ [Jobly.fi] 0 postings found")
+            except Exception as e:
+                log_scout(f"   ⚠️ [Jobly.fi] notice: {e}")
+
+        # Query The Hub for Finnish tech startup & scaleup opportunities
+        if "finland" in location.lower() or "thehub" in sites:
+            log_scout(f"   ⏳ Querying [The Hub (Nordic Startups)] for '{query}'...")
+            try:
+                hub_list = scrape_thehub(query, limit=limit)
+                if hub_list:
+                    log_scout(f"   ↳ [The Hub] Found {len(hub_list)} postings:")
+                    for h_job in hub_list[:3]:
+                        log_scout(f"      • {h_job['title']} @ {h_job['company']}")
+                    if len(hub_list) > 3:
+                        log_scout(f"      ... and {len(hub_list) - 3} more postings")
+                    all_jobs.append(pd.DataFrame(hub_list))
+                    query_jobs_count += len(hub_list)
+                else:
+                    log_scout(f"   ↳ [The Hub] 0 postings found")
+            except Exception as e:
+                log_scout(f"   ⚠️ [The Hub] notice: {e}")
 
         # Query Arbeitnow for European English-speaking & Remote IT opportunities
         log_scout(f"   ⏳ Querying [Arbeitnow EU API] for '{query}'...")
