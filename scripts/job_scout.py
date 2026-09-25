@@ -385,6 +385,52 @@ def scrape_thehub(query: str, limit: int = 15) -> list:
         log_scout(f"   ⚠️ [The Hub] notice: {e}")
     return jobs
 
+def scrape_weworkremotely(query: str, limit: int = 15) -> list:
+    """Scrapes WeWorkRemotely for global & European remote DevOps, Cloud, and Security jobs."""
+    import urllib.request
+    import html as html_lib
+    url = "https://weworkremotely.com/categories/remote-devops-sysadmin-jobs.rss"
+    headers = {"User-Agent": "JobHuntScout/1.0 (Mozilla/5.0)"}
+    jobs = []
+    try:
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=10) as r:
+            xml = r.read().decode("utf-8", errors="ignore")
+        items = re.findall(r"<item>(.*?)</item>", xml, re.DOTALL)
+        q_tokens = [w for w in query.lower().split() if len(w) > 2]
+        for it in items:
+            t_m = re.search(r"<title>(.*?)</title>", it)
+            l_m = re.search(r"<link>(.*?)</link>", it)
+            d_m = re.search(r"<description>(.*?)</description>", it, re.DOTALL)
+            if not t_m or not l_m:
+                continue
+            raw_title = html_lib.unescape(t_m.group(1)).strip()
+            job_url = html_lib.unescape(l_m.group(1)).strip()
+            desc = html_lib.unescape(re.sub(r"<[^>]+>", " ", d_m.group(1))).strip() if d_m else ""
+            
+            parts = raw_title.split(":", 1)
+            comp = parts[0].strip() if len(parts) > 1 else "Remote Tech Employer"
+            title = parts[1].strip() if len(parts) > 1 else raw_title
+            
+            combined = f"{title} {desc}".lower()
+            if q_tokens and not any(tok in combined for tok in q_tokens):
+                continue
+                
+            jobs.append({
+                "title": title,
+                "company": comp,
+                "location": "Worldwide / EU Remote",
+                "job_url": job_url,
+                "site": "weworkremotely",
+                "date_posted": "Recently",
+                "description": f"{title} at {comp} (Remote). {desc[:600]}"
+            })
+            if len(jobs) >= limit:
+                break
+    except Exception as e:
+        log_scout(f"   ⚠️ [WeWorkRemotely] notice: {e}")
+    return jobs
+
 def acquire_scout_lock(workspace_dir: Path):
     lock_path = workspace_dir / ".scout.lock"
     try:
@@ -430,19 +476,19 @@ def run_scout(queries: list, location: str, hours: int, limit: int, remote_only:
         country_indeed = "usa"
         
     if not valid_sites:
-        valid_sites = ["linkedin", "indeed", "google"]
+        valid_sites = ["linkedin", "indeed", "google", "glassdoor"]
         
     log_scout("==================================================================")
     log_scout(f"🚀 Starting Streamlined IT Job Scout at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     log_scout(f"📍 Location: {location} | Remote Only: {remote_only} | Lookback: {hours}h")
-    log_scout(f"🌐 Platforms: {', '.join(valid_sites)} + Duunitori + Jobly + The Hub + Arbeitnow (EU) | Queries: {len(queries)}")
+    log_scout(f"🌐 Platforms: {', '.join(valid_sites)} + Duunitori + Jobly + The Hub + Arbeitnow + WeWorkRemotely | Queries: {len(queries)}")
     log_scout("==================================================================")
     
     all_jobs = []
     
     for idx, query in enumerate(queries, 1):
         pct = int((idx / len(queries)) * 100)
-        log_scout(f"\n🔍 [{idx}/{len(queries)} - {pct}%] Searching for: '{query}' across {', '.join(valid_sites)}, Duunitori, Jobly, The Hub & Arbeitnow...")
+        log_scout(f"\n🔍 [{idx}/{len(queries)} - {pct}%] Searching for: '{query}' across {', '.join(valid_sites)}, Duunitori, Jobly, The Hub, Arbeitnow & Remote Tech...")
         
         query_start = time.time()
         query_jobs_count = 0
@@ -450,14 +496,16 @@ def run_scout(queries: list, location: str, hours: int, limit: int, remote_only:
         for site in valid_sites:
             log_scout(f"   ⏳ Querying [{site.capitalize()}] for '{query}'...")
             try:
+                is_site_remote = remote_only or (site == "glassdoor" and ("remote" in query.lower() or remote_only))
+                site_loc = None if (site == "glassdoor" and is_site_remote) else location
                 jobs: pd.DataFrame = scrape_jobs(
                     site_name=[site],
                     search_term=query,
-                    location=location,
+                    location=site_loc,
                     results_wanted=limit,
                     hours_old=hours,
                     country_indeed=country_indeed,
-                    is_remote=remote_only,
+                    is_remote=is_site_remote,
                     linkedin_fetch_description=True
                 )
                 
@@ -548,6 +596,24 @@ def run_scout(queries: list, location: str, hours: int, limit: int, remote_only:
                 log_scout(f"   ↳ [Arbeitnow] 0 postings found")
         except Exception as e:
             log_scout(f"   ⚠️ [Arbeitnow] notice: {e}")
+
+        # Query WeWorkRemotely for global & European remote tech / DevOps / Security roles
+        if remote_only or "remote" in location.lower() or "wwr" in sites or "remote" in query.lower():
+            log_scout(f"   ⏳ Querying [WeWorkRemotely (Remote Tech)] for '{query}'...")
+            try:
+                wwr_list = scrape_weworkremotely(query, limit=limit)
+                if wwr_list:
+                    log_scout(f"   ↳ [WeWorkRemotely] Found {len(wwr_list)} postings:")
+                    for w_job in wwr_list[:3]:
+                        log_scout(f"      • {w_job['title']} @ {w_job['company']} ({w_job['location']})")
+                    if len(wwr_list) > 3:
+                        log_scout(f"      ... and {len(wwr_list) - 3} more postings")
+                    all_jobs.append(pd.DataFrame(wwr_list))
+                    query_jobs_count += len(wwr_list)
+                else:
+                    log_scout(f"   ↳ [WeWorkRemotely] 0 postings found")
+            except Exception as e:
+                log_scout(f"   ⚠️ [WeWorkRemotely] notice: {e}")
                 
         cumulative_count = sum(len(df) for df in all_jobs)
         log_scout(f"   ✓ Query '{query}' completed in {time.time() - query_start:.1f}s (+{query_jobs_count} postings, total: {cumulative_count})")
@@ -840,7 +906,7 @@ def main():
     parser.add_argument("--hours", "-t", type=int, default=int(os.environ.get("SCOUT_LOOKBACK_HOURS", 168)), help="Hours old to search (default: 168h / 7 days)")
     parser.add_argument("--limit", "-n", type=int, default=int(os.environ.get("SCOUT_LIMIT_PER_QUERY", 10)), help="Results wanted per query per site (default: 10)")
     parser.add_argument("--remote", action="store_true", help="Filter for remote jobs only")
-    parser.add_argument("--sites", nargs="+", default=["linkedin", "indeed", "google"], help="Sites to scrape (linkedin, indeed, google, glassdoor)")
+    parser.add_argument("--sites", nargs="+", default=["linkedin", "indeed", "google", "glassdoor"], help="Sites to scrape (linkedin, indeed, google, glassdoor)")
     
     args = parser.parse_args()
     

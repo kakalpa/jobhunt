@@ -473,12 +473,16 @@ def scan_prepared_applications() -> list:
             platform_display = "Indeed"
         elif "duunitori.fi" in job_url:
             platform_display = "Duunitori"
+        elif "glassdoor.com" in job_url:
+            platform_display = "Glassdoor"
         elif "jobly.fi" in job_url:
             platform_display = "Jobly"
         elif "thehub.io" in job_url:
             platform_display = "The Hub"
         elif "arbeitnow.com" in job_url:
             platform_display = "Arbeitnow"
+        elif "weworkremotely.com" in job_url:
+            platform_display = "WeWorkRemotely"
         elif role_info.get("company") and role_info["company"] != "Company":
             platform_display = f"{role_info['company']} Careers"
         else:
@@ -1506,7 +1510,7 @@ def get_settings_api():
             "lookback_hours": int(env.get("SCOUT_LOOKBACK_HOURS", 168)),
             "limit": int(env.get("SCOUT_LIMIT_PER_QUERY", 10)),
             "queries": env.get("SCOUT_QUERIES", default_queries),
-            "platforms": env.get("SCOUT_PLATFORMS", "linkedin,indeed,google,duunitori,jobly,thehub,arbeitnow"),
+            "platforms": env.get("SCOUT_PLATFORMS", "linkedin,indeed,google,glassdoor,duunitori,jobly,thehub,arbeitnow,wwr"),
         },
         "retention": {
             "enabled": int(env.get("POSTING_RETENTION_DAYS", 30)) > 0,

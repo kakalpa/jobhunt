@@ -1991,6 +1991,10 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
                   <span class="text-slate-300">Google Jobs</span>
                 </label>
                 <label class="flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" id="plat-glassdoor" checked class="rounded border-slate-700 text-sky-500 bg-slate-900 focus:ring-0">
+                  <span class="text-slate-300">Glassdoor (🌐 Global & Remote)</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer">
                   <input type="checkbox" id="plat-duunitori" checked class="rounded border-slate-700 text-sky-500 bg-slate-900 focus:ring-0">
                   <span class="text-slate-300">Duunitori (🇫🇮)</span>
                 </label>
@@ -2005,6 +2009,10 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
                 <label class="flex items-center gap-1.5 cursor-pointer">
                   <input type="checkbox" id="plat-arbeitnow" checked class="rounded border-slate-700 text-sky-500 bg-slate-900 focus:ring-0">
                   <span class="text-slate-300">Arbeitnow (🇪🇺 Remote API)</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" id="plat-wwr" checked class="rounded border-slate-700 text-sky-500 bg-slate-900 focus:ring-0">
+                  <span class="text-slate-300">Remote Tech (WeWorkRemotely)</span>
                 </label>
               </div>
             </div>
@@ -5782,14 +5790,16 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
           document.getElementById('input-scout-lookback').value = String(data.scout.lookback_hours || 168);
           document.getElementById('input-scout-queries').value = data.scout.queries || "";
 
-          const platforms = (data.scout.platforms || "linkedin,indeed,google,duunitori,jobly,thehub,arbeitnow").toLowerCase();
+          const platforms = (data.scout.platforms || "linkedin,indeed,google,glassdoor,duunitori,jobly,thehub,arbeitnow,wwr").toLowerCase();
           document.getElementById('plat-linkedin').checked = platforms.includes('linkedin');
           document.getElementById('plat-indeed').checked = platforms.includes('indeed');
           document.getElementById('plat-google').checked = platforms.includes('google');
+          if (document.getElementById('plat-glassdoor')) document.getElementById('plat-glassdoor').checked = platforms.includes('glassdoor');
           document.getElementById('plat-duunitori').checked = platforms.includes('duunitori');
           if (document.getElementById('plat-jobly')) document.getElementById('plat-jobly').checked = platforms.includes('jobly');
           if (document.getElementById('plat-thehub')) document.getElementById('plat-thehub').checked = platforms.includes('thehub');
           document.getElementById('plat-arbeitnow').checked = platforms.includes('arbeitnow');
+          if (document.getElementById('plat-wwr')) document.getElementById('plat-wwr').checked = platforms.includes('wwr');
         }
 
         // 4. Retention
@@ -6125,10 +6135,12 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
       if (document.getElementById('plat-linkedin').checked) selectedPlatforms.push('linkedin');
       if (document.getElementById('plat-indeed').checked) selectedPlatforms.push('indeed');
       if (document.getElementById('plat-google').checked) selectedPlatforms.push('google');
+      if (document.getElementById('plat-glassdoor') && document.getElementById('plat-glassdoor').checked) selectedPlatforms.push('glassdoor');
       if (document.getElementById('plat-duunitori').checked) selectedPlatforms.push('duunitori');
       if (document.getElementById('plat-jobly') && document.getElementById('plat-jobly').checked) selectedPlatforms.push('jobly');
       if (document.getElementById('plat-thehub') && document.getElementById('plat-thehub').checked) selectedPlatforms.push('thehub');
       if (document.getElementById('plat-arbeitnow').checked) selectedPlatforms.push('arbeitnow');
+      if (document.getElementById('plat-wwr') && document.getElementById('plat-wwr').checked) selectedPlatforms.push('wwr');
 
       const payload = {
         gemini_api_key: document.getElementById('input-gemini-key').value.trim(),
