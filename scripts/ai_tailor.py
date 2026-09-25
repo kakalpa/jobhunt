@@ -14,6 +14,7 @@ Incorporates 12 specialized agent skill modules into Google Gemini generative ca
 
 import os
 import sys
+import re
 import json
 import urllib.request
 import urllib.error
@@ -65,7 +66,6 @@ def has_any_ai_key() -> bool:
     return bool(get_api_key() or get_groq_key() or get_openrouter_key())
 
 MODELS = [
-    "models/gemini-3.5-flash",
     "models/gemini-3-flash-preview"
 ]
 
@@ -199,6 +199,13 @@ def call_groq_json(prompt: str, api_key: str, timeout: int = 25) -> tuple:
                 text = res["choices"][0]["message"]["content"]
                 parsed = json.loads(text)
                 return parsed, f"groq:{model_name}", ""
+        except urllib.error.HTTPError as e:
+            last_err = f"HTTP Error {e.code}: {e.reason}"
+            errors_by_model.append(f"{model_name}: {last_err}")
+            print(f"⚠️ [Groq Failover] {model_name} error: {last_err}")
+            if e.code in (401, 403):
+                # Invalid or restricted key - break immediately to allow instant failover to OpenRouter
+                break
         except Exception as e:
             last_err = str(e)
             errors_by_model.append(f"{model_name}: {last_err}")
@@ -246,7 +253,7 @@ def call_openrouter_json(prompt: str, api_key: str, timeout: int = 25) -> tuple:
             continue
     return None, "", "; ".join(errors_by_model) if errors_by_model else last_err
 
-def call_gemini_json(prompt: str, api_key: str = None, timeout: int = 20, max_retries: int = 1) -> tuple:
+def call_gemini_json(prompt: str, api_key: str = None, timeout: int = 20, max_retries: int = 2) -> tuple:
     """
     Executes a structured JSON generation request with automated multi-provider failover:
     1. Primary: Google Gemini models (gemini-3.5-flash, gemini-3-flash-preview)
@@ -300,6 +307,9 @@ def call_gemini_json(prompt: str, api_key: str = None, timeout: int = 20, max_re
                     last_err_msg = f"HTTP Error {e.code}: {e.reason}"
                     failover_trace.append(f"Gemini ({short_name}): {last_err_msg}")
                     print(f"⚠️ [Gemini Client] {model_name} attempt {attempt+1}/{max_retries}: {last_err_msg}")
+                    if e.code in (500, 502, 503, 504) and attempt + 1 < max_retries:
+                        time.sleep(1.0)
+                        continue
                     break
                 except Exception as e:
                     last_err_msg = str(e)

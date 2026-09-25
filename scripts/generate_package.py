@@ -63,7 +63,7 @@ def fetch_job_text_from_url(url: str) -> str:
             "Accept-Language": "en-US,en;q=0.9,fi;q=0.8"
         }
         req = urllib.request.Request(url, headers=headers)
-        with urllib.request.urlopen(req, timeout=10) as response:
+        with urllib.request.urlopen(req, timeout=5) as response:
             html = response.read().decode("utf-8", errors="ignore")
             
             # Isolate LinkedIn or Duunitori description markup if present

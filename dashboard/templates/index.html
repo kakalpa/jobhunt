@@ -5646,22 +5646,50 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
         { id: 'wf-step-6', text: 'Computing ATS optimization audit & compatibility score...' }
       ];
 
-      // Reset steps UI
-      steps.forEach((s, idx) => {
-        const el = document.getElementById(s.id);
-        if (el) {
-          el.className = "flex items-center gap-2 " + (idx === 0 ? "text-amber-300 font-medium" : "text-slate-500");
-          el.innerHTML = idx === 0 ? 
-            `<div class="w-4 h-4 flex items-center justify-center shrink-0"><span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span></div><span>${s.text}</span>` :
-            `<div class="w-4 h-4 flex items-center justify-center shrink-0"><i data-lucide="circle" class="w-3 h-3 text-slate-600"></i></div><span>${s.text}</span>`;
+      // Reset steps UI to initial state
+      let activeProgressIdx = 0;
+      function renderProgressStep(currIdx) {
+        steps.forEach((s, idx) => {
+          const el = document.getElementById(s.id);
+          if (!el) return;
+          if (idx < currIdx) {
+            el.className = "flex items-center gap-2 text-emerald-400 font-medium";
+            el.innerHTML = `<i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 shrink-0"></i><span>${escapeHtml(s.text.replace('...', ''))}</span>`;
+          } else if (idx === currIdx) {
+            el.className = "flex items-center gap-2 text-amber-300 font-medium";
+            el.innerHTML = `<div class="w-4 h-4 flex items-center justify-center shrink-0"><span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span></div><span>${escapeHtml(s.text)}</span>`;
+          } else {
+            el.className = "flex items-center gap-2 text-slate-500";
+            el.innerHTML = `<div class="w-4 h-4 flex items-center justify-center shrink-0"><i data-lucide="circle" class="w-3 h-3 text-slate-600"></i></div><span>${escapeHtml(s.text)}</span>`;
+          }
+        });
+        lucide.createIcons();
+      }
+
+      renderProgressStep(0);
+
+      // Progressive step advancement timer so UI never looks frozen
+      const stepDelays = [1500, 3000, 3000, 3000, 3500]; // intervals between steps 1->2->3->4->5->6
+      let stepTimer = null;
+      function scheduleStepProgression(idx) {
+        if (idx < stepDelays.length) {
+          stepTimer = setTimeout(() => {
+            activeProgressIdx = idx + 1;
+            renderProgressStep(activeProgressIdx);
+            scheduleStepProgression(activeProgressIdx);
+          }, stepDelays[idx]);
         }
-      });
-      lucide.createIcons();
+      }
+      scheduleStepProgression(0);
+
+      const controller = new AbortController();
+      const abortTimeout = setTimeout(() => controller.abort(), 75000); // 75s safety timeout
 
       try {
         const res = await fetch('/api/workflow/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
           body: JSON.stringify({
             title: job.title,
             company: job.company,
@@ -5672,6 +5700,9 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
             allow_fallback: allowFallback
           })
         });
+        clearTimeout(abortTimeout);
+        clearTimeout(stepTimer);
+
         const data = await res.json();
         if (data.success) {
           activeWorkflowResult = data;
@@ -5680,6 +5711,7 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
           const failovers = aiMeta.failover_trace || [];
           const hasFailover = failovers.length > 0;
 
+          // Mark all steps cleanly completed
           steps.forEach(s => {
             const el = document.getElementById(s.id);
             if (el) {
@@ -5696,7 +5728,7 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
                 el.innerHTML = html;
               } else {
                 el.className = "flex items-center gap-2 text-emerald-400 font-medium";
-                el.innerHTML = `<i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 shrink-0"></i><span>${s.text.replace('...', '')}</span>`;
+                el.innerHTML = `<i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 shrink-0"></i><span>${escapeHtml(s.text.replace('...', ''))}</span>`;
               }
             }
           });
@@ -5776,10 +5808,33 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
             errorMsg: data.message || data.error || "Gemini / Groq API rejected key or request"
           });
         } else {
-          showToast(`Error: ${data.error || 'Failed to generate package'}`);
+          const errMsg = data.error || 'Failed to generate package';
+          showToast(`Error: ${errMsg}`);
+          const el = document.getElementById(`wf-step-${Math.min(activeProgressIdx + 1, 6)}`) || document.getElementById('wf-step-1');
+          if (el) {
+            el.className = "flex items-center gap-2 text-rose-400 font-medium";
+            el.innerHTML = `<i data-lucide="alert-triangle" class="w-4 h-4 text-rose-400 shrink-0"></i><span>Generation halted: ${escapeHtml(errMsg)}</span>`;
+            lucide.createIcons();
+          }
         }
       } catch (err) {
-        showToast(`Failed to trigger workflow: ${err.message}`);
+        clearTimeout(abortTimeout);
+        clearTimeout(stepTimer);
+        const errMsg = err.name === 'AbortError' ? 'Request timed out after 75s' : err.message;
+        showToast(`Failed to trigger workflow: ${errMsg}`);
+        const el = document.getElementById(`wf-step-${Math.min(activeProgressIdx + 1, 6)}`) || document.getElementById('wf-step-1');
+        if (el) {
+          el.className = "flex flex-col gap-1.5 text-rose-400 font-medium";
+          el.innerHTML = `
+            <div class="flex items-center gap-2"><i data-lucide="alert-circle" class="w-4 h-4 text-rose-400 shrink-0"></i><span>Operation error: ${escapeHtml(errMsg)}</span></div>
+            <div class="ml-6 flex items-center gap-2 pt-1">
+              <button onclick="triggerWorkflow(currentJob || ${JSON.stringify(job)}, ${isRegen}, true)" class="px-2.5 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[11px] font-semibold transition">
+                ⚡ Continue with Offline Archetype Fallback
+              </button>
+            </div>
+          `;
+          lucide.createIcons();
+        }
       }
     }
 
