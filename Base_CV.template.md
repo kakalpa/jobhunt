@@ -5,7 +5,7 @@
 **LinkedIn:** [linkedin.com/in/your-profile](https://linkedin.com/in/your-profile)  
 **GitHub:** [github.com/your-username](https://github.com/your-username)  
 **Portfolio:** [portfolio.your-domain.com](https://portfolio.your-domain.com)  
-**Languages:** English (fluent), Finnish (basic/conversational)  
+**Languages:** English (Fluent / Professional C1)  
 
 ---
 

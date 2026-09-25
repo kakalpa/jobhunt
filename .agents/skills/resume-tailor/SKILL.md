@@ -146,8 +146,8 @@ When a candidate has extensive background (e.g. 8+ years experience + recent tec
 ## European & Finnish Market Anti-Friction Standards
 
 To prevent immediate automated or recruiter filtering in Finland/EU:
-1. **Clear Right to Work / Residency:** Always state residency and work status clearly in the header or summary (e.g., *"Location: Turku / Helsinki, Finland (Full EU Work Authorization / Resident)"*).
-2. **Transparent Language Framing:** State language competencies accurately: *"English (Fluent / C1 Professional), Finnish (Conversational / Actively studying)"*. Address language expectations proactively so recruiters don't assume Finnish is absent.
+1. **Clean Residency & Location:** State location clearly without redundant clutter or duplicated country names (e.g., *"Location: Turku / Helsinki, Finland"*). Do not clutter CV headers with work authorization claims unless explicitly mandated by the application portal.
+2. **Strictly Factual Language Framing:** State language competencies 100% accurately: *"English (Fluent / C1 Professional)"*. NEVER state or claim "Conversational Finnish" or "Finnish (Conversational)" if not true.
 3. **No Phantom Certifications:** Maintain 100% adherence to verified achievements. Never write "implied" or "in-progress" certifications as completed credentials.
 
 ---

@@ -292,12 +292,12 @@ def get_candidate_contact_info(workspace_dir=None) -> dict:
     
     info = {
         "name": os.environ.get("CANDIDATE_NAME", "Candidate Name"),
-        "location": os.environ.get("CANDIDATE_LOCATION", "Helsinki / Turku, Finland (Full EU Work Authorization / Resident)"),
+        "location": os.environ.get("CANDIDATE_LOCATION", "Helsinki / Turku, Finland"),
         "phone": os.environ.get("CANDIDATE_PHONE", "+358 00 0000000"),
         "email": os.environ.get("CANDIDATE_EMAIL", "candidate@example.com"),
         "linkedin": os.environ.get("CANDIDATE_LINKEDIN", "https://linkedin.com"),
         "github": os.environ.get("CANDIDATE_GITHUB", "https://github.com"),
-        "languages": "English (Fluent/C1), Finnish (Conversational / Actively studying)"
+        "languages": "English (Fluent / Professional C1)"
     }
     
     base_cv = ws / "Base_CV.md"

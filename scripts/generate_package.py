@@ -92,10 +92,17 @@ def fetch_job_text_from_url(url: str) -> str:
     return ""
 
 def calibrate_candidate_location(job_location: str, cand_dict: dict) -> str:
-    """Dynamically adapt candidate location display to maximize recruiter fit and eliminate relocation friction."""
-    clean_loc = (job_location or "").strip()
+    """Dynamically adapt candidate location display to maximize recruiter fit cleanly without duplication or verbose clutter."""
+    raw_loc = (job_location or "").strip()
+    # Normalize and deduplicate repeated tokens (e.g. "Finland, Finland" -> "Finland")
+    clean_loc = re.sub(r'\bFinland,\s*Finland\b', 'Finland', raw_loc, flags=re.IGNORECASE)
+    clean_loc = re.sub(r'\b([A-Za-z]+),\s*\1\b', r'\1', clean_loc)
+    clean_loc = re.sub(r'\s*\(Immediate Relocation Ready[^)]*\)', '', clean_loc).strip()
     loc_lower = clean_loc.lower()
     
+    if loc_lower in ["finland", "suomi", ""]:
+        return "Helsinki / Turku, Finland"
+        
     fi_cities = [
         "kajaani", "oulu", "tampere", "jyväskylä", "jyvaskyla", "vaasa", "kuopio", 
         "lahti", "pori", "joensuu", "rovaniemi", "lappeenranta", "kotka", "kouvola", 
@@ -108,15 +115,13 @@ def calibrate_candidate_location(job_location: str, cand_dict: dict) -> str:
             break
             
     if matched_city:
-        return f"{matched_city}, Finland (Immediate Relocation Ready | Turku/Helsinki Base)"
+        return f"Turku / Helsinki, Finland (Open to {matched_city})"
     elif any(k in loc_lower for k in ["helsinki", "espoo", "vantaa", "uusimaa", "pääkaupunkiseutu", "capital"]):
-        return "Helsinki Metropolitan Area / Turku, Finland"
+        return "Helsinki / Turku, Finland"
     elif "turku" in loc_lower or "varsinais-suomi" in loc_lower:
         return "Turku / Helsinki, Finland"
     elif any(k in loc_lower for k in ["remote", "hybrid", "etätyö", "etä"]):
-        return "Finland (Remote / Hybrid / Onsite Relocation Ready)"
-    elif clean_loc and clean_loc.lower() not in ["finland", "suomi"]:
-        return f"{clean_loc} (Immediate Relocation Ready | Turku/Helsinki Base)"
+        return "Finland (Remote / Hybrid)"
     else:
         return cand_dict.get("location", "Helsinki / Turku, Finland")
 
@@ -452,9 +457,7 @@ def generate_application_package(
     certifications_str = "\n".join(f"* {c.lstrip('* ')}" for c in certifications)
 
     cv_content = f"""# {cand_name_upper}
-**Location:** {cand_location}  
-**Work Authorization:** Full EU Work Authorization / Finnish Resident (0-Day Notice)  
-**Phone:** {cand["phone"]} | **Email:** {cand["email"]}  
+**Location:** {cand_location} | **Phone:** {cand["phone"]} | **Email:** {cand["email"]}  
 **LinkedIn:** [{cand["linkedin"].replace("https://", "")}]({cand["linkedin"]}) | **GitHub:** [{cand["github"].replace("https://", "")}]({cand["github"]})  
 **Languages:** {cand["languages"]}  
 
@@ -593,7 +596,7 @@ Ystävällisin terveisin,
 **{cand["name"]}**
 """
         else:
-            closing_en = "Holding full EU work authorization and resident status in Finland, I communicate fluently in English (C1) and am actively developing practical Finnish. I am prepared to start immediately and look forward to discussing how my background aligns with " + company + "'s goals."
+            closing_en = "Based in Finland with immediate 0-day notice availability, I communicate fluently in English (C1) and look forward to discussing how my background aligns with " + company + "'s goals."
             cl_content = f"""# {cand["name"]}
 {cand["location"]} | {cand["phone"]} | {cand["email"]} | [LinkedIn]({cand["linkedin"]})
 
@@ -687,7 +690,7 @@ Immediate availability (0 days notice). Ready to onboard right away.
 ### 6. Work Authorization & Languages:
 **Answer:**  
 - **Work Authorization:** Full EU Work Authorization / Permanent Resident in Finland. Zero sponsorship required.  
-- **Languages:** English (Fluent / Working proficiency C1), Finnish (Conversational / Actively studying).  
+- **Languages:** English (Fluent / Working proficiency C1).  
 - **Security Clearances:** Fully prepared and eligible for Supo standard security clearance (*perusmuotoinen turvallisuusselvitys*) and pre-employment screening.
 {phone_script_block}"""
     qa_file.write_text(qa_content, encoding="utf-8")

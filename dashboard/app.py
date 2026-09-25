@@ -1811,7 +1811,7 @@ def generate_outreach_drafts(folder):
         linkedin_connect = (
             f"Hi! I'm an IT systems engineer in Finland (TUAS 4.0 GPA, 8+ yrs infra). "
             f"I saw the {title} role at {company} and would love to connect. "
-            f"With 0-day notice and EU authorization, I'm eager to discuss how I can support your team."
+            f"With 0-day notice, I'm eager to discuss how I can support your team."
         )
 
     # 2. Hiring Manager / Recruiter InMail / Direct Email
@@ -1822,7 +1822,7 @@ def generate_outreach_drafts(folder):
         f"With 8+ years of enterprise systems administration, security operations (Defender XDR, Sentinel, Wazuh SIEM), "
         f"and practical TryHackMe certifications (SOC Level 1, PenTest+), my background aligns directly with the hands-on "
         f"depth your team needs.\n\n"
-        f"I'm based in Finland with full EU work authorization and 0 days notice period. "
+        f"I'm based in Finland with immediate 0-day notice availability. "
         f"I would welcome the opportunity to discuss how my automation and prevention-first approach can support {company}.\n\n"
         f"Best regards,\n{cand['name']}\n{cand['phone']} | {cand['email']}"
     )

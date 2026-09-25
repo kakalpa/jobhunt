@@ -133,12 +133,25 @@ def sanitize_meta_phrases(text: str) -> str:
         (r"\bjunior\s+market\s+compensation\s+bracket\b", "standard market expectations"),
         (r"\brather\s+than\s+a\s+stepping\s+stone\b", "to grow and deliver lasting impact"),
         (r"\bnot\s+a\s+stepping\s+stone\b", "a long-term dedication"),
-        # Tone down self-proclamations of humility (Finnish vaatimattomuus is demonstrated, not proclaimed)
-        (r"\bI\s+am\s+genuinely\s+humble,?\s*(?:and\s*)?coachable,?\s*and\b", "I am"),
-        (r"\bI\s+am\s+humble,?\s*(?:and\s*)?coachable,?\s*and\b", "I am"),
-        (r"\bI\s+am\s+genuinely\s+humble\b", "I am highly dedicated"),
-        (r"\bI\s+am\s+humble\b", "I bring a collaborative mindset"),
-        (r"\bgenuinely\s+humble\b", "respectful and collaborative"),
+        # Clean up duplicate country or city names (e.g. "Finland, Finland" -> "Finland")
+        (r"\bFinland,\s*Finland\b", "Finland"),
+        (r"\bHelsinki,\s*Helsinki\b", "Helsinki"),
+        (r"\bTurku,\s*Turku\b", "Turku"),
+        (r"\b([A-Za-z]+),\s*\1\b", r"\1"),
+        # Strip noisy relocation clutter
+        (r"\s*\(Immediate Relocation Ready \| Turku/Helsinki Base\)", ""),
+        (r"\s*\(Immediate Relocation Ready\)", ""),
+        # Clean up false conversational Finnish claims
+        (r",?\s*(?:and\s+)?(?:am\s+)?actively\s+(?:advancing|developing|learning|studying)\s+(?:my\s+)?(?:practical\s+)?Finnish[^,.;]*", ""),
+        (r",?\s*(?:with\s+)?conversational\s+Finnish[^,.;]*", ""),
+        (r",?\s*(?:and\s+)?practical\s+Finnish(?:\s+for\s+everyday\s+workplace\s+communication)?[^,.;]*", ""),
+        (r"\bFinnish\s*\(\s*Conversational\s*(?:\/\s*Actively\s*studying)?\s*\)", ""),
+        (r"\bFinnish\s*\(\s*basic\/conversational\s*\)", ""),
+        (r"\bconversational\/actively advancing\b", ""),
+        (r"\bworking Finnish\b", ""),
+        # Remove Work Authorization line from headers if present
+        (r"\*\*Work Authorization:\*\*.*?\n", ""),
+        (r"Work Authorization:\s*Full EU Work Authorization[^\n]*\n?", ""),
     ]
 
     cleaned = text
@@ -510,13 +523,17 @@ CANDIDATE BASE PROFILE ({cand_name}):
 - Experience: 8+ years enterprise systems administration, Linux (RHEL/Ubuntu), Docker containerization, Ansible, Azure cloud, M365, Entra ID, Intune, HPE ProLiant DL20/DL380 bare-metal hardware, and automation (PowerShell, Bash, Python).
 - Certifications: TryHackMe SOC Level 1 & PenTest+; Google Cybersecurity Professional; Azure Administrator; Red Hat System Administration (RH124/RH134); ISO/IEC 27005 Information Security Risk Management.
 - Achievements: 1st Place Team in 2026 DNCS Live-Fire Cybersecurity Hackathon; sustained 99.9% service uptime; 94% First-Time-Fix rate across 200+ multi-OS workstations.
-- Status: Permanent EU Work Authorization / Finland Resident. Notice period: 0 days (Immediate). English: Fluent (C1), Finnish: Conversational / Actively studying.
+- Status: Resident in Finland (Helsinki / Turku). Notice period: 0 days (Immediate). English: Fluent (C1 Professional).
+⚠️ CRITICAL QUALITY & INTEGRITY RULES:
+- NEVER claim "Conversational Finnish" or "fluent/conversational Finnish" (candidate communicates in English C1).
+- DO NOT add "Full Work Authorization" to CV header lines.
+- NEVER duplicate locations (e.g. "Finland, Finland"). Keep location clean: e.g. "Turku / Helsinki, Finland" or "Helsinki / Turku, Finland".
 
 ---
 INCORPORATE THESE SPECIALIZED SKILL METHODOLOGIES:
 1. finnish-job-market-tailor:
    - Understated, factual tone. Strictly avoid US-style hyperbole ("rockstar", "visionary", "testament").
-   - Honest Finnish language transparency (fluent English C1, conversational Finnish actively developing).
+   - Transparent language communication (fluent English C1 professional proficiency. Strictly DO NOT claim conversational Finnish or Finnish fluency).
    - Emphasize Finnish degree (TUAS B.Eng. 4.0 GPA), local reference (Mr. Tero Virtanen, Senior Lecturer at TUAS), and readiness for Supo standard security clearance (perusmuotoinen turvallisuusselvitys) and drug screening.
    - Entry Positioning: Highlight that as an international IT graduate entering the Finnish job market, candidate is eager to establish long-term roots and deliver immediate production-level reliability.
    - Generate a 3-minute recruiter call script ("Lisätietoja antaa") with 2 intelligent technical questions.
@@ -551,7 +568,7 @@ INCORPORATE THESE SPECIALIZED SKILL METHODOLOGIES:
 TASK:
 Return a STRICT JSON object with these exact keys:
 {{
-  "cv_location": "Strategic location line. If {location} is outside Turku/Helsinki (e.g. Kajaani, Oulu, Tampere), output '{location}, Finland (Immediate Relocation Ready | Turku/Helsinki Base)'. If Helsinki/Turku, output 'Helsinki Metropolitan Area / Turku, Finland'.",
+  "cv_location": "Clean, professional location without duplicated country names or noisy parentheticals. If Helsinki or Turku or generic Finland, output 'Helsinki / Turku, Finland' or 'Turku / Helsinki, Finland'. If a specific other Finnish city (e.g. Oulu, Tampere), output '{location}, Finland (Open to relocation)'. NEVER repeat 'Finland, Finland'.",
   "cv_summary": "2-3 sentence impactful professional summary highlighting direct overlap with {company}'s priorities and {title} requirements.",
   "cv_skills_block": "4-5 structured markdown lines formatted as '* **[Category]:** [Keywords...]' specifically prioritizing the exact technologies and responsibilities mentioned in the JD.",
   "cv_mainframe_bullets": [
@@ -566,7 +583,7 @@ Return a STRICT JSON object with these exact keys:
     "Won 1st Place Team & 2nd Place Individual in the 2026 DNCS Live-Fire Cybersecurity Hackathon..."
   ],
   "cv_certifications": [
-    "Certification 1 (ordered by highest relevance to {title})",
+    "Certification 1 (ordered by relevance from: Google Cybersecurity; Azure Administrator; Red Hat RH124/RH134; TryHackMe SOC Level 1 & PenTest+; ISO/IEC 27005; IBM Applied DevOps Engineering)",
     "Certification 2",
     "Certification 3",
     "Certification 4",
@@ -632,9 +649,19 @@ Return a STRICT JSON object with these exact keys:
             elif isinstance(v, dict):
                 parsed[k] = {dk: sanitize_meta_phrases(dv) if isinstance(dv, str) else dv for dk, dv in v.items()}
 
+        # Specific double-check assertions on location and language integrity
+        if parsed.get("cv_location") and isinstance(parsed["cv_location"], str):
+            loc = parsed["cv_location"].strip()
+            loc = re.sub(r'\bFinland,\s*Finland\b', 'Finland', loc, flags=re.IGNORECASE)
+            loc = re.sub(r'\b([A-Za-z]+),\s*\1\b', r'\1', loc)
+            loc = re.sub(r'\s*\(Immediate Relocation Ready[^)]*\)', '', loc).strip()
+            if loc.lower() in ["finland", "suomi", ""]:
+                loc = "Helsinki / Turku, Finland"
+            parsed["cv_location"] = loc
+
         meta = parsed.get("_ai_meta", {})
         engine_str = meta.get("engine", model_used)
-        print(f"✨ [AI Tailor] Successfully tailored application using {engine_str} with all 12 skills!")
+        print(f"✨ [AI Tailor] Successfully tailored application using {engine_str} with double-checked integrity!")
         return parsed
 
     if strict:
@@ -836,7 +863,7 @@ Ystävällisin terveisin,
                 tech_p = f"My core technical foundation encompasses enterprise workplace ecosystems, hybrid identity, and multi-OS endpoint management. I have administered fleets of over 200 workstations (Windows 10/11, macOS, and Linux) alongside 300+ user Microsoft 365 and Entra ID (Azure AD) tenants with Intune MDM compliance policies. My experience spans Active Directory (AD DS, Group Policy, RBAC), enterprise peripheral integration, bare-metal server break-fix (HPE DL20/DL380), and network infrastructure troubleshooting across TCP/IP, VLANs, DNS, and DHCP."
 
             if is_junior:
-                hook_p = f"As a Bachelor of Engineering graduate in Information Technology from Turku University of Applied Sciences (TUAS, 4.0 / 4.0 GPA) with extensive enterprise systems background, I am deliberately applying for the **{title}** position at **{company}** as an intentional, highly motivated entry into the Finnish professional tech sector. Bringing eight years of enterprise infrastructure discipline alongside permanent EU work authorization and 0-day notice availability, I offer your team Day 1 production dependability, operational humility, and a dedicated long-term commitment."
+                hook_p = f"As a Bachelor of Engineering graduate in Information Technology from Turku University of Applied Sciences (TUAS, 4.0 / 4.0 GPA) with extensive enterprise systems background, I am deliberately applying for the **{title}** position at **{company}** as an intentional, highly motivated entry into the Finnish professional tech sector. Bringing eight years of enterprise infrastructure discipline alongside immediate 0-day notice availability, I offer your team Day 1 production dependability, operational humility, and a dedicated long-term commitment."
                 why_p = f"Applying for this position is a deliberate career choice: as a professional newly entering Finland's industry, my foremost priority is establishing solid roots within an organization known for engineering rigor and operational stability. **{company}** offers precisely the collaborative culture where my proactive ticket discipline, eagerness to master your exact stack, and enthusiasm for foundational operational excellence will create lasting value for your team in {location}."
             else:
                 hook_p = f"With modern organizations increasingly prioritizing operational resilience and cloud continuity, I was excited to discover the **{title}** opening at **{company}**. Combining a Bachelor of Engineering in Information Technology from Turku University of Applied Sciences (TUAS, 4.0 / 4.0 GPA) with over eight years of progressive hands-on experience in enterprise systems administration, cloud infrastructure, and operational reliability, I am eager to deliver immediate reliability and operational excellence to your team."
@@ -844,7 +871,7 @@ Ystävällisin terveisin,
 
             ops_p = "Operational rigor and proactive prevention are central to how I work. In my role as Associate Tech Lead, I maintained a 94% First-Time-Fix rate across 200+ multi-OS workstations and 300+ user tenants while upholding strict ITIL SLA commitments and CAB change management governance. Rather than repeatedly resolving the same operational friction, I develop modular automation scripts in Python, Bash, and PowerShell that have reduced routine administrative overhead by 40%. Furthermore, earning 1st Place in the 2026 DNCS Live-Fire Cybersecurity Hackathon demonstrated my capacity to troubleshoot intricate technical environments, isolate cascading faults, and deliver dependable solutions under pressure."
 
-            closing_p = f"Based permanently in Finland with full EU work authorization, I offer immediate 0-day notice availability and am fully prepared for standard security clearance (perusmuotoinen turvallisuusselvitys) and reference verifications. I communicate fluently in English (C1) and am actively advancing my practical Finnish for everyday workplace communication. I welcome the opportunity to discuss how my technical depth, operational discipline, and customer-first mindset align with {company}'s objectives."
+            closing_p = f"Based in Finland with immediate 0-day notice availability, I am fully prepared for standard security clearance (perusmuotoinen turvallisuusselvitys) and reference verifications. I communicate fluently in English (C1) and welcome the opportunity to discuss how my technical depth, operational discipline, and customer-first mindset align with {company}'s objectives."
 
             md = f"""# {cand_name}
 {cand_location} | {cand_phone} | {cand_email} | [LinkedIn]({cand_linkedin})
@@ -916,7 +943,7 @@ CANDIDATE BASE DATA:
 - Education: B.Eng. in Information Technology, Turku University of Applied Sciences (TUAS), GPA 4.0 / 4.0.
 - Experience: 8+ years hands-on enterprise systems administration, Linux (RHEL/Ubuntu), Windows Server, Active Directory, Azure, M365, Entra ID, Intune, bare-metal hardware (HPE ProLiant DL20/DL380), automation (Python, Bash, PowerShell).
 - Track Record: Associate Tech Lead at Mainframe (200+ endpoints, 94% First-Time-Fix rate, CAB change management). 1st Place in 2026 DNCS Cyber Hackathon.
-- Finnish Grounding: Full EU Work Authorization, resident in Finland, 0-day notice period, ready for Supo security clearance. English: C1 (fluent), Finnish: conversational/actively advancing.
+- Finnish Grounding: Resident in Finland, 0-day notice period, ready for Supo security clearance. English: C1 (fluent). Strictly DO NOT claim conversational Finnish.
 
 ---
 INSTRUCTIONS:
@@ -927,7 +954,7 @@ Produce a STRICT JSON object containing:
   "tech_pillar_paragraph": "1 substantive paragraph (4-5 sentences) showing deep hands-on proficiency in the core technical platforms and tools requested in the JD.",
   "ops_pillar_paragraph": "1 impact-driven paragraph (4-5 sentences) highlighting real-world enterprise metrics: 94% FTF rate, 200+ multi-OS workstations, ITIL SLA discipline, Python/Bash/PowerShell automation, and 2026 hackathon win.",
   "why_company_paragraph": "1 authentic paragraph (3-4 sentences) articulating why {company} and this position are the candidate's top choice.",
-  "closing_paragraph": "1 confident closing paragraph highlighting permanent EU work authorization, immediate 0-day notice, Supo clearance readiness, C1 English and practical Finnish."
+  "closing_paragraph": "1 confident closing paragraph highlighting local residency in Finland, immediate 0-day notice, Supo clearance readiness, and fluent C1 English."
 }}
 """
         parsed, model_used, err_msg = call_gemini_json(prompt, timeout=25)
@@ -1050,7 +1077,7 @@ def generate_top_choice_pitch(title: str, company: str, location: str = "Finland
             )
             if len(why_candidate) > 395:
                 why_candidate = (
-                    f"Top choice for {company}'s {title}: 4.0 GPA in ICT (TUAS) + 8+ yrs enterprise infra ({top_skills_preview}). Delivered a 94% First-Time-Fix rate across 200+ endpoints with Python/Bash automation. Turnkey hire in Finland: permanent EU authorization, Supo-ready, and 0-day notice."
+                    f"Top choice for {company}'s {title}: 4.0 GPA in ICT (TUAS) + 8+ yrs enterprise infra ({top_skills_preview}). Delivered a 94% First-Time-Fix rate across 200+ endpoints with Python/Bash automation. Turnkey hire in Finland: Supo-ready, and 0-day notice."
                 )
             why_company = (
                 f"💡 Why {company} is My #1 Top Choice:\n\n"
@@ -1060,13 +1087,13 @@ def generate_top_choice_pitch(title: str, company: str, location: str = "Finland
             quick_connect = (
                 f"Hi! I'm an IT systems & infrastructure engineer based in Finland (TUAS B.Eng., 4.0 GPA). "
                 f"I saw the {title} role at {company} and wanted to reach out. "
-                f"With 8+ yrs in enterprise infra ({top_skills_preview}), 94% first-time-fix rate, 0-day notice, and permanent EU work authorization, I'd love to connect and discuss how I can support your team!"
+                f"With 8+ yrs in enterprise infra ({top_skills_preview}), 94% first-time-fix rate, and 0-day notice, I'd love to connect and discuss how I can support your team!"
             )
             if len(quick_connect) > 395:
                 quick_connect = (
                     f"Hi! I'm an IT systems engineer based in Finland (TUAS 4.0 GPA, 8+ yrs infra). "
                     f"I saw the {title} role at {company} and would love to connect! "
-                    f"With hands-on expertise in {top_skills_preview}, 0-day notice, and permanent EU authorization, I'm eager to contribute to your team."
+                    f"With hands-on expertise in {top_skills_preview} and 0-day notice, I'm eager to contribute to your team."
                 )
 
         if len(why_candidate) > 400:
@@ -1081,7 +1108,7 @@ def generate_top_choice_pitch(title: str, company: str, location: str = "Finland
             f"🔹 {matched_tech[0]}\n"
             f"🔹 {matched_tech[1] if len(matched_tech) > 1 else 'Automation scripting with PowerShell & Python'}\n"
             f"🔹 {matched_tech[2] if len(matched_tech) > 2 else 'ITIL-aligned incident response & high-availability systems'}\n\n"
-            f"With 8+ years of hands-on enterprise systems experience, permanent EU work authorization, and immediate 0-day notice availability, I'm excited to connect with anyone on the {company} team!\n\n"
+            f"With 8+ years of hands-on enterprise systems experience and immediate 0-day notice availability, I'm excited to connect with anyone on the {company} team!\n\n"
             f"#{clean_comp_tag} #FinlandTech #ITOperations #CloudSecurity #DevOps #Helsinki #Turku"
         )
 
@@ -1121,15 +1148,15 @@ CANDIDATE FACTUAL PROFILE ({cand_name}):
 - Education: B.Eng. in Information Technology, Turku University of Applied Sciences (TUAS), 4.0 / 4.0 GPA.
 - Experience: 8+ years hands-on enterprise systems administration, bare-metal server infrastructure (HPE DL20/DL380), hybrid cloud (Azure, M365, Entra ID, Intune), Linux (RHEL, Ubuntu), virtualization, security operations (Wazuh SIEM, Sentinel), automation (Python, Bash, PowerShell).
 - Track Record: Associate Tech Lead at Mainframe (200+ endpoints, 94% First-Time-Fix rate, CAB change management). 1st Place in 2026 DNCS Cyber Hackathon.
-- Finnish Grounding: Permanent EU Work Authorization, immediate 0-day notice availability, resident in Finland, prepared for Supo security clearance. Fluent English (C1), working Finnish.
+- Finnish Grounding: Immediate 0-day notice availability, resident in Finland, prepared for Supo security clearance. Fluent English (C1).
 
 ---
 TASK:
 Generate a specialized, high-converting LinkedIn Pitch Package in strict JSON format with these exact keys:
 {{
-  "why_top_choice_candidate": "Punchy, high-impact recruiter pitch strictly under 400 characters (aim for 320-390 characters). Hook with {title} & {company}, TUAS 4.0 GPA, 8+ yrs enterprise infra ({cand_name}'s key matching tech), 94% first-time-fix rate, permanent EU work authorization, and 0-day notice.",
+  "why_top_choice_candidate": "Punchy, high-impact recruiter pitch strictly under 400 characters (aim for 320-390 characters). Hook with {title} & {company}, TUAS 4.0 GPA, 8+ yrs enterprise infra ({cand_name}'s key matching tech), 94% first-time-fix rate, and 0-day notice.",
   "why_top_choice_company": "Compelling, authentic 2-paragraph motivation statement explaining why {company} and this role are {cand_name}'s top choice, referencing company context from the JD.",
-  "linkedin_quick_pitch": "Concise, high-converting LinkedIn pitch strictly under 400 characters (aim for 320-390 characters). Punchy hook citing role title and company, TUAS 4.0 GPA, key tech match from JD, 0-day notice, and permanent EU work authorization.",
+  "linkedin_quick_pitch": "Concise, high-converting LinkedIn pitch strictly under 400 characters (aim for 320-390 characters). Punchy hook citing role title and company, TUAS 4.0 GPA, key tech match from JD, and 0-day notice.",
   "linkedin_post_draft": "Ready-to-publish professional LinkedIn post with emojis, key alignment bullets, and hashtags.",
   "matched_skills": ["Top 4-5 technical skills extracted from JD that match the candidate"]
 }}

@@ -57,7 +57,7 @@ flowchart TD
 - **Input**: Base CV (`Base_CV.md`) + Job Analysis
 - **Actions**:
   - Reorder experience and technical skills to match the target job's primary stack.
-  - **Market Anti-Friction Badges:** Ensure header clearly defines residency/work authorization (*"Location: Turku / Helsinki, Finland (Full EU Work Authorization / Resident)"*) and transparent language proficiency (*"English (Fluent/C1), Finnish (Conversational / Actively studying)"*).
+  - **Clean Header & Truthful Framing:** Ensure header clearly defines clean location (*"Location: Turku / Helsinki, Finland"*) and factual language proficiency (*"English (Fluent / Professional C1)"*). Strictly avoid claiming conversational Finnish, and do not add redundant work authorization lines to CV headers.
   - Clean footer: Always conclude with verified professional references (Mr. Tero Virtanen, Senior Lecturer, TUAS); omit generic disclaimer footers.
 
 ### 4. Mandatory Google X-Y-Z Bullet Engineering
