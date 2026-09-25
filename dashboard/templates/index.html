@@ -3406,7 +3406,10 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
         const isScouted = (j.type === 'scouted' || j.status === 'scouted') && !['ready', 'applied', 'interviewing', 'offer'].includes(j.status) && !isArchived;
 
         let matchesTab = true;
-        if (tab === 'active') {
+        if (q && q.trim().length > 0) {
+          // When actively searching, search across all non-archived jobs (both active pipeline & scouted leads)
+          matchesTab = !isArchived;
+        } else if (tab === 'active') {
           matchesTab = !isArchived && !isScouted;
         } else if (tab === 'this_scout') {
           matchesTab = (j.from_this_scout || j.type === 'scouted' || j.status === 'scouted');
