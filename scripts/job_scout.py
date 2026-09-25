@@ -62,7 +62,8 @@ CANDIDATE_KEYWORDS = {
         "it support", "field service", "infrastructure engineer", "active directory",
         "azure", "microsoft 365", "entra id", "linux", "red hat", "powershell", "python",
         "junior", "entry level", "trainee", "service desk", "helpdesk", "l1", "l2",
-        "data center technician", "hardware technician"
+        "data center technician", "datacenter technician", "data center", "datacenter",
+        "infrastructure", "operations technician", "critical environment", "field technician", "hardware technician"
     ],
     "Tier 2 (Adjacent Match)": [
         "devops", "dev ops", "dv ops", "devsecops", "sysops", "cloud ops", "platform engineer",
@@ -888,6 +889,7 @@ def main():
             "IT Support Specialist",
             "Service Desk Analyst",
             "Data Center Technician",
+            "Datacenter Technician",
             "Field Service Technician",
             "SOC Analyst",
             "IT Specialist",
@@ -904,7 +906,7 @@ def main():
     parser.add_argument("--queries", "-q", nargs="+", default=default_queries, help="Search terms to query")
     parser.add_argument("--location", "-l", default=os.environ.get("SCOUT_LOCATION", "Finland"), help="Target location (default: Finland)")
     parser.add_argument("--hours", "-t", type=int, default=int(os.environ.get("SCOUT_LOOKBACK_HOURS", 168)), help="Hours old to search (default: 168h / 7 days)")
-    parser.add_argument("--limit", "-n", type=int, default=int(os.environ.get("SCOUT_LIMIT_PER_QUERY", 10)), help="Results wanted per query per site (default: 10)")
+    parser.add_argument("--limit", "-n", type=int, default=int(os.environ.get("SCOUT_LIMIT_PER_QUERY", 15)), help="Results wanted per query per site (default: 15)")
     parser.add_argument("--remote", action="store_true", help="Filter for remote jobs only")
     parser.add_argument("--sites", nargs="+", default=["linkedin", "indeed", "google", "glassdoor"], help="Sites to scrape (linkedin, indeed, google, glassdoor)")
     
