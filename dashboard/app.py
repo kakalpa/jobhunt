@@ -198,6 +198,9 @@ def apply_security_headers(response):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
     response.headers["Content-Security-Policy"] = (
         "default-src 'self' https: data: 'unsafe-inline' 'unsafe-eval'; "
         "img-src 'self' data: https: blob:; "
@@ -372,7 +375,7 @@ def extract_role_info_from_jd(folder_path: Path, folder_name: str) -> dict:
                 if m_loc:
                     location = m_loc.group(1).strip()
             # URL regex: handles **Job Posting URL:**, * **URL:**, markdown links [text](http...), etc.
-            m_url = re.search(r'(?:Job Posting URL|Direct Link|URL|Apply Link|Posting Link|Application Link|Job Link|Apply|Reference)[\s\*:]*[:\-]?[\s\*]*(?:\[.*?\]\()?([https?://[^\s\)\"\]\>]+)', content, re.I)
+            m_url = re.search(r'(?:Job Posting URL|Direct Link|URL|Apply Link|Posting Link|Application Link|Job Link|Apply|Reference)[\s\*:]*[:\-]?[\s\*]*(?:\[.*?\]\()?\(?(https?://[^\s\)\"\]\>]+)', content, re.I)
             if m_url:
                 found_url = m_url.group(1).strip().rstrip('.,;*)"\'')
                 if not is_candidate_personal_url(found_url):

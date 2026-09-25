@@ -3009,6 +3009,15 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
       filterJobs();
     }
 
+    function clearSearchFilters() {
+      const searchBox = document.getElementById('search-box');
+      if (searchBox) searchBox.value = '';
+      const globalInput = document.getElementById('global-search-input');
+      if (globalInput) globalInput.value = '';
+      currentPlatformFilter = 'all';
+      filterJobs();
+    }
+
     function scrollToElement(id) {
       const el = document.getElementById(id);
       if (el) {
@@ -3400,27 +3409,30 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
       const langFilter = document.getElementById('language-filter')?.value || 'all';
       const tab = currentPipelineTab;
       
-      // Tokenize by punctuation/hyphens/slashes and spaces so "ALM Partners-", "ALM, Partners", etc. match cleanly
-      const qTokens = rawInput.toLowerCase().replace(/[-_.,;:!?/\\()]/g, ' ').split(/\s+/).filter(Boolean).map(t => {
-        if (t === 'aml') return 'alm'; // Auto-correct common acronym typo AML -> ALM
-        return t;
-      });
+      // Auto-correct common acronym typo AML -> ALM everywhere, strip trailing hyphens & punctuation, tokenize
+      const normalizedQuery = rawInput.toLowerCase().replace(/aml/gi, 'alm');
+      const qTokens = normalizedQuery.replace(/[-_.,;:!?/\\()]/g, ' ').split(/\s+/).filter(Boolean);
 
       const filtered = allJobs.filter(j => {
-        // Build unified search haystack for the job
+        // Build comprehensive search haystack for the job
         const haystack = [
           j.title || '',
           j.company || '',
           j.location || '',
           j.platform || '',
+          j.platform_display || '',
           j.notes || '',
-          j.folder || ''
+          j.folder || '',
+          j.url || ''
         ].join(' ').toLowerCase();
 
         // Every token in the query must match somewhere in the job
         const matchesQuery = qTokens.length === 0 || qTokens.every(token => haystack.includes(token));
-        const matchesScore = (j.match_score || 0) >= minScore;
-        const matchesLang = (langFilter === 'all') || (j.language_tag === langFilter);
+        
+        // When searching by keyword, prioritize keyword match over strict score/language/platform constraints
+        const matchesScore = (qTokens.length > 0) || ((j.match_score || 0) >= minScore);
+        const matchesLang = (qTokens.length > 0) || (langFilter === 'all') || (j.language_tag === langFilter);
+        const matchesPlatform = (qTokens.length > 0) || (currentPlatformFilter === 'all') || (getJobPlatformId(j) === currentPlatformFilter);
 
         const isArchived = ['rejected', 'archived', 'archive'].includes(j.status);
         const isOffer = j.status === 'offer';
@@ -3443,8 +3455,6 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
         } else if (tab === 'archived') {
           matchesTab = isArchived;
         }
-
-        const matchesPlatform = (currentPlatformFilter === 'all') || (getJobPlatformId(j) === currentPlatformFilter);
 
         return matchesQuery && matchesScore && matchesLang && matchesTab && matchesPlatform;
       });
@@ -3597,6 +3607,29 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
       const tableJobs = statusFilter === 'active' 
         ? jobs.filter(j => !['rejected', 'archived', 'archive'].includes(j.status))
         : jobs;
+
+      if (tableJobs.length === 0) {
+        const rawInput = (document.getElementById('search-box')?.value || document.getElementById('global-search-input')?.value || '').trim();
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td colspan="9" class="py-12 text-center text-slate-400">
+            <div class="flex flex-col items-center justify-center gap-2">
+              <i data-lucide="search-x" class="w-8 h-8 text-slate-500"></i>
+              <div class="text-sm font-medium text-slate-300">
+                ${rawInput ? `No applications found matching "<span class="text-sky-400 font-semibold">${escapeHtml(rawInput)}</span>"` : 'No applications found in this tab.'}
+              </div>
+              ${rawInput ? `
+                <button type="button" onclick="clearSearchFilters()" class="mt-2 px-3 py-1 bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 rounded-lg text-xs font-medium border border-sky-500/30 transition">
+                  Clear Search Filter
+                </button>
+              ` : ''}
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+        if (window.lucide) lucide.createIcons();
+        return;
+      }
 
       tableJobs.forEach(job => {
         const isArchived = ['rejected', 'archived', 'archive'].includes(job.status);
