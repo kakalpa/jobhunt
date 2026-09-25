@@ -663,7 +663,7 @@
               <input 
                 type="text" 
                 id="search-box" 
-                oninput="filterJobs()" 
+                oninput="onTableSearch(this.value)" 
                 placeholder="Filter title, company..." 
                 class="w-full bg-slate-800/90 border border-slate-700/70 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-sky-500"
               >
@@ -2995,8 +2995,16 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
 
     function onGlobalSearch(query) {
       const searchBox = document.getElementById('search-box');
-      if (searchBox) {
+      if (searchBox && searchBox.value !== query) {
         searchBox.value = query;
+      }
+      filterJobs();
+    }
+
+    function onTableSearch(query) {
+      const globalInput = document.getElementById('global-search-input');
+      if (globalInput && globalInput.value !== query) {
+        globalInput.value = query;
       }
       filterJobs();
     }
@@ -3387,17 +3395,30 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
     }
 
     function filterJobs() {
-      const q = (document.getElementById('search-box').value || '').toLowerCase();
-      const minScore = parseInt(document.getElementById('score-filter').value || '0', 10);
-      const langFilter = document.getElementById('language-filter').value;
+      const rawInput = (document.getElementById('search-box')?.value || document.getElementById('global-search-input')?.value || '').trim();
+      const minScore = parseInt(document.getElementById('score-filter')?.value || '0', 10);
+      const langFilter = document.getElementById('language-filter')?.value || 'all';
       const tab = currentPipelineTab;
       
+      // Tokenize by punctuation/hyphens/slashes and spaces so "ALM Partners-", "ALM, Partners", etc. match cleanly
+      const qTokens = rawInput.toLowerCase().replace(/[-_.,;:!?/\\()]/g, ' ').split(/\s+/).filter(Boolean).map(t => {
+        if (t === 'aml') return 'alm'; // Auto-correct common acronym typo AML -> ALM
+        return t;
+      });
+
       const filtered = allJobs.filter(j => {
-        const matchesQuery = !q || (
-          (j.title && j.title.toLowerCase().includes(q)) ||
-          (j.company && j.company.toLowerCase().includes(q)) ||
-          (j.location && j.location.toLowerCase().includes(q))
-        );
+        // Build unified search haystack for the job
+        const haystack = [
+          j.title || '',
+          j.company || '',
+          j.location || '',
+          j.platform || '',
+          j.notes || '',
+          j.folder || ''
+        ].join(' ').toLowerCase();
+
+        // Every token in the query must match somewhere in the job
+        const matchesQuery = qTokens.length === 0 || qTokens.every(token => haystack.includes(token));
         const matchesScore = (j.match_score || 0) >= minScore;
         const matchesLang = (langFilter === 'all') || (j.language_tag === langFilter);
 
@@ -3406,7 +3427,7 @@ TELEGRAM_MIN_MATCH_SCORE=80</pre>
         const isScouted = (j.type === 'scouted' || j.status === 'scouted') && !['ready', 'applied', 'interviewing', 'offer'].includes(j.status) && !isArchived;
 
         let matchesTab = true;
-        if (q && q.trim().length > 0) {
+        if (qTokens.length > 0) {
           // When actively searching, search across all non-archived jobs (both active pipeline & scouted leads)
           matchesTab = !isArchived;
         } else if (tab === 'active') {
