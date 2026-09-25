@@ -13,6 +13,7 @@ Creates the standard 9-file tailored package for any target IT / Cybersecurity j
 9. ATS Optimization & Keyword Report (ATS_Optimization_Report_<Folder>.md)
 """
 
+from __future__ import annotations
 import os
 import sys
 import re
@@ -20,6 +21,7 @@ import json
 import argparse
 import urllib.request
 import urllib.parse
+from typing import Union
 from datetime import datetime
 from pathlib import Path
 
@@ -854,7 +856,7 @@ Immediate availability (0 days notice). Ready to onboard right away.
     }
 
 def generate_interview_prep(
-    folder_path: Path | str,
+    folder_path: Union[Path, str],
     title: str,
     company: str,
     location: str = "Finland",
